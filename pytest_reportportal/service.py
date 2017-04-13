@@ -132,3 +132,4 @@ class PyTestService(object):
                           time=timestamp(), message=message,
                           level=log_level)
         PyTestService.RP.log(sl_rq)
+
