@@ -1,5 +1,6 @@
-# This program is free software: you can redistribute it and/or modify iit under the terms of the GPL licence
 import pytest
+# This program is free software: you can redistribute it
+# and/or modify iit under the terms of the GPL licence
 import logging
 from service import PyTestService
 
@@ -17,6 +18,7 @@ class RP_Report_Listener(object):
     def pytest_runtest_makereport(self, item, call):
         report = (yield).get_result()
         if report.when == "setup":
+
             # when function pytest_setup is called,
             # test item session is started in RP
             PyTestService.start_pytest_item(item)
@@ -50,6 +52,7 @@ def pytest_sessionstart(session):
         rp_uuid = config.getini('rp_uuid')
         rp_project = config.getini('rp_project')
         rp_endpoint = config.getini('rp_endpoint')
+        rp_launch_tags = config.getini('rp_launch_tags')
         # initialize PyTest
         PyTestService.init_service(
                 project=rp_project,
@@ -57,12 +60,14 @@ def pytest_sessionstart(session):
                 uuid=rp_uuid)
         launch_name = config.getoption('rp_launch')
 
-        PyTestService.start_launch(launch_name)
+        PyTestService.start_launch(launch_name, tags=rp_launch_tags)
 
 
 def pytest_sessionfinish(session):
     config = session.config
     if config.option.rp_launch:
+        # FixMe: currently method of RP api takes the string parameter
+        # so it is hardcoded
         PyTestService.finish_launch("RP_Launch")
 
 
@@ -103,3 +108,8 @@ def pytest_addoption(parser):
     parser.addini(
         "rp_project",
         help='Report Portal Project')
+
+    parser.addini(
+        'rp_launch_tags',
+        type='args',
+        help="Tags for of RP Launch, i.e Perfomance Regression")
