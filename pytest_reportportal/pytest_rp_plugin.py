@@ -6,8 +6,7 @@ from service import PyTestService
 
 
 class RPlogHandler(logging.Handler):
-    def __init__(self, level="INFO"):
-
+    def __init__(self, level=logging.NOTSET):
         super(RPlogHandler, self).__init__(level)
 
     def emit(self, record):
