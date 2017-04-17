@@ -27,11 +27,16 @@ class PyTestServiceClass(object):
         self.RP = None
         self.TEST_ITEM_STACK = []
         self.launch_id = None
+        self.loglevel_map = {
+            0: "TRACE",
+            10: "DEBUG",
+            20: "INFO",
+            30: "WARNING",
+            40: "ERROR"}
 
     def init_service(self, endpoint, project, uuid):
 
         if self.RP is None:
-            print("Initialize object")
             logging.debug(
                 msg="ReportPortal - Init service: "
                     "endpoint={0}, project={1}, uuid={2}".
@@ -44,8 +49,10 @@ class PyTestServiceClass(object):
             raise Exception("PyTest is initialized")
         return self.RP
 
-    def start_launch(self, launch_name=None, mode=None, tags=None, launch=None):
-        # In next versions launch object(suite, testcase) could be set as parameter
+    def start_launch(
+            self, launch_name=None, mode=None, tags=None, launch=None):
+        # In next versions launch object(suite, testcase)
+        # could be set as parameter
         sl_pt = StartLaunchRQ(
             name=launch_name,
             start_time=timestamp(),
@@ -112,7 +119,8 @@ class PyTestServiceClass(object):
             msg="ReportPortal - Stack: {0}".
                 format(self.TEST_ITEM_STACK))
 
-    def finish_launch(self, status):
+    def finish_launch(self, launch=None, status="rp_launch"):
+        # TO finish launch session str parameter is needed
         fl_rq = FinishExecutionRQ(
             end_time=timestamp(),
             status=status)
@@ -133,10 +141,9 @@ class PyTestServiceClass(object):
             return None
 
     def post_log(self, message, log_level="INFO"):
-        print("LOG LEVEL in POST LOG %s" % log_level)
         sl_rq = SaveLogRQ(item_id=self._get_top_id_from_stack(),
                           time=timestamp(), message=message,
-                          level=log_level)
+                          level=self.loglevel_map[log_level])
         self.RP.log(sl_rq)
 
 

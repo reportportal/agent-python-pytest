@@ -2,7 +2,7 @@ import pytest
 # This program is free software: you can redistribute it
 # and/or modify iit under the terms of the GPL licence
 import logging
-from service import PyTestService
+from .service import PyTestService
 
 
 class RPlogHandler(logging.Handler):
@@ -17,7 +17,6 @@ class RPlogHandler(logging.Handler):
         except:
             self.handleError(record)
 
-        print("LOGLEVEL in RPlogHandler %s" % self.level)
         return PyTestService.post_log(msg, log_level=self.level)
 
 
@@ -36,7 +35,7 @@ class RP_Report_Listener(object):
         if report.when == "setup":
 
             # when function pytest_setup is called,
-            # test item session is started in RP
+            # test item session will be started in RP
             PyTestService.start_pytest_item(item)
 
         if report.when == "call":
@@ -84,7 +83,7 @@ def pytest_sessionfinish(session):
     if config.option.rp_launch:
         # FixMe: currently method of RP api takes the string parameter
         # so it is hardcoded
-        PyTestService.finish_launch("RP_Launch")
+        PyTestService.finish_launch(status="RP_Launch")
 
 
 def pytest_configure(config):

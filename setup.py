@@ -21,9 +21,9 @@ setup(
     license="GNU General Public License v3",
     keywords=['testing', 'reporting', 'reportportal', 'pytest'],
     classifiers=[
-        "Programming Language :: Python :: 2",
-        'Programming Language :: Python :: 2.6',
-        'Programming Language :: Python :: 2.7'],
+        "Framework :: Pytest",
+        'Programming Language :: Python :: 2.7',
+        'Programming Language :: Python :: 3.4'],
     entry_points={
         'pytest11': [
             'pytest_reportportal = pytest_reportportal.pytest_rp_plugin',
