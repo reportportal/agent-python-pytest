@@ -39,3 +39,7 @@ For logging of the test item flow please use the python logging util:
 
 Run tests:
 py.test ./tests --rp_launch AnyLaunchName
+
+# Copyright Notice
+Licensed under the [GPLv3](https://www.gnu.org/licenses/quick-guide-gplv3.html)
+license (see the LICENSE file).
