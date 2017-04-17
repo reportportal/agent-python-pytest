@@ -1,26 +1,26 @@
 # agent-python-pytest
 Framework integration with PyTest
 
-Description:
+# Description:
 Plugin for reporting items results of Pytest to the 'Reportal Portal'.
 
-Install Plugin:
+# Install Plugin:
 pip install pytest-reportportal
 
-Usage:
+# Usage:
 
 Prepare the config file pytest.ini in root dir of tests.
 Content of the pytest.ini file:
-  [pytest]
-  mandatory fields
-  rp_uuid = uid reportportal
-  rp_endpoint = http://ip:port
-  rp_project = Project of ReportPortal
+  [pytest]\n
+  mandatory fields\n
+  rp_uuid = uid reportportal\n
+  rp_endpoint = http://ip:port\n
+  rp_project = Project of ReportPortal\n
 
   also launch tags could be added. But this parapmeter if not mandatory
-  rp_launch_tags = 'PyTest' 'Report_Portal'
+  rp_launch_tags = 'PyTest' 'Report_Portal'\n
 
-For logging of the test item flow please use the python logging util:
+# For logging of the test item flow please use the python logging util:
   import ReportPortal handler in the test module
   from pytest_reportportal.pytest_rp_plugin import RPlogHandler
   get logger
