@@ -1,8 +1,5 @@
-# Agent-python-pytest
-Plugin for Pytest Framework
-
-## Description:
-Plugin for reporting items results of Pytest to the 'Reportal Portal'.
+# agent-python-pytest
+Pytest plugin for reporting test results of Pytest to the 'Reportal Portal'.
 
 ## Usage:
 ### Install the plugin

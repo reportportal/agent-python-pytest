@@ -15,13 +15,12 @@ class Singleton(type):
 
     def __call__(cls, *args, **kwargs):
         if cls not in cls._instances:
-            cls._instances[cls] = \
-                super(Singleton, cls).__call__(*args, **kwargs)
+            cls._instances[cls] = super(Singleton, cls).__call__(
+                *args, **kwargs)
         return cls._instances[cls]
 
 
 class PyTestServiceClass(with_metaclass(Singleton, object)):
-    __metaclass__ = Singleton
 
     def __init__(self):
 
