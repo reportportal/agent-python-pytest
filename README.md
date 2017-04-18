@@ -1,12 +1,15 @@
 # agent-python-pytest
-Plugin for test item reporting to Report Portal server
+Plugin for Pytest Framework
 
 ## Description:
 Plugin for reporting items results of Pytest to the 'Reportal Portal'.
+```
+## Usage:
+
+### Install the plugin
 ```bash
 pip install pytest-reportportal
 ```
-## Usage:
 
 ### Prepare the config file pytest.ini in root dir of tests.
 Content of the pytest.ini file:
