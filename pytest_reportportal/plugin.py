@@ -5,21 +5,6 @@ import logging
 from .service import PyTestService
 
 
-class RPlogHandler(logging.Handler):
-    def __init__(self, level=logging.NOTSET):
-        super(RPlogHandler, self).__init__(level)
-
-    def emit(self, record):
-        try:
-            msg = self.format(record)
-        except (KeyboardInterrupt, SystemExit):
-            raise
-        except:
-            self.handleError(record)
-
-        return PyTestService.post_log(msg, log_level=self.level)
-
-
 class RP_Report_Listener(object):
 
     # Identifier if TestItem is called:
@@ -58,22 +43,23 @@ class RP_Report_Listener(object):
                 # the TestItem will reported as SKIPPED
                 item_result = "SKIPPED"
             PyTestService.finish_pytest_item(item_result)
+            self.called = None
 
 
 def pytest_sessionstart(session):
     config = session.config
     if config.option.rp_launch:
         # get config parameters if rp_launch option is set
-        rp_uuid = config.getini('rp_uuid')
-        rp_project = config.getini('rp_project')
-        rp_endpoint = config.getini('rp_endpoint')
-        rp_launch_tags = config.getini('rp_launch_tags')
+        rp_uuid = config.getini("rp_uuid")
+        rp_project = config.getini("rp_project")
+        rp_endpoint = config.getini("rp_endpoint")
+        rp_launch_tags = config.getini("rp_launch_tags")
         # initialize PyTest
         PyTestService.init_service(
                 project=rp_project,
                 endpoint=rp_endpoint,
                 uuid=rp_uuid)
-        launch_name = config.getoption('rp_launch')
+        launch_name = config.getoption("rp_launch")
 
         PyTestService.start_launch(launch_name, tags=rp_launch_tags)
 
@@ -87,44 +73,44 @@ def pytest_sessionfinish(session):
 
 
 def pytest_configure(config):
-    rp_launch = config.getoption('rp_launch')
+    rp_launch = config.getoption("rp_launch")
     if rp_launch:
         # set Pytest_Reporter and configure it
         config._reporter = RP_Report_Listener()
 
-        if hasattr(config, '_reporter'):
+        if hasattr(config, "_reporter"):
             config.pluginmanager.register(config._reporter)
 
 
 def pytest_unconfigure(config):
-    if hasattr(config, '_reporter'):
+    if hasattr(config, "_reporter"):
         reporter = config._reporter
         del config._reporter
         config.pluginmanager.unregister(reporter)
-        logging.debug('ReportPortal is unconfigured')
+        logging.debug("RP is unconfigured")
 
 
 def pytest_addoption(parser):
     group = parser.getgroup("reporting")
     group.addoption(
-        '--rp_launch',
-        action='store',
-        dest=None,
-        help="The Launch name for ReportPortal, i.e PyTest")
+        "--rp-launch",
+        action="store",
+        dest="rp_launch",
+        help="The Launch name for RP")
 
     parser.addini(
-        'rp_uuid',
+        "rp_uuid",
         help="Uid of RP user")
 
     parser.addini(
-        'rp_endpoint',
-        help="Report portal server")
+        "rp_endpoint",
+        help="RP server")
 
     parser.addini(
         "rp_project",
-        help='Report Portal Project')
+        help="RP Project")
 
     parser.addini(
-        'rp_launch_tags',
-        type='args',
+        "rp_launch_tags",
+        type="args",
         help="Tags for of RP Launch, i.e Perfomance Regression")
