@@ -22,7 +22,7 @@ also launch tags could be added. But this parapmeter if not mandatory `rp_launch
 ### For logging of the test item flow please use the python logging util:
 ```python
     # import ReportPortal handler in the test module
-    from pytest_reportportal.pytest_rp_plugin import RPlogHandler
+    from pytest_reportportal import RPlogHandler
     # get logger
     logger = logging.getLogger()
     # create hanler, set log level add it to the logger
