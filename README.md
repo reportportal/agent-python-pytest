@@ -39,7 +39,7 @@ also launch tags could be added. But this parapmeter if not mandatory `rp_launch
 ### Run tests:
 ```bash
 py.test ./tests --rp_launch AnyLaunchName
-
+```
 ## Copyright Notice
 Licensed under the [GPLv3](https://www.gnu.org/licenses/quick-guide-gplv3.html)
 license (see the LICENSE file).
