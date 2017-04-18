@@ -3,7 +3,7 @@ Plugin for Pytest Framework
 
 ## Description:
 Plugin for reporting items results of Pytest to the 'Reportal Portal'.
-```
+
 ## Usage:
 
 ### Install the plugin
