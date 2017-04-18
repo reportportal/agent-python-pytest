@@ -5,7 +5,6 @@ Plugin for Pytest Framework
 Plugin for reporting items results of Pytest to the 'Reportal Portal'.
 
 ## Usage:
-
 ### Install the plugin
 ```bash
 pip install pytest-reportportal
