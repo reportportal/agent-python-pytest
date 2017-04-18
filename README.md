@@ -1,9 +1,9 @@
-# agent-python-pytest
+# Agent-python-pytest
 Plugin for Pytest Framework
 
 ## Description:
 Plugin for reporting items results of Pytest to the 'Reportal Portal'.
-```
+
 ## Usage:
 
 ### Install the plugin
@@ -22,7 +22,7 @@ rp_project = Project of ReportPortal
 ```
 also launch tags could be added. But this parapmeter if not mandatory `rp_launch_tags = 'PyTest' 'Report_Portal'`.
 
-### For logging of the test item flow please use the python logging util:
+### For logging of the test item flow please use the python logging util.
 ```python
     # import ReportPortal handler in the test module
     from pytest_reportportal import RPlogHandler
