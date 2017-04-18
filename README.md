@@ -35,10 +35,10 @@ also launch tags could be added. But this parapmeter if not mandatory `rp_launch
         x = "this"
         logger.info("Case1. Step2")
         assert 'h' in x
-
+```
 ### Run tests:
 ```bash
-py.test ./tests --rp_launch AnyLaunchName
+py.test ./tests --rp-launch AnyLaunchName
 ```
 ## Copyright Notice
 Licensed under the [GPLv3](https://www.gnu.org/licenses/quick-guide-gplv3.html)
