@@ -1,4 +1,6 @@
 # agent-python-pytest
+`draft version. under development`
+
 Pytest plugin for reporting test results of Pytest to the 'Reportal Portal'.
 
 ## Usage:
