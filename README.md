@@ -10,9 +10,9 @@ pip install pytest-reportportal
 ### Prepare the config file pytest.ini in root dir of tests.
 The pytest.ini file should have next mandatory fiilds:
 
-rp_uuid - number could be found in the User profile section
-rp_project - name of project in Report potal
-rp_endpoint - address of Report Portal Server
+ - rp_uuid - number could be found in the User profile section
+ - rp_project - name of project in Report potal
+ - rp_endpoint - address of Report Portal Server
 
 ```
 [pytest]
