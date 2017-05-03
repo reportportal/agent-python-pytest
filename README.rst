@@ -86,5 +86,7 @@ To run test with Report Portal you need to specify neme of :code:`launch`:
 
 Copyright Notice
 ----------------
-Licensed under the [GPLv3](https://www.gnu.org/licenses/quick-guide-gplv3.html)
-license (see the LICENSE file).
+
+Licensed under the GPLv3 license (see the LICENSE file).
+
+.. GPLv3:  https://www.gnu.org/licenses/quick-guide-gplv3.html
