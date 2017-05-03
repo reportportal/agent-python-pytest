@@ -16,7 +16,7 @@ setup(
     name="pytest-reportportal",
     version=version,
     description="Agent for Reproting results of tests to the Report Portal server",
-    long_description=read_file("README.md") + "\n\n",
+    long_description=read_file("README.rst") + "\n\n",
     author="Pavel Papou",
     author_email="SupportEPMC-TSTReportPortal@epam.com",
     url="https://github.com/reportportal/agent-python-pytest",
