@@ -1,7 +1,11 @@
-import pytest
 # This program is free software: you can redistribute it
 # and/or modify it under the terms of the GPL licence
+
 import logging
+import html
+
+import pytest
+
 from .service import PyTestService
 
 
@@ -17,6 +21,10 @@ class RP_Report_Listener(object):
     @pytest.mark.hookwrapper
     def pytest_runtest_makereport(self, item, call):
         report = (yield).get_result()
+
+        if report.longrepr:
+            PyTestService.post_log(html.escape(str(report.longrepr)), logging.ERROR)
+
         if report.when == "setup":
 
             # when function pytest_setup is called,
