@@ -30,12 +30,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
         # Map loglevel codes from `logging` module to ReportPortal text names:
         self.loglevel_map = {
-            0: "TRACE",  # logging.NOTSET ->  'TRACE'
-            10: "DEBUG",
-            20: "INFO",
-            30: "WARN",
-            40: "ERROR",
-            50: "ERROR",  # logging.CRITICAL ->  'TRACE'
+            logging.NOTSET: "TRACE",
+            logging.DEBUG: "DEBUG",
+            logging.INFO: "INFO",
+            logging.WARNING: "WARN",
+            logging.ERROR: "ERROR",
+            logging.CRITICAL: "ERROR",
         }
 
     def init_service(self, endpoint, project, uuid):
