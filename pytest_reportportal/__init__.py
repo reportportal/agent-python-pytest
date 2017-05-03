@@ -14,4 +14,4 @@ class RPlogHandler(logging.Handler):
         except:
             self.handleError(record)
 
-        return PyTestService.post_log(msg, log_level=self.level)
+        return PyTestService.post_log(msg, log_level=record.levelno)

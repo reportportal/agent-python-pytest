@@ -27,12 +27,16 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.RP = None
         self.TEST_ITEM_STACK = []
         self.launch_id = None
+
+        # Map loglevel codes from `logging` module to ReportPortal text names:
         self.loglevel_map = {
-            0: "TRACE",
-            10: "DEBUG",
-            20: "INFO",
-            30: "WARNING",
-            40: "ERROR"}
+            logging.NOTSET: "TRACE",
+            logging.DEBUG: "DEBUG",
+            logging.INFO: "INFO",
+            logging.WARNING: "WARN",
+            logging.ERROR: "ERROR",
+            logging.CRITICAL: "ERROR",
+        }
 
     def init_service(self, endpoint, project, uuid):
 
@@ -140,7 +144,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except IndexError:
             return None
 
-    def post_log(self, message, log_level="INFO"):
+    def post_log(self, message, log_level=logging.INFO):
         sl_rq = SaveLogRQ(item_id=self._get_top_id_from_stack(),
                           time=timestamp(), message=message,
                           level=self.loglevel_map[log_level])
