@@ -144,7 +144,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except IndexError:
             return None
 
-    def post_log(self, message, log_level="INFO"):
+    def post_log(self, message, log_level=logging.INFO):
         sl_rq = SaveLogRQ(item_id=self._get_top_id_from_stack(),
                           time=timestamp(), message=message,
                           level=self.loglevel_map[log_level])
