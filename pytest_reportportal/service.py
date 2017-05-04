@@ -22,21 +22,12 @@ class Singleton(type):
 
 class PyTestServiceClass(with_metaclass(Singleton, object)):
 
-    def __init__(self):
+    _loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
 
+    def __init__(self):
         self.RP = None
         self.TEST_ITEM_STACK = []
         self.launch_id = None
-
-        # Map loglevel codes from `logging` module to ReportPortal text names:
-        self.loglevel_map = {
-            logging.NOTSET: "TRACE",
-            logging.DEBUG: "DEBUG",
-            logging.INFO: "INFO",
-            logging.WARNING: "WARN",
-            logging.ERROR: "ERROR",
-            logging.CRITICAL: "ERROR",
-        }
 
     def init_service(self, endpoint, project, uuid):
 
@@ -144,10 +135,15 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except IndexError:
             return None
 
-    def post_log(self, message, log_level=logging.INFO):
+    def post_log(self, message, loglevel='INFO'):
+        if loglevel not in self._loglevels:
+            logging.warning('Incorrect loglevel = {}. Force set to INFO. Avaliable levels: '
+                            '{}.'.format(loglevel, self._loglevels))
+            loglevel = 'INFO'
+
         sl_rq = SaveLogRQ(item_id=self._get_top_id_from_stack(),
                           time=timestamp(), message=message,
-                          level=self.loglevel_map[log_level])
+                          level=loglevel)
         self.RP.log(sl_rq)
 
 
