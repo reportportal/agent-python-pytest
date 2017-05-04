@@ -2,7 +2,7 @@
 # and/or modify it under the terms of the GPL licence
 
 import logging
-import html
+import cgi
 
 import pytest
 
@@ -23,7 +23,7 @@ class RP_Report_Listener(object):
         report = (yield).get_result()
 
         if report.longrepr:
-            PyTestService.post_log(html.escape(str(report.longrepr)), logging.ERROR)
+            PyTestService.post_log(cgi.escape(str(report.longrepr)), logging.ERROR)
 
         if report.when == "setup":
 
