@@ -23,7 +23,7 @@ class RP_Report_Listener(object):
         report = (yield).get_result()
 
         if report.longrepr:
-            PyTestService.post_log(cgi.escape(str(report.longrepr)), logging.ERROR)
+            PyTestService.post_log(cgi.escape(report.longreprtext), logging.ERROR)
 
         if report.when == "setup":
 
