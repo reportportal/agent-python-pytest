@@ -42,9 +42,10 @@ Example of :code:`pytest.ini`:
 .. code-block:: text
 
     [pytest]
-    rp_uuid = uuid Report Portal
-    rp_endpoint = http://ip:port
-    rp_project = Project of Report Portal
+    rp_uuid = fb586627-32be-47dd-93c1-678873458a5f
+    rp_endpoint = http://192.168.1.10:8080
+    rp_project = user_personal
+    rp_launch_tags = 'PyTest' 'Smoke'
 
 Also launch tags could be added, but this parapmeter is not
 mandatory :code:`rp_launch_tags = 'PyTest' 'Report_Portal'`.
