@@ -59,20 +59,28 @@ logging handler privided by plugin like bellow:
 
 .. code-block:: python
 
-    # Import Report Portal handler in the test module.
+    import logging
+    # Import Report Portal handler to the test module.
     from pytest_reportportal import RPlogHandler
-    # Get logger.
-    logger = logging.getLogger()
-    # Create hanler, set log level add it to the logger.
+    # Setting up a logging.
+    logger = logging.getLogger(__name__)
+    logger.setLevel(logging.DEBUG)
+    # Create handler for Report Portal.
     rp_handler = RPlogHandler()
+    # Set INFO level for Report Portal handler.
     rp_handler.setLevel(logging.INFO)
+    # Add handler to the logger.
     logger.addHandler(rp_handler)
+
+
     # In this case only INFO messages will be sent to the Report Portal.
-    def test_one(self):
+    def test_one():
         logger.info("Case1. Step1")
         x = "this"
-        logger.info("Case1. Step2")
+        logger.info("x is: %s", x)
         assert 'h' in x
+        # This debug message will not be sent to the Report Portal.
+        logger.debug("Case1. Debug message")
 
 
 Launching
