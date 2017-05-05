@@ -6,7 +6,7 @@ def read_file(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-version = "0.2.3"
+version = "0.2.4"
 requirements = [
     "reportportal-client>=2.5.4",
     "pytest>=3.0.7",
@@ -16,7 +16,7 @@ setup(
     name="pytest-reportportal",
     version=version,
     description="Agent for Reproting results of tests to the Report Portal server",
-    long_description=read_file("README.md") + "\n\n",
+    long_description=read_file("README.rst") + "\n\n",
     author="Pavel Papou",
     author_email="SupportEPMC-TSTReportPortal@epam.com",
     url="https://github.com/reportportal/agent-python-pytest",
