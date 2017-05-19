@@ -91,6 +91,10 @@ def pytest_configure(config):
 
 
 def pytest_unconfigure(config):
+    rp_launch = config.getoption("rp_launch")
+    if rp_launch:
+        PyTestService.terminate_service()
+
     if hasattr(config, "_reporter"):
         reporter = config._reporter
         del config._reporter
