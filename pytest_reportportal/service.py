@@ -47,12 +47,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self, launch_name=None, mode=None, tags=None, launch=None):
         # In next versions launch object(suite, testcase)
         # could be set as parameter
-        sl_pt = dict(
-            name=launch_name,
-            start_time=timestamp(),
-            description='Pytest Launch',
-            mode=mode,
-            tags=tags)
+        sl_pt = {
+            "name": launch_name,
+            "start_time": timestamp(),
+            "description": 'Pytest Launch',
+            "mode": mode,
+            "tags": tags
+        }
         logging.debug("ReportPortal - Start launch: "
                       "request_body={0}".format(sl_pt))
         req_data = self.RP.start_launch(**sl_pt)
@@ -64,47 +65,56 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             # for common items
             item_description = test_item.function.__doc__
         except AttributeError:
-            # doctest  has no `function` attribute
+            # doctest has no `function` attribute
             item_description = test_item.reportinfo()[2]
-        start_rq = dict(
-            name=test_item.name,
-            description=item_description,
-            tags=['PyTest Item Tag'],
-            start_time=timestamp(),
-            type="TEST")
+        start_rq = {
+            "name": test_item.name,
+            "description": item_description,
+            "tags": ['PyTest Item Tag'],
+            "start_time": timestamp(),
+            "item_type": "TEST"
+        }
 
         logging.debug(
             "ReportPortal - Start TestItem: "
-            "request_body={0}".format(start_rq))
+            "request_body=%s", start_rq)
 
         self.RP.start_test_item(**start_rq)
 
     def finish_pytest_item(self, status, issue=None):
-        fta_rq = dict(end_time=timestamp(),
-                      status=status,
-                      issue=issue)
+        fta_rq = {
+            "end_time": timestamp(),
+            "status": status,
+            "issue": issue
+        }
 
         logging.debug(
             "ReportPortal - Finish TestItem:"
-            " request_body={0}".format(fta_rq))
+            " request_body=%s", fta_rq)
         self.RP.finish_test_item(**fta_rq)
 
     def finish_launch(self, launch=None, status="rp_launch"):
         # TO finish launch session str parameter is needed
-        fl_rq = dict(
-            end_time=timestamp(),
-            status=status)
-        logging.debug(msg="ReportPortal - Finish launch: "
-                          "request_body={0}".format(fl_rq))
+        fl_rq = {
+            "end_time": timestamp(),
+            "status": status
+        }
+        logging.debug("ReportPortal - Finish launch: "
+                      "request_body=%s", fl_rq)
         self.RP.finish_launch(**fl_rq)
 
     def post_log(self, message, loglevel='INFO'):
         if loglevel not in self._loglevels:
-            logging.warning('Incorrect loglevel = {}. Force set to INFO. Avaliable levels: '
-                            '{}.'.format(loglevel, self._loglevels))
+            logging.warning(
+                'Incorrect loglevel = %s. Force set to INFO. Avaliable levels:'
+                ' %s.', loglevel, self._loglevels)
             loglevel = 'INFO'
 
-        sl_rq = dict(time=timestamp(), message=message, level=loglevel)
+        sl_rq = {
+            "time": timestamp(),
+            "message": message,
+            "level": loglevel
+        }
         self.RP.log(**sl_rq)
 
 
