@@ -4,6 +4,10 @@ from six import with_metaclass
 from reportportal_client import ReportPortalServiceAsync
 
 
+def async_error_handler(exception):
+    raise exception
+
+
 def timestamp():
     return str(int(time() * 1000))
 
@@ -34,7 +38,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self.RP = ReportPortalServiceAsync(
                 endpoint=endpoint,
                 project=project,
-                token=uuid)
+                token=uuid,
+                error_handler=async_error_handler)
         else:
             logging.debug("The pytest is already initialized")
         return self.RP
@@ -103,17 +108,18 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                       "request_body=%s", fl_rq)
         self.RP.finish_launch(**fl_rq)
 
-    def post_log(self, message, loglevel='INFO'):
+    def post_log(self, message, loglevel='INFO', attachment=None):
         if loglevel not in self._loglevels:
-            logging.warning(
-                'Incorrect loglevel = %s. Force set to INFO. Avaliable levels:'
-                ' %s.', loglevel, self._loglevels)
+            logging.warning('Incorrect loglevel = {}. Force set to INFO. '
+                            'Avaliable levels: {}.'
+                            .format(loglevel, self._loglevels))
             loglevel = 'INFO'
 
         sl_rq = {
             "time": timestamp(),
             "message": message,
-            "level": loglevel
+            "level": loglevel,
+            "attachment": attachment,
         }
         self.RP.log(**sl_rq)
 
