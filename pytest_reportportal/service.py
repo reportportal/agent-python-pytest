@@ -1,11 +1,15 @@
 import logging
+import traceback
 from time import time
+
 from six import with_metaclass
+
 from reportportal_client import ReportPortalServiceAsync
 
 
-def async_error_handler(exception):
-    raise exception
+def async_error_handler(exc_info):
+    exc, msg, tb = exc_info
+    traceback.print_exception(exc, msg, tb)
 
 
 def timestamp():
@@ -49,7 +53,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self.RP.terminate()
 
     def start_launch(
-            self, launch_name=None, mode=None, tags=None, launch=None):
+            self, launch_name, mode=None, tags=None):
         # In next versions launch object(suite, testcase)
         # could be set as parameter
         sl_pt = {
