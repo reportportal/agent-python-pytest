@@ -64,10 +64,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             "tags": tags
         }
         logging.debug("ReportPortal - Start launch: "
-                      "request_body={0}".format(sl_pt))
+                      "request_body=%s", sl_pt)
         req_data = self.RP.start_launch(**sl_pt)
         logging.debug("ReportPortal - Launch started: "
-                      "response_body={0}".format(req_data))
+                      "response_body=%s", req_data)
 
     def start_pytest_item(self, test_item=None):
         try:
@@ -114,9 +114,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def post_log(self, message, loglevel='INFO', attachment=None):
         if loglevel not in self._loglevels:
-            logging.warning('Incorrect loglevel = {}. Force set to INFO. '
-                            'Avaliable levels: {}.'
-                            .format(loglevel, self._loglevels))
+            logging.warning('Incorrect loglevel = %s. Force set to INFO. '
+                            'Avaliable levels: %s.', loglevel, self._loglevels)
             loglevel = 'INFO'
 
         sl_rq = {
