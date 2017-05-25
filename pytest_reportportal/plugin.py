@@ -58,45 +58,38 @@ class RP_Report_Listener(object):
 
 
 def pytest_sessionstart(session):
-    config = session.config
-    if config.option.rp_launch:
-        # get config parameters if rp_launch option is set
-        rp_uuid = config.getini("rp_uuid")
-        rp_project = config.getini("rp_project")
-        rp_endpoint = config.getini("rp_endpoint")
-        rp_launch_tags = config.getini("rp_launch_tags")
-        # initialize PyTest
-        PyTestService.init_service(
-                project=rp_project,
-                endpoint=rp_endpoint,
-                uuid=rp_uuid)
-        launch_name = config.getoption("rp_launch")
+    PyTestService.init_service(
+        project=session.config.getini("rp_project"),
+        endpoint=session.config.getini("rp_endpoint"),
+        uuid=session.config.getini("rp_uuid"),
+    )
 
-        PyTestService.start_launch(launch_name, tags=rp_launch_tags)
+    PyTestService.start_launch(
+        session.config.option.rp_launch,
+        tags=session.config.getini("rp_launch_tags"),
+        description=session.config.getini("rp_launch_description"),
+    )
 
 
 def pytest_sessionfinish(session):
-    config = session.config
-    if config.option.rp_launch:
-        # FixMe: currently method of RP api takes the string parameter
-        # so it is hardcoded
-        PyTestService.finish_launch(status="RP_Launch")
+    # FixMe: currently method of RP api takes the string parameter
+    # so it is hardcoded
+    PyTestService.finish_launch(status="RP_Launch")
 
 
 def pytest_configure(config):
-    rp_launch = config.getoption("rp_launch")
-    if rp_launch:
-        # set Pytest_Reporter and configure it
-        config._reporter = RP_Report_Listener()
+    if not config.option.rp_launch:
+        config.option.rp_launch = config.getini("rp_launch")
 
-        if hasattr(config, "_reporter"):
-            config.pluginmanager.register(config._reporter)
+    # set Pytest_Reporter and configure it
+    config._reporter = RP_Report_Listener()
+
+    if hasattr(config, "_reporter"):
+        config.pluginmanager.register(config._reporter)
 
 
 def pytest_unconfigure(config):
-    rp_launch = config.getoption("rp_launch")
-    if rp_launch:
-        PyTestService.terminate_service()
+    PyTestService.terminate_service()
 
     if hasattr(config, "_reporter"):
         reporter = config._reporter
@@ -111,21 +104,31 @@ def pytest_addoption(parser):
         "--rp-launch",
         action="store",
         dest="rp_launch",
-        help="The Launch name for RP")
+        help="Launch name (overrides rp_launch config option)")
 
     parser.addini(
         "rp_uuid",
-        help="Uid of RP user")
+        help="UUID")
 
     parser.addini(
         "rp_endpoint",
-        help="RP server")
+        help="Server endpoint")
 
     parser.addini(
         "rp_project",
-        help="RP Project")
+        help="Project name")
+
+    parser.addini(
+        "rp_launch",
+        default="Pytest Launch",
+        help="Launch name")
 
     parser.addini(
         "rp_launch_tags",
         type="args",
-        help="Tags for of RP Launch, i.e Perfomance Regression")
+        help="Launch tags, i.e Performance Regression")
+
+    parser.addini(
+        "rp_launch_description",
+        default="",
+        help="Launch description")

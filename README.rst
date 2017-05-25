@@ -33,7 +33,7 @@ any one using pytest command line option:
 
 The :code:`pytest.ini` file should have next mandatory fields:
 
-- :code:`rp_uuid` - number could be found in the User profile section
+- :code:`rp_uuid` - value could be found in the User Profile section
 - :code:`rp_project` - name of project in Report Potal
 - :code:`rp_endpoint` - address of Report Portal Server
 
@@ -45,10 +45,16 @@ Example of :code:`pytest.ini`:
     rp_uuid = fb586627-32be-47dd-93c1-678873458a5f
     rp_endpoint = http://192.168.1.10:8080
     rp_project = user_personal
+    rp_launch = AnyLaunchName
     rp_launch_tags = 'PyTest' 'Smoke'
+    rp_launch_description = 'Smoke test'
 
-Also launch tags could be added, but this parapmeter is not
-mandatory :code:`rp_launch_tags = 'PyTest' 'Report_Portal'`.
+The following parapmeters are optional:
+
+- :code:`rp_launch = AnyLaunchName` - launch name (could be overriden
+  by pytest --rp-launch option, default value is 'Pytest Launch')
+- :code:`rp_launch_tags = 'PyTest' 'Smoke'` - list of tags
+- :code:`rp_launch_description = 'Smoke test'` - launch description
 
 
 Logging
@@ -100,7 +106,7 @@ logging handler privided by plugin like bellow:
 Launching
 ~~~~~~~~~
 
-To run test with Report Portal you need to specify neme of :code:`launch`:
+To run test with Report Portal you can specify name of :code:`launch`:
 
 .. code-block:: bash
 
