@@ -15,7 +15,7 @@ requirements = [
 setup(
     name="pytest-reportportal",
     version=version,
-    description="Agent for Reproting results of tests to the Report Portal server",
+    description="Agent for Reporting results of tests to the Report Portal server",
     long_description=read_file("README.rst") + "\n\n",
     author="Pavel Papou",
     author_email="SupportEPMC-TSTReportPortal@epam.com",

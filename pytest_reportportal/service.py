@@ -3,6 +3,7 @@ import traceback
 from time import time
 
 from six import with_metaclass
+from _pytest.mark import MarkMapping
 
 from reportportal_client import ReportPortalServiceAsync
 
@@ -53,13 +54,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self.RP.terminate()
 
     def start_launch(
-            self, launch_name, mode=None, tags=None):
+            self, launch_name, mode=None, tags=None, description=None):
         # In next versions launch object(suite, testcase)
         # could be set as parameter
         sl_pt = {
             "name": launch_name,
             "start_time": timestamp(),
-            "description": 'Pytest Launch',
+            "description": description,
             "mode": mode,
             "tags": tags
         }
@@ -76,10 +77,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except AttributeError:
             # doctest has no `function` attribute
             item_description = test_item.reportinfo()[2]
+
+        # extract names of @pytest.mark.* decorators used for test item
+        item_tags = list(MarkMapping(test_item.keywords)._mymarks)
+
         start_rq = {
             "name": test_item.name,
             "description": item_description,
-            "tags": ['PyTest Item Tag'],
+            "tags": item_tags,
             "start_time": timestamp(),
             "item_type": "TEST"
         }
