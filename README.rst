@@ -57,11 +57,11 @@ The following parapmeters are optional:
 - :code:`rp_launch_description = 'Smoke test'` - launch description
 
 
-Logging
-~~~~~~~
+Examples
+~~~~~~~~
 
 For logging of the test item flow to Report Portal, please, use the python
-logging handler privided by plugin like bellow:
+logging handler provided by plugin like bellow:
 
 .. code-block:: python
 
@@ -101,6 +101,28 @@ logging handler privided by plugin like bellow:
 
         # This debug message will not be sent to the Report Portal.
         logger.debug("Case1. Debug message")
+
+Plugin can report doc-strings of tests as :code:`descriptions`:
+
+.. code-block:: python
+
+    def test_one():
+        """
+        Description of the test case which will be sent to Report Portal
+        """
+        pass
+
+Pytest markers will be attached as :code:`tags` to Report Portal items.
+In the following example tags 'linux' and 'win32' will be used:
+
+.. code-block:: python
+
+    import pytest
+
+    @pytest.mark.win32
+    @pytest.mark.linux
+    def test_one():
+        pass
 
 
 Launching
