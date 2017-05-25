@@ -6,7 +6,7 @@ def read_file(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-version = "0.2.3"
+version = "0.2.5"
 requirements = [
     "reportportal-client>=2.5.4",
     "pytest>=3.0.7",
