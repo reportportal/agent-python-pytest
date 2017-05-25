@@ -60,9 +60,10 @@ logging handler privided by plugin like bellow:
 .. code-block:: python
 
     import logging
-    # Import Report Portal handler to the test module.
-    from pytest_reportportal import RPlogHandler
+    # Import Report Portal logger and handler to the test module.
+    from pytest_reportportal import RPLogger, RPLogHandler
     # Setting up a logging.
+    logging.setLoggerClass(RPLogger)
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     # Create handler for Report Portal.
@@ -79,6 +80,19 @@ logging handler privided by plugin like bellow:
         x = "this"
         logger.info("x is: %s", x)
         assert 'h' in x
+
+        # Message with an attachment.
+        import subprocess
+        free_memory = subprocess.check_output("free -h".split())
+        logger.info(
+            "Case1. Memory consumption",
+            attachment={
+                "name": "free_memory.txt",
+                "data": free_memory,
+                "mime": "application/octet-stream",
+            },
+        )
+
         # This debug message will not be sent to the Report Portal.
         logger.debug("Case1. Debug message")
 

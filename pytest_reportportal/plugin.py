@@ -23,7 +23,10 @@ class RP_Report_Listener(object):
         report = (yield).get_result()
 
         if report.longrepr:
-            PyTestService.post_log(cgi.escape(report.longreprtext), loglevel='ERROR')
+            PyTestService.post_log(
+                cgi.escape(report.longreprtext),
+                loglevel='ERROR',
+            )
 
         if report.when == "setup":
 
@@ -91,6 +94,10 @@ def pytest_configure(config):
 
 
 def pytest_unconfigure(config):
+    rp_launch = config.getoption("rp_launch")
+    if rp_launch:
+        PyTestService.terminate_service()
+
     if hasattr(config, "_reporter"):
         reporter = config._reporter
         del config._reporter
