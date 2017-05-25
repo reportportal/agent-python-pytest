@@ -29,7 +29,6 @@ class RP_Report_Listener(object):
             )
 
         if report.when == "setup":
-
             # when function pytest_setup is called,
             # test item session will be started in RP
             PyTestService.start_pytest_item(item)
