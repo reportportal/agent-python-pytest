@@ -55,6 +55,7 @@ The following parapmeters are optional:
   by pytest --rp-launch option, default value is 'Pytest Launch')
 - :code:`rp_launch_tags = 'PyTest' 'Smoke'` - list of tags
 - :code:`rp_launch_description = 'Smoke test'` - launch description
+- :code:`rp_log_batch_size = 20` - size of batch log request
 
 
 Examples

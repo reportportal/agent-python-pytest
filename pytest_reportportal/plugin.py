@@ -61,6 +61,7 @@ def pytest_sessionstart(session):
         project=session.config.getini("rp_project"),
         endpoint=session.config.getini("rp_endpoint"),
         uuid=session.config.getini("rp_uuid"),
+        log_batch_size=int(session.config.getini("rp_log_batch_size"))
     )
 
     PyTestService.start_launch(
@@ -131,3 +132,8 @@ def pytest_addoption(parser):
         "rp_launch_description",
         default="",
         help="Launch description")
+
+    parser.addini(
+        "rp_log_batch_size",
+        default="20",
+        help="Size of batch log requests in async mode")

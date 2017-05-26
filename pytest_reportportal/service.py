@@ -33,7 +33,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
     def __init__(self):
         self.RP = None
 
-    def init_service(self, endpoint, project, uuid):
+    def init_service(self, endpoint, project, uuid, log_batch_size):
         if self.RP is None:
             logging.debug(
                 msg="ReportPortal - Init service: "
@@ -43,7 +43,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 endpoint=endpoint,
                 project=project,
                 token=uuid,
-                error_handler=async_error_handler)
+                error_handler=async_error_handler,
+                log_batch_size=log_batch_size)
         else:
             logging.debug("The pytest is already initialized")
         return self.RP
