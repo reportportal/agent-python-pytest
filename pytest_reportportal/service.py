@@ -3,7 +3,6 @@ import traceback
 from time import time
 
 from six import with_metaclass
-from _pytest.mark import MarkMapping
 
 from reportportal_client import ReportPortalServiceAsync
 
@@ -71,22 +70,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                       "response_body=%s", req_data)
 
     def start_pytest_item(self, test_item=None):
-        try:
-            # for common items
-            item_description = test_item.function.__doc__
-        except AttributeError:
-            # doctest has no `function` attribute
-            item_description = test_item.reportinfo()[2]
-
-        # extract names of @pytest.mark.* decorators used for test item
-        item_tags = list(MarkMapping(test_item.keywords)._mymarks)
-
         start_rq = {
-            "name": test_item.name,
-            "description": item_description,
-            "tags": item_tags,
+            "name": self._get_full_name(test_item),
+            "description": self._get_description(test_item),
+            "tags": self._get_tags(test_item),
             "start_time": timestamp(),
-            "item_type": "TEST"
+            "item_type": "STEP"
         }
 
         logging.debug(
@@ -94,6 +83,26 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             "request_body=%s", start_rq)
 
         self.RP.start_test_item(**start_rq)
+
+    def _get_full_name(self, test_item):
+        return test_item.nodeid
+
+    def _get_description(self, test_item):
+        try:
+            # for common items
+            return test_item.function.__doc__
+        except AttributeError:
+            # doctest has no `function` attribute
+            return test_item.reportinfo()[2]
+
+    def _get_tags(self, test_item):
+        # try to extract names of @pytest.mark.* decorators used for test item
+        mark_plugin = test_item.config.pluginmanager.getplugin("mark")
+        if mark_plugin:
+            keywords = test_item.keywords
+            return list(mark_plugin.MarkMapping(keywords)._mymarks)
+        else:
+            return []
 
     def finish_pytest_item(self, status, issue=None):
         fta_rq = {
