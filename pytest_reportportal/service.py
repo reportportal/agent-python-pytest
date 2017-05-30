@@ -55,8 +55,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def start_launch(
             self, launch_name, mode=None, tags=None, description=None):
-        # In next versions launch object(suite, testcase)
-        # could be set as parameter
         sl_pt = {
             "name": launch_name,
             "start_time": timestamp(),
@@ -118,7 +116,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.RP.finish_test_item(**fta_rq)
 
     def finish_launch(self, launch=None, status="rp_launch"):
-        # TO finish launch session str parameter is needed
+        # To finish launch session str parameter is needed
         fl_rq = {
             "end_time": timestamp(),
             "status": status
