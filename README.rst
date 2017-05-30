@@ -1,3 +1,8 @@
+
+[![PyPI](https://img.shields.io/pypi/v/pytest-reportportal.svg?maxAge=2592000)](https://pypi.python.org/pypi/pytest-reportportal)
+[![Build Status](https://travis-ci.org/reportportal/agent-pytest-reportportal.svg?branch=master)](https://travis-ci.org/reportportal/agent-python-pytest)
+
+
 ===================
 agent-python-pytest
 ===================
