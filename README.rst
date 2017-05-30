@@ -74,7 +74,7 @@ logging handler provided by plugin like bellow:
     logger = logging.getLogger(__name__)
     logger.setLevel(logging.DEBUG)
     # Create handler for Report Portal.
-    rp_handler = RPlogHandler()
+    rp_handler = RPLogHandler()
     # Set INFO level for Report Portal handler.
     rp_handler.setLevel(logging.INFO)
     # Add handler to the logger.
