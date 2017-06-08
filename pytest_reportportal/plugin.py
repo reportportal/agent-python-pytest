@@ -61,7 +61,8 @@ def pytest_sessionstart(session):
         project=session.config.getini("rp_project"),
         endpoint=session.config.getini("rp_endpoint"),
         uuid=session.config.getini("rp_uuid"),
-        log_batch_size=int(session.config.getini("rp_log_batch_size"))
+        log_batch_size=int(session.config.getini("rp_log_batch_size")),
+        ignore_errors=bool(session.config.getini("rp_ignore_errors")),
     )
 
     PyTestService.start_launch(
@@ -137,3 +138,9 @@ def pytest_addoption(parser):
         "rp_log_batch_size",
         default="20",
         help="Size of batch log requests in async mode")
+
+    parser.addini(
+        "rp_ignore_errors",
+        default=False,
+        type="bool",
+        help="Ignore Report Portal errors (exit otherwise)")
