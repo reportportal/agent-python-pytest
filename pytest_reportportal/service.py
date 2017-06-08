@@ -2,14 +2,11 @@ import logging
 import traceback
 from time import time
 
+import pytest
 from six import with_metaclass
+from six.moves import queue
 
 from reportportal_client import ReportPortalServiceAsync
-
-
-def async_error_handler(exc_info):
-    exc, msg, tb = exc_info
-    traceback.print_exception(exc, msg, tb)
 
 
 def timestamp():
@@ -32,9 +29,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def __init__(self):
         self.RP = None
+        self.ignore_errors = True
+        self._errors = queue.Queue()
 
-    def init_service(self, endpoint, project, uuid, log_batch_size):
+    def init_service(self, endpoint, project, uuid, log_batch_size,
+                     ignore_errors):
+        self._errors = queue.Queue()
         if self.RP is None:
+            self.ignore_errors = ignore_errors
             logging.debug(
                 msg="ReportPortal - Init service: "
                     "endpoint={0}, project={1}, uuid={2}".
@@ -43,11 +45,28 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 endpoint=endpoint,
                 project=project,
                 token=uuid,
-                error_handler=async_error_handler,
-                log_batch_size=log_batch_size)
+                error_handler=self.async_error_handler,
+                log_batch_size=log_batch_size
+            )
         else:
             logging.debug("The pytest is already initialized")
         return self.RP
+
+    def async_error_handler(self, exc_info):
+        self.terminate_service()
+        self.RP = None
+        exc, msg, tb = exc_info
+
+        traceback.print_exception(exc, msg, tb)
+        self._errors.put_nowait(msg)
+
+    def _stop_if_neccessary(self):
+        if not self.ignore_errors:
+            try:
+                reason = self._errors.get(False)
+                pytest.exit(reason)
+            except queue.Empty:
+                pass
 
     def terminate_service(self):
         if self.RP is not None:
@@ -55,6 +74,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def start_launch(
             self, launch_name, mode=None, tags=None, description=None):
+        self._stop_if_neccessary()
+        if self.RP is None:
+            return
+
         sl_pt = {
             "name": launch_name,
             "start_time": timestamp(),
@@ -69,6 +92,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                       "response_body=%s", req_data)
 
     def start_pytest_item(self, test_item=None):
+        self._stop_if_neccessary()
+        if self.RP is None:
+            return
+
         start_rq = {
             "name": self._get_full_name(test_item),
             "description": self._get_description(test_item),
@@ -104,6 +131,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             return []
 
     def finish_pytest_item(self, status, issue=None):
+        self._stop_if_neccessary()
+        if self.RP is None:
+            return
+
         fta_rq = {
             "end_time": timestamp(),
             "status": status,
@@ -116,6 +147,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.RP.finish_test_item(**fta_rq)
 
     def finish_launch(self, launch=None, status="rp_launch"):
+        self._stop_if_neccessary()
+        if self.RP is None:
+            return
+
         # To finish launch session str parameter is needed
         fl_rq = {
             "end_time": timestamp(),
@@ -126,6 +161,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.RP.finish_launch(**fl_rq)
 
     def post_log(self, message, loglevel='INFO', attachment=None):
+        self._stop_if_neccessary()
+        if self.RP is None:
+            return
+
         if loglevel not in self._loglevels:
             logging.warning('Incorrect loglevel = %s. Force set to INFO. '
                             'Avaliable levels: %s.', loglevel, self._loglevels)
