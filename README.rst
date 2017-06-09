@@ -48,6 +48,7 @@ Example of :code:`pytest.ini`:
     rp_launch = AnyLaunchName
     rp_launch_tags = 'PyTest' 'Smoke'
     rp_launch_description = 'Smoke test'
+    rp_ignore_errors = True
 
 The following parapmeters are optional:
 
@@ -56,6 +57,7 @@ The following parapmeters are optional:
 - :code:`rp_launch_tags = 'PyTest' 'Smoke'` - list of tags
 - :code:`rp_launch_description = 'Smoke test'` - launch description
 - :code:`rp_log_batch_size = 20` - size of batch log request
+- :code:`rp_ignore_errors = True` - Ignore Report Portal errors (exit otherwise)
 
 
 Examples
