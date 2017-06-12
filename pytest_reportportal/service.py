@@ -60,9 +60,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
     def _stop_if_neccessary(self):
         try:
             exc, msg, tb = self._errors.get(False)
-            traceback.print_exception(exc, msg, tb)
+            err = traceback.format_exception(exc, msg, tb)
             if not self.ignore_errors:
-                pytest.exit(msg)
+                pytest.exit("".join(err))
         except queue.Empty:
             pass
 
