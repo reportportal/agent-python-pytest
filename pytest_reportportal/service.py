@@ -1,4 +1,5 @@
 import logging
+import sys
 import traceback
 from time import time
 
@@ -61,6 +62,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         try:
             exc, msg, tb = self._errors.get(False)
             traceback.print_exception(exc, msg, tb)
+            sys.stderr.flush()
             if not self.ignore_errors:
                 pytest.exit(msg)
         except queue.Empty:
