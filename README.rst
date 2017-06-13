@@ -151,8 +151,8 @@ For this, please, add following option to :code:`pytest.ini` configuration file.
     ...
     rp_ignore_errors = True
 
-With option above all exceptions raised by Report Portal will be only printed to
-`stderr` but will be counted as failures or stoppers.
+With option above all exceptions raised by Report Portal will be printed out to
+`stderr` without causing test failures.
 
 If you would like to temporary disable integrations with Report Portal just
 deactivate :code:`pytest_reportportal` plugin with command like:
