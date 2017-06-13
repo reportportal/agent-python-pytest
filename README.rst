@@ -3,7 +3,7 @@ agent-python-pytest
 ===================
 
 
-**Important:** this is draft version under development.
+**Important:** this is BETA2 version. Please post issue in case if any found
 
 Pytest plugin for reporting test results of Pytest to the 'Reportal Portal'.
 
