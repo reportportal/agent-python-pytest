@@ -142,8 +142,8 @@ Troubleshooting
 ~~~~~~~~~
 
 In case you have connectivity issues (or similar problems) with Report Portal,
-it is possible to ignore exception raised by :code:`pytest_reportportal` plugin.
-For this, please, add following option to :code:`pytest.ini` configuration file:
+it's possible to ignore exceptions raised by :code:`pytest_reportportal` plugin.
+For this, please, add following option to :code:`pytest.ini` configuration file.
 
 .. code-block:: text
 
@@ -151,8 +151,11 @@ For this, please, add following option to :code:`pytest.ini` configuration file:
     ...
     rp_ignore_errors = True
 
+With option above all exceptions raised by Report Portal will be printed out to
+`stderr` without causing test failures.
 
-Or temporary disable :code:`pytest_reportportal` plugin with command like:
+If you would like to temporary disable integrations with Report Portal just
+deactivate :code:`pytest_reportportal` plugin with command like:
 
 .. code-block:: bash
 
