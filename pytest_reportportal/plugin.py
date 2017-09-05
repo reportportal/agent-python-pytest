@@ -22,16 +22,16 @@ class RP_Report_Listener(object):
     def pytest_runtest_makereport(self, item, call):
         report = (yield).get_result()
 
+        if report.when == "setup":
+            # when function pytest_setup is called,
+            # test item session will be started in RP
+            PyTestService.start_pytest_item(item)
+
         if report.longrepr:
             PyTestService.post_log(
                 cgi.escape(report.longreprtext),
                 loglevel='ERROR',
             )
-
-        if report.when == "setup":
-            # when function pytest_setup is called,
-            # test item session will be started in RP
-            PyTestService.start_pytest_item(item)
 
         if report.when == "call":
             self.called = True
