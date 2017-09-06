@@ -1,0 +1,14 @@
+CONTRIBUTING.rst
+MANIFEST.in
+README.rst
+setup.cfg
+setup.py
+pytest_reportportal/__init__.py
+pytest_reportportal/plugin.py
+pytest_reportportal/service.py
+pytest_reportportal.egg-info/PKG-INFO
+pytest_reportportal.egg-info/SOURCES.txt
+pytest_reportportal.egg-info/dependency_links.txt
+pytest_reportportal.egg-info/entry_points.txt
+pytest_reportportal.egg-info/requires.txt
+pytest_reportportal.egg-info/top_level.txt

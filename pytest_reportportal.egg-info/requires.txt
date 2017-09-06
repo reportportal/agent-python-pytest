@@ -1,0 +1,3 @@
+reportportal-client>=3.0.0
+pytest>=3.0.7
+six>=1.10.0

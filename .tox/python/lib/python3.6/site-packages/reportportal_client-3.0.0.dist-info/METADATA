@@ -1,0 +1,16 @@
+Metadata-Version: 2.0
+Name: reportportal-client
+Version: 3.0.0
+Summary: Python client for Report Portal
+Home-page: https://github.com/reportportal/client-Python
+Author: Artsiom Tkachou
+Author-email: SupportEPMC-TSTReportPortal@epam.com
+License: GNU General Public License v3
+Download-URL: https://github.com/reportportal/client-Python/tarball/3.0.0
+Keywords: testing,reporting,reportportal
+Platform: UNKNOWN
+Requires-Dist: requests (>=2.4.2)
+
+UNKNOWN
+
+
