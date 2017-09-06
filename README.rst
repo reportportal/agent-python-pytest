@@ -49,6 +49,7 @@ Example of :code:`pytest.ini`:
     rp_launch_tags = 'PyTest' 'Smoke'
     rp_launch_description = 'Smoke test'
     rp_ignore_errors = True
+    rp_ignore_tags = 'xfail' 'usefixture'
 
 The following parameters are optional:
 
@@ -129,6 +130,8 @@ In the following example tags 'linux' and 'win32' will be used:
         pass
 
 If you don't want to attach specific markers, list them in :code:`rp_ignore_tags` parameter
+
+
 Launching
 ~~~~~~~~~
 
