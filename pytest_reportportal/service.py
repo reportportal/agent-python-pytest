@@ -85,7 +85,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             "start_time": timestamp(),
             "description": description,
             "mode": mode,
-            "tags": tags,
+            "tags": tags
         }
         logging.debug("ReportPortal - Start launch: "
                       "request_body=%s", sl_pt)
