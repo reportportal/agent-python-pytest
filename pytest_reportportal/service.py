@@ -31,13 +31,15 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
     def __init__(self):
         self.RP = None
         self.ignore_errors = True
+        self.ignored_tags = []
         self._errors = queue.Queue()
 
     def init_service(self, endpoint, project, uuid, log_batch_size,
-                     ignore_errors):
+                     ignore_errors, ignored_tags):
         self._errors = queue.Queue()
         if self.RP is None:
             self.ignore_errors = ignore_errors
+            self.ignored_tags = ignored_tags
             logging.debug(
                 msg="ReportPortal - Init service: "
                     "endpoint={0}, project={1}, uuid={2}".
@@ -123,10 +125,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def _get_tags(self, test_item):
         # try to extract names of @pytest.mark.* decorators used for test item
+        # and exclude those which present in rp_ignore_tags parameter
         mark_plugin = test_item.config.pluginmanager.getplugin("mark")
         if mark_plugin:
             keywords = test_item.keywords
-            return list(mark_plugin.MarkMapping(keywords)._mymarks)
+            marks = mark_plugin.MarkMapping(keywords)._mymarks
+            return [m for m in marks if m not in self.ignored_tags]
         else:
             return []
 

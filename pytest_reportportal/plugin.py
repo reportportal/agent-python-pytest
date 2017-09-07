@@ -63,6 +63,7 @@ def pytest_sessionstart(session):
         uuid=session.config.getini("rp_uuid"),
         log_batch_size=int(session.config.getini("rp_log_batch_size")),
         ignore_errors=bool(session.config.getini("rp_ignore_errors")),
+        ignored_tags=session.config.getini("rp_ignore_tags"),
     )
 
     PyTestService.start_launch(
@@ -144,3 +145,8 @@ def pytest_addoption(parser):
         default=False,
         type="bool",
         help="Ignore Report Portal errors (exit otherwise)")
+
+    parser.addini(
+        "rp_ignore_tags",
+        type="args",
+        help="Ignore specified pytest markers, i.e parametrize")

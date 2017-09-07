@@ -49,6 +49,7 @@ Example of :code:`pytest.ini`:
     rp_launch_tags = 'PyTest' 'Smoke'
     rp_launch_description = 'Smoke test'
     rp_ignore_errors = True
+    rp_ignore_tags = 'xfail' 'usefixture'
 
 The following parameters are optional:
 
@@ -58,6 +59,7 @@ The following parameters are optional:
 - :code:`rp_launch_description = 'Smoke test'` - launch description
 - :code:`rp_log_batch_size = 20` - size of batch log request
 - :code:`rp_ignore_errors = True` - Ignore Report Portal errors (exit otherwise)
+- :code:`rp_ignore_tags = 'xfail' 'usefixture'` - Ignore specified pytest markers
 
 
 Examples
@@ -126,6 +128,8 @@ In the following example tags 'linux' and 'win32' will be used:
     @pytest.mark.linux
     def test_one():
         pass
+
+If you don't want to attach specific markers, list them in :code:`rp_ignore_tags` parameter
 
 
 Launching
