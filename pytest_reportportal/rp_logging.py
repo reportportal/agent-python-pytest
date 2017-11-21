@@ -8,7 +8,8 @@ class RPLogger(logging.getLoggerClass()):
     def __init__(self, name, level=0):
         super(RPLogger, self).__init__(name, level=level)
 
-    def _log(self, level, msg, args, exc_info=None, extra=None, stack_info=False, attachment=None):
+    def _log(self, level, msg, args,
+             exc_info=None, extra=None, stack_info=False, attachment=None):
         """
         Low-level logging routine which creates a LogRecord and then calls
         all the handlers of this logger to handle the record.
@@ -28,7 +29,9 @@ class RPLogger(logging.getLoggerClass()):
         if exc_info and not isinstance(exc_info, tuple):
             exc_info = sys.exc_info()
 
-        record = self.makeRecord(self.name, level, fn, lno, msg, args, exc_info, func, extra, sinfo)
+        record = self.makeRecord(
+            self.name, level, fn, lno, msg, args, exc_info, func, extra, sinfo
+        )
         record.attachment = attachment
         self.handle(record)
 

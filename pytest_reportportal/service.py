@@ -40,7 +40,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self.ignore_errors = ignore_errors
             self.ignored_tags = ignored_tags
             logging.debug(
-                msg='ReportPortal - Init service: endpoint={0}, project={1}, uuid={2}'.
+                msg='ReportPortal - Init service: '
+                    'endpoint={0}, project={1}, uuid={2}'.
                     format(endpoint, project, uuid))
             self.RP = ReportPortalServiceAsync(
                 endpoint=endpoint,
@@ -85,9 +86,11 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'mode': mode,
             'tags': tags
         }
-        logging.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
+        logging.debug('ReportPortal - Start launch: '
+                      'request_body=%s', sl_pt)
         req_data = self.RP.start_launch(**sl_pt)
-        logging.debug('ReportPortal - Launch started: response_body=%s', req_data)
+        logging.debug('ReportPortal - Launch started: '
+                      'response_body=%s', req_data)
 
     def start_pytest_item(self, test_item=None):
         self._stop_if_necessary()
@@ -102,7 +105,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'item_type': 'STEP'
         }
 
-        logging.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
+        logging.debug('ReportPortal - Start TestItem: '
+                      'request_body=%s', start_rq)
         self.RP.start_test_item(**start_rq)
 
     def _get_tags(self, test_item):
@@ -127,7 +131,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'issue': issue
         }
 
-        logging.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
+        logging.debug('ReportPortal - Finish TestItem: '
+                      'request_body=%s', fta_rq)
         self.RP.finish_test_item(**fta_rq)
 
     def finish_launch(self, launch=None, status='rp_launch'):
