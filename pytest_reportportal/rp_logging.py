@@ -37,19 +37,19 @@ class RPLogger(logging.getLoggerClass()):
 
 
 class RPLogHandler(logging.Handler):
+    # Map loglevel codes from `logging` module to ReportPortal text names:
+    _loglevel_map = {
+        logging.NOTSET: 'TRACE',
+        logging.DEBUG: 'DEBUG',
+        logging.INFO: 'INFO',
+        logging.WARNING: 'WARN',
+        logging.ERROR: 'ERROR',
+        logging.CRITICAL: 'ERROR',
+    }
+    _sorted_levelnos = sorted(_loglevel_map.keys(), reverse=True)
+
     def __init__(self, level=logging.NOTSET):
         super(RPLogHandler, self).__init__(level)
-
-        # Map loglevel codes from `logging` module to ReportPortal text names:
-        self._loglevel_map = {
-            logging.NOTSET: 'TRACE',
-            logging.DEBUG: 'DEBUG',
-            logging.INFO: 'INFO',
-            logging.WARNING: 'WARN',
-            logging.ERROR: 'ERROR',
-            logging.CRITICAL: 'ERROR',
-        }
-        self._sorted_levelnos = sorted(self._loglevel_map.keys(), reverse=True)
 
     def emit(self, record):
         msg = ''
