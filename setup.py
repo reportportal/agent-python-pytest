@@ -7,8 +7,8 @@ def read_file(fname):
     return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 
-version = '1.1.0'
-tar_url = 'https://github.com/reportportal/agent-python-pytest/tarball/1.0.0'
+version = '1.0.1'
+tar_url = 'https://github.com/reportportal/agent-python-pytest/tarball/1.0.1'
 
 
 requirements = [
