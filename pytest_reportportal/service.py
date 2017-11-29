@@ -39,10 +39,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if self.RP is None:
             self.ignore_errors = ignore_errors
             self.ignored_tags = ignored_tags
-            logging.debug(
-                msg='ReportPortal - Init service: '
-                    'endpoint={0}, project={1}, uuid={2}'.
-                    format(endpoint, project, uuid))
+            logging.debug('ReportPortal - Init service: endpoint=%s, '
+                          'project=%s, uuid=%s', endpoint, project, uuid)
             self.RP = ReportPortalServiceAsync(
                 endpoint=endpoint,
                 project=project,
