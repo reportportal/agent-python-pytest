@@ -58,7 +58,7 @@ class RPLogHandler(logging.Handler):
             msg = self.format(record)
         except (KeyboardInterrupt, SystemExit):
             raise
-        except:
+        except Exception:
             self.handleError(record)
 
         for level in self._sorted_levelnos:
