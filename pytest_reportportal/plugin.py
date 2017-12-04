@@ -34,6 +34,10 @@ def pytest_configure(config):
     if not config.option.rp_launch:
         config.option.rp_launch = config.getini('rp_launch')
 
+    if config.pluginmanager.hasplugin('xdist'):
+        raise Exception(
+            "pytest report portal is not compatible with 'xdist' plugin.")
+
     # set Pytest_Reporter and configure it
     config._reporter = RPReportListener()
 
