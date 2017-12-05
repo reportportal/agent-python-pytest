@@ -8,6 +8,9 @@ from .listener import RPReportListener
 
 
 def pytest_sessionstart(session):
+    if session.config.getoption('--collect-only', default=False) is True:
+        return
+
     PyTestService.init_service(
         project=session.config.getini('rp_project'),
         endpoint=session.config.getini('rp_endpoint'),
@@ -24,7 +27,10 @@ def pytest_sessionstart(session):
     )
 
 
-def pytest_sessionfinish():
+def pytest_sessionfinish(session):
+    if session.config.getoption('--collect-only', default=False) is True:
+        return
+
     # FixMe: currently method of RP api takes the string parameter
     # so it is hardcoded
     PyTestService.finish_launch(status='RP_Launch')
