@@ -1,5 +1,6 @@
 import sys
 import logging
+from contextlib import contextmanager
 from functools import wraps
 
 from .service import PyTestService
@@ -84,51 +85,50 @@ class RPLogHandler(logging.Handler):
         )
 
 
-def patch_logger_class():
+@contextmanager
+def patching_logger_class():
     logger_class = logging.getLoggerClass()
+    original_log = logger_class._log
+    original_makeRecord = logger_class.makeRecord
 
-    def wrap_log(original_func):
-        @wraps(original_func)
-        def _log(self, *args, **kwargs):
-            attachment = kwargs.pop('attachment', None)
-            if attachment is not None:
-                kwargs.setdefault('extra', {}).update({'attachment': attachment})
-            return original_func(self, *args, **kwargs)
-        return _log
+    try:
+        def wrap_log(original_func):
+            @wraps(original_func)
+            def _log(self, *args, **kwargs):
+                attachment = kwargs.pop('attachment', None)
+                if attachment is not None:
+                    kwargs.setdefault('extra', {}).update(
+                        {'attachment': attachment})
+                return original_func(self, *args, **kwargs)
+            return _log
 
-    def wrap_makeRecord(original_func):
-        @wraps(original_func)
-        def makeRecord(self, name, level, fn, lno, msg, args, exc_info,
-                       func=None, extra=None, sinfo=None):
-            if extra is not None:
-                attachment = extra.pop('attachment', None)
-            else:
-                attachment = None
-            try:
-                # Python 3.5
-                record = original_func(self, name, level, fn, lno, msg, args,
-                                       exc_info, func=func, extra=extra,
-                                       sinfo=sinfo)
-            except TypeError:
-                # Python 2.7
-                record = original_func(self, name, level, fn, lno, msg, args,
-                                       exc_info, func=func, extra=extra)
-            record.attachment = attachment
-            return record
-        return makeRecord
+        def wrap_makeRecord(original_func):
+            @wraps(original_func)
+            def makeRecord(self, name, level, fn, lno, msg, args, exc_info,
+                           func=None, extra=None, sinfo=None):
+                if extra is not None:
+                    attachment = extra.pop('attachment', None)
+                else:
+                    attachment = None
+                try:
+                    # Python 3.5
+                    record = original_func(self, name, level, fn, lno, msg,
+                                           args, exc_info, func=func,
+                                           extra=extra, sinfo=sinfo)
+                except TypeError:
+                    # Python 2.7
+                    record = original_func(self, name, level, fn, lno, msg,
+                                           args, exc_info, func=func,
+                                           extra=extra)
+                record.attachment = attachment
+                return record
+            return makeRecord
 
-    # Store references to the original methods to allow unpatching
-    setattr(logger_class, '_original__log', logger_class._log)
-    logger_class._log = wrap_log(logger_class._log)
-    setattr(logger_class, '_original_makeRecord', logger_class.makeRecord)
-    logger_class.makeRecord = wrap_makeRecord(logger_class.makeRecord)
+        logger_class._log = wrap_log(logger_class._log)
+        logger_class.makeRecord = wrap_makeRecord(logger_class.makeRecord)
 
+        yield
 
-def unpatch_logger_class():
-    logger_class = logging.getLoggerClass()
-    if hasattr(logger_class, '_original__log'):
-        logger_class._log = logger_class._original__log
-        delattr(logger_class, '_original__log')
-    if hasattr(logger_class, '_original_makeRecord'):
-        logger_class.makeRecord = logger_class._original_makeRecord
-        delattr(logger_class, '_original_makeRecord')
+    finally:
+        logger_class._log = original_log
+        logger_class.makeRecord = original_makeRecord
