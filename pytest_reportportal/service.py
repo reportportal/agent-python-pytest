@@ -108,11 +108,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.RP.start_test_item(**start_rq)
 
     def _get_tags(self, item):
-        # try to extract names of @pytest.mark.* decorators used for test item
+        # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_tags parameter
-        mark_plugin = item.config.pluginmanager.getplugin('mark')
-        if not mark_plugin:
-            return []
         return [k for k in item.keywords if item.get_marker(k) is not None
                 and k not in self.ignored_tags]
 
