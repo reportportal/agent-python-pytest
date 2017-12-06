@@ -4,7 +4,7 @@ import traceback
 import pytest
 
 from time import time
-from six import with_metaclass, iteritems
+from six import with_metaclass
 from six.moves import queue
 
 from reportportal_client import ReportPortalServiceAsync
@@ -107,19 +107,11 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                       'request_body=%s', start_rq)
         self.RP.start_test_item(**start_rq)
 
-    def _get_tags(self, test_item):
-        # try to extract names of @pytest.mark.* decorators used for test item
+    def _get_tags(self, item):
+        # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_tags parameter
-        mark_plugin = test_item.config.pluginmanager.getplugin('mark')
-        if not mark_plugin:
-            return []
-
-        mark_names = set()
-        for key, value in iteritems(test_item.keywords):
-            if (isinstance(value, mark_plugin.MarkInfo) or
-                    isinstance(value, mark_plugin.MarkDecorator)):
-                mark_names.add(key)
-        return [m for m in mark_names if m not in self.ignored_tags]
+        return [k for k in item.keywords if item.get_marker(k) is not None
+                and k not in self.ignored_tags]
 
     def finish_pytest_item(self, status, issue=None):
         self._stop_if_necessary()
