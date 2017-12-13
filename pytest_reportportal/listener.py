@@ -6,11 +6,6 @@ from .service import PyTestService
 
 class RPReportListener(object):
     def __init__(self):
-        # Identifier if TestItem is called:
-        # if setup is failed, pytest will NOT call
-        # TestItem and Result will not reported!
-        self.called = False
-
         # Test Item result
         self.result = None
 
@@ -18,9 +13,7 @@ class RPReportListener(object):
     def pytest_runtest_protocol(self, item):
         PyTestService.start_pytest_item(item)
         yield
-        item_result = self.result if self.called else 'SKIPPED'
-        PyTestService.finish_pytest_item(item_result)
-        self.called = False
+        PyTestService.finish_pytest_item(self.result or 'SKIPPED')
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self):
@@ -33,14 +26,17 @@ class RPReportListener(object):
                 loglevel='ERROR',
             )
 
-        if report.when == 'call':
-            self.called = True
+        if report.when == 'setup':
+            if report.failed:
+                # This happens for example when a fixture fails to run
+                # causing the test to error
+                self.result = 'FAILED'
 
+        if report.when == 'call':
             if report.passed:
                 item_result = 'PASSED'
-            elif report.failed:
-                item_result = 'FAILED'
-            else:
+            elif report.skipped:
                 item_result = 'SKIPPED'
-
+            else:
+                item_result = 'FAILED'
             self.result = item_result
