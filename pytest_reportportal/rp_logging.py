@@ -1,5 +1,7 @@
 import sys
 import logging
+from contextlib import contextmanager
+from functools import wraps
 
 from .service import PyTestService
 
@@ -48,8 +50,19 @@ class RPLogHandler(logging.Handler):
     }
     _sorted_levelnos = sorted(_loglevel_map.keys(), reverse=True)
 
-    def __init__(self, level=logging.NOTSET):
+    def __init__(self, level=logging.NOTSET,
+                 filter_reportportal_client_logs=False):
         super(RPLogHandler, self).__init__(level)
+        self.filter_reportportal_client_logs = filter_reportportal_client_logs
+
+    def filter(self, record):
+        if self.filter_reportportal_client_logs is False:
+            return True
+        if record.name.startswith('reportportal_client'):
+            # Don't send reportportal_client logs.
+            # Specially because we'll hit a max recursion issue
+            return False
+        return True
 
     def emit(self, record):
         msg = ''
@@ -70,3 +83,52 @@ class RPLogHandler(logging.Handler):
             loglevel=self._loglevel_map[level],
             attachment=record.__dict__.get('attachment', None),
         )
+
+
+@contextmanager
+def patching_logger_class():
+    logger_class = logging.getLoggerClass()
+    original_log = logger_class._log
+    original_makeRecord = logger_class.makeRecord
+
+    try:
+        def wrap_log(original_func):
+            @wraps(original_func)
+            def _log(self, *args, **kwargs):
+                attachment = kwargs.pop('attachment', None)
+                if attachment is not None:
+                    kwargs.setdefault('extra', {}).update(
+                        {'attachment': attachment})
+                return original_func(self, *args, **kwargs)
+            return _log
+
+        def wrap_makeRecord(original_func):
+            @wraps(original_func)
+            def makeRecord(self, name, level, fn, lno, msg, args, exc_info,
+                           func=None, extra=None, sinfo=None):
+                if extra is not None:
+                    attachment = extra.pop('attachment', None)
+                else:
+                    attachment = None
+                try:
+                    # Python 3.5
+                    record = original_func(self, name, level, fn, lno, msg,
+                                           args, exc_info, func=func,
+                                           extra=extra, sinfo=sinfo)
+                except TypeError:
+                    # Python 2.7
+                    record = original_func(self, name, level, fn, lno, msg,
+                                           args, exc_info, func=func,
+                                           extra=extra)
+                record.attachment = attachment
+                return record
+            return makeRecord
+
+        logger_class._log = wrap_log(logger_class._log)
+        logger_class.makeRecord = wrap_makeRecord(logger_class.makeRecord)
+
+        yield
+
+    finally:
+        logger_class._log = original_log
+        logger_class.makeRecord = original_makeRecord

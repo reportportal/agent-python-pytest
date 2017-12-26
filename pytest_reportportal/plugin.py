@@ -6,6 +6,13 @@ import logging
 from .service import PyTestService
 from .listener import RPReportListener
 
+try:
+    # This try/except can go away once we support pytest >= 3.3
+    import _pytest.logging
+    PYTEST_HAS_LOGGING_PLUGIN = True
+except ImportError:
+    PYTEST_HAS_LOGGING_PLUGIN = False
+
 
 def pytest_sessionstart(session):
     if session.config.getoption('--collect-only', default=False) is True:
@@ -45,7 +52,18 @@ def pytest_configure(config):
             "pytest report portal is not compatible with 'xdist' plugin.")
 
     # set Pytest_Reporter and configure it
-    config._reporter = RPReportListener()
+
+    if PYTEST_HAS_LOGGING_PLUGIN:
+        # This check can go away once we support pytest >= 3.3
+        try:
+            config._reporter = RPReportListener(
+                _pytest.logging.get_actual_log_level(config, 'rp_log_level')
+            )
+        except TypeError:
+            # No log level set either in INI or CLI
+            config._reporter = RPReportListener()
+    else:
+        config._reporter = RPReportListener()
 
     if hasattr(config, '_reporter'):
         config.pluginmanager.register(config._reporter)
@@ -68,6 +86,19 @@ def pytest_addoption(parser):
         action='store',
         dest='rp_launch',
         help='Launch name (overrides rp_launch config option)')
+
+    if PYTEST_HAS_LOGGING_PLUGIN:
+        group.addoption(
+            '--rp-log-level',
+            dest='rp_log_level',
+            default=logging.NOTSET,
+            help='Logging level for automated log records reporting'
+        )
+        parser.addini(
+            'rp_log_level',
+            default=logging.NOTSET,
+            help='Logging level for automated log records reporting'
+        )
 
     parser.addini(
         'rp_uuid',
