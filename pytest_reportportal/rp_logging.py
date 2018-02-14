@@ -16,13 +16,26 @@ class RPLogger(logging.getLoggerClass()):
         Low-level logging routine which creates a LogRecord and then calls
         all the handlers of this logger to handle the record.
         """
+
         sinfo = None
+        p_version_flag = False
+
+        if (sys.version_info[0] < 3):
+            # For python2.x compatibility
+            p_version_flag = True
+
         if logging._srcfile:
             # IronPython doesn't track Python frames, so findCaller raises an
             # exception on some versions of IronPython. We trap it here so that
             # IronPython can use logging.
             try:
-                fn, lno, func, sinfo = self.findCaller(stack_info)
+                if (p_version_flag):
+                    # In python2.x findCaller() don't accept any parameters
+                    # and returns 3 elements
+                    fn, lno, func = self.findCaller()
+                else:
+                    fn, lno, func, sinfo = self.findCaller(stack_info)
+
             except ValueError:  # pragma: no cover
                 fn, lno, func = '(unknown file)', 0, '(unknown function)'
         else:
@@ -31,9 +44,14 @@ class RPLogger(logging.getLoggerClass()):
         if exc_info and not isinstance(exc_info, tuple):
             exc_info = sys.exc_info()
 
-        record = self.makeRecord(
-            self.name, level, fn, lno, msg, args, exc_info, func, extra, sinfo
-        )
+        if p_version_flag:
+            # In python2.x makeRecord() accepts everything but sinfo
+            record = self.makeRecord(self.name, level, fn, lno, msg, args,
+                                     exc_info, func, extra)
+        else:
+            record = self.makeRecord(self.name, level, fn, lno, msg, args,
+                                     exc_info, func, extra, sinfo)
+
         record.attachment = attachment
         self.handle(record)
 
