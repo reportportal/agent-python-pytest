@@ -2,6 +2,7 @@ import sys
 import logging
 from contextlib import contextmanager
 from functools import wraps
+from six import PY2
 
 from .service import PyTestService
 
@@ -16,21 +17,14 @@ class RPLogger(logging.getLoggerClass()):
         Low-level logging routine which creates a LogRecord and then calls
         all the handlers of this logger to handle the record.
         """
-
         sinfo = None
-        p_version_flag = False
-
-        if (sys.version_info[0] < 3):
-            # For python2.x compatibility
-            p_version_flag = True
-
         if logging._srcfile:
             # IronPython doesn't track Python frames, so findCaller raises an
             # exception on some versions of IronPython. We trap it here so that
             # IronPython can use logging.
             try:
-                if (p_version_flag):
-                    # In python2.x findCaller() don't accept any parameters
+                if PY2:
+                    # In python2.7 findCaller() don't accept any parameters
                     # and returns 3 elements
                     fn, lno, func = self.findCaller()
                 else:
@@ -44,8 +38,8 @@ class RPLogger(logging.getLoggerClass()):
         if exc_info and not isinstance(exc_info, tuple):
             exc_info = sys.exc_info()
 
-        if p_version_flag:
-            # In python2.x makeRecord() accepts everything but sinfo
+        if PY2:
+            # In python2.7 makeRecord() accepts everything but sinfo
             record = self.makeRecord(self.name, level, fn, lno, msg, args,
                                      exc_info, func, extra)
         else:
