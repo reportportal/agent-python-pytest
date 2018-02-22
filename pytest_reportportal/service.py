@@ -161,7 +161,15 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     @staticmethod
     def _get_full_name(test_item):
-        return test_item.nodeid
+        fullname = test_item.nodeid
+        if len(fullname) > 256:
+            fullname = fullname[:256]
+            test_item.warn(
+                'C1',
+                'Test node ID was truncated to "{}" because of name size '
+                'constrains on reportportal'.format(fullname)
+            )
+        return fullname
 
     @staticmethod
     def _get_description(test_item):
