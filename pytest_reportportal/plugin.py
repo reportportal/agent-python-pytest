@@ -30,7 +30,7 @@ def pytest_sessionstart(session):
     PyTestService.start_launch(
         session.config.option.rp_launch,
         tags=session.config.getini('rp_launch_tags'),
-        description=session.config.getini('rp_launch_description'),
+        description=session.config.option.rp_launch_description,
     )
 
 
@@ -46,6 +46,8 @@ def pytest_sessionfinish(session):
 def pytest_configure(config):
     if not config.option.rp_launch:
         config.option.rp_launch = config.getini('rp_launch')
+    if not config.option.rp_launch_description:
+        config.option.rp_launch_description = config.getini('rp_launch_description')
 
     if config.pluginmanager.hasplugin('xdist'):
         raise Exception(
@@ -86,6 +88,11 @@ def pytest_addoption(parser):
         action='store',
         dest='rp_launch',
         help='Launch name (overrides rp_launch config option)')
+    group.addoption(
+        '--rp-launch-description',
+        action='store',
+        dest='rp_launch_description',
+        help='Launch description (overrides rp_launch_description config option)')
 
     if PYTEST_HAS_LOGGING_PLUGIN:
         group.addoption(
