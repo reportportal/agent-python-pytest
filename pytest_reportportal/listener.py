@@ -46,6 +46,7 @@ class RPReportListener(object):
             )
 
         if report.when == 'setup':
+            self.result = None
             if report.failed:
                 # This happens for example when a fixture fails to run
                 # causing the test to error
