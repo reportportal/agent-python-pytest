@@ -12,7 +12,7 @@ tar_url = 'https://github.com/reportportal/agent-python-pytest/tarball/1.0.1'
 
 
 requirements = [
-    'reportportal-client>=3.0.1',
+    'reportportal-client>=3.1.0',
     'pytest>=3.0.7',
     'six>=1.10.0',
     'dill>=0.2.7.1',
