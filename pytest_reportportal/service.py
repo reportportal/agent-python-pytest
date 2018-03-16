@@ -179,3 +179,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except AttributeError:
             # doctest has no `function` attribute
             return test_item.reportinfo()[2]
+
+
+PyTestService = PyTestServiceClass()

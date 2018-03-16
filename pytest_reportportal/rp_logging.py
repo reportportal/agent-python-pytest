@@ -4,6 +4,8 @@ from contextlib import contextmanager
 from functools import wraps
 from six import PY2
 
+from .service import PyTestService
+
 
 class RPLogger(logging.getLoggerClass()):
     def __init__(self, name, level=0):
@@ -60,11 +62,10 @@ class RPLogHandler(logging.Handler):
     }
     _sorted_levelnos = sorted(_loglevel_map.keys(), reverse=True)
 
-    def __init__(self, py_test_service, level=logging.NOTSET,
+    def __init__(self, level=logging.NOTSET,
                  filter_reportportal_client_logs=False):
         super(RPLogHandler, self).__init__(level)
         self.filter_reportportal_client_logs = filter_reportportal_client_logs
-        self.py_test_service = py_test_service
 
     def filter(self, record):
         if self.filter_reportportal_client_logs is False:
@@ -89,7 +90,7 @@ class RPLogHandler(logging.Handler):
             if level <= record.levelno:
                 break
 
-        return self.py_test_service.post_log(
+        return PyTestService.post_log(
             msg,
             loglevel=self._loglevel_map[level],
             attachment=record.__dict__.get('attachment', None),
