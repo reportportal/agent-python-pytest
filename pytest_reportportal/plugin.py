@@ -8,6 +8,13 @@ import time
 from .service import PyTestServiceClass
 from .listener import RPReportListener
 
+try:
+    # This try/except can go away once we support pytest >= 3.3
+    import _pytest.logging
+    PYTEST_HAS_LOGGING_PLUGIN = True
+except ImportError:
+    PYTEST_HAS_LOGGING_PLUGIN = False
+
 
 def is_master(config):
     """
@@ -25,6 +32,7 @@ def pytest_configure_node(node):
 def pytest_sessionstart(session):
     if session.config.getoption('--collect-only', default=False) is True:
         return
+
     if is_master(session.config):
         session.config.py_test_service.init_service(
             project=session.config.getini('rp_project'),
@@ -65,6 +73,8 @@ def pytest_sessionfinish(session):
 def pytest_configure(config):
     if not config.option.rp_launch:
         config.option.rp_launch = config.getini('rp_launch')
+    if not config.option.rp_launch_description:
+        config.option.rp_launch_description = config.getini('rp_launch_description')
 
     if is_master(config):
         config.py_test_service = PyTestServiceClass()
@@ -73,7 +83,20 @@ def pytest_configure(config):
         config.py_test_service.RP.listener.start()
 
     # set Pytest_Reporter and configure it
-    config._reporter = RPReportListener(config.py_test_service)
+
+    if PYTEST_HAS_LOGGING_PLUGIN:
+        # This check can go away once we support pytest >= 3.3
+        try:
+            config._reporter = RPReportListener(
+                config.py_test_service,
+                _pytest.logging.get_actual_log_level(config, 'rp_log_level')
+            )
+        except TypeError:
+            # No log level set either in INI or CLI
+            config._reporter = RPReportListener(config.py_test_service)
+    else:
+        config._reporter = RPReportListener(config.py_test_service)
+
     if hasattr(config, '_reporter'):
         config.pluginmanager.register(config._reporter)
 
@@ -95,6 +118,24 @@ def pytest_addoption(parser):
         action='store',
         dest='rp_launch',
         help='Launch name (overrides rp_launch config option)')
+    group.addoption(
+        '--rp-launch-description',
+        action='store',
+        dest='rp_launch_description',
+        help='Launch description (overrides rp_launch_description config option)')
+
+    if PYTEST_HAS_LOGGING_PLUGIN:
+        group.addoption(
+            '--rp-log-level',
+            dest='rp_log_level',
+            default=logging.NOTSET,
+            help='Logging level for automated log records reporting'
+        )
+        parser.addini(
+            'rp_log_level',
+            default=logging.NOTSET,
+            help='Logging level for automated log records reporting'
+        )
 
     parser.addini(
         'rp_uuid',
