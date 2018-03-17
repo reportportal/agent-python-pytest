@@ -49,12 +49,12 @@ def pytest_sessionstart(session):
             description=session.config.getini('rp_launch_description'),
         )
         if session.config.pluginmanager.hasplugin('xdist'):
-            wait_launch(session.config.py_test_service.RP.rp_client.launch_id)
+            wait_launch(session.config.py_test_service.RP.rp_client)
 
 
-def wait_launch(self):
+def wait_launch(rp_client):
     timeout = time.time() + 10
-    while not self.rp_client.launch_id:
+    while not rp_client.launch_id:
         if time.time() > timeout:
             raise Exception("Launch not found")
         time.sleep(1)
