@@ -69,35 +69,39 @@ Examples
 
 For logging of the test item flow to Report Portal, please, use the python
 logging handler provided by plugin like bellow:
-
+in conftest.py:
 .. code-block:: python
 
-    import logging
-    # Import Report Portal logger and handler to the test module.
-    from pytest_reportportal import RPLogger, RPLogHandler
-    # Setting up a logging.
-    logging.setLoggerClass(RPLogger)
-    logger = logging.getLogger(__name__)
-    logger.setLevel(logging.DEBUG)
-    # Create handler for Report Portal.
-    rp_handler = RPLogHandler()
-    # Set INFO level for Report Portal handler.
-    rp_handler.setLevel(logging.INFO)
-    # Add handler to the logger.
-    logger.addHandler(rp_handler)
-
+    @pytest.fixture(scope="function")
+    def rp_logger(request):
+        import logging
+        # Import Report Portal logger and handler to the test module.
+        from pytest_reportportal import RPLogger, RPLogHandler
+        # Setting up a logging.
+        logging.setLoggerClass(RPLogger)
+        logger = logging.getLogger(__name__)
+        logger.setLevel(logging.DEBUG)
+        # Create handler for Report Portal.
+        rp_handler = RPLogHandler(request.node.config.py_test_service)
+        # Set INFO level for Report Portal handler.
+        rp_handler.setLevel(logging.INFO)
+        # Add handler to the logger.
+        logger.addHandler(rp_handler)
+        return logger
+in tests:
+.. code-block:: python
 
     # In this case only INFO messages will be sent to the Report Portal.
-    def test_one():
-        logger.info("Case1. Step1")
+    def test_one(rp_logger):
+        rp_logger.info("Case1. Step1")
         x = "this"
-        logger.info("x is: %s", x)
+        rp_logger.info("x is: %s", x)
         assert 'h' in x
 
         # Message with an attachment.
         import subprocess
         free_memory = subprocess.check_output("free -h".split())
-        logger.info(
+        rp_logger.info(
             "Case1. Memory consumption",
             attachment={
                 "name": "free_memory.txt",
@@ -107,7 +111,7 @@ logging handler provided by plugin like bellow:
         )
 
         # This debug message will not be sent to the Report Portal.
-        logger.debug("Case1. Debug message")
+        rp_logger.debug("Case1. Debug message")
 
 Plugin can report doc-strings of tests as :code:`descriptions`:
 

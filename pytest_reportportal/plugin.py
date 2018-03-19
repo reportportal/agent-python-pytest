@@ -5,6 +5,7 @@ import logging
 import dill as pickle
 import pytest
 import time
+from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from .service import PyTestServiceClass
 from .listener import RPReportListener
 
@@ -53,7 +54,7 @@ def pytest_sessionstart(session):
 
 
 def wait_launch(rp_client):
-    timeout = time.time() + 10
+    timeout = time.time() + LAUNCH_WAIT_TIMEOUT
     while not rp_client.launch_id:
         if time.time() > timeout:
             raise Exception("Launch not found")
