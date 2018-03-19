@@ -2,7 +2,6 @@ import cgi
 import pytest
 import logging
 
-from .service import PyTestService
 
 try:
     # This try/except can go away once we support pytest >= 3.3
@@ -14,8 +13,9 @@ except ImportError:
 
 
 class RPReportListener(object):
-    def __init__(self, log_level=logging.NOTSET):
+    def __init__(self, py_test_service, log_level=logging.NOTSET):
         # Test Item result
+        self.PyTestService = py_test_service
         self.result = None
         self._log_level = log_level
         if PYTEST_HAS_LOGGING_PLUGIN:
@@ -23,7 +23,7 @@ class RPReportListener(object):
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_protocol(self, item):
-        PyTestService.start_pytest_item(item)
+        self.PyTestService.start_pytest_item(item)
         if PYTEST_HAS_LOGGING_PLUGIN:
             # This check can go away once we support pytest >= 3.3
             with patching_logger_class():
@@ -32,14 +32,14 @@ class RPReportListener(object):
                     yield
         else:
             yield
-        PyTestService.finish_pytest_item(self.result or 'SKIPPED')
+        self.PyTestService.finish_pytest_item(self.result or 'SKIPPED')
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self):
         report = (yield).get_result()
 
         if report.longrepr:
-            PyTestService.post_log(
+            self.PyTestService.post_log(
                 # Used for support python 2.7
                 cgi.escape(report.longreprtext),
                 loglevel='ERROR',

@@ -2,8 +2,11 @@
 # and/or modify it under the terms of the GPL licence
 
 import logging
-
-from .service import PyTestService
+import dill as pickle
+import pytest
+import time
+from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
+from .service import PyTestServiceClass
 from .listener import RPReportListener
 
 try:
@@ -14,24 +17,48 @@ except ImportError:
     PYTEST_HAS_LOGGING_PLUGIN = False
 
 
+def is_master(config):
+    """
+    True if the code running the given pytest.config object is running in a xdist master
+    node or not running xdist at all.
+    """
+    return not hasattr(config, 'slaveinput')
+
+
+@pytest.mark.optionalhook
+def pytest_configure_node(node):
+    node.slaveinput['py_test_service'] = pickle.dumps(node.config.py_test_service)
+
+
 def pytest_sessionstart(session):
     if session.config.getoption('--collect-only', default=False) is True:
         return
 
-    PyTestService.init_service(
-        project=session.config.getini('rp_project'),
-        endpoint=session.config.getini('rp_endpoint'),
-        uuid=session.config.getini('rp_uuid'),
-        log_batch_size=int(session.config.getini('rp_log_batch_size')),
-        ignore_errors=bool(session.config.getini('rp_ignore_errors')),
-        ignored_tags=session.config.getini('rp_ignore_tags'),
-    )
+    if is_master(session.config):
+        session.config.py_test_service.init_service(
+            project=session.config.getini('rp_project'),
+            endpoint=session.config.getini('rp_endpoint'),
+            uuid=session.config.getini('rp_uuid'),
+            log_batch_size=int(session.config.getini('rp_log_batch_size')),
+            ignore_errors=bool(session.config.getini('rp_ignore_errors')),
+            ignored_tags=session.config.getini('rp_ignore_tags'),
+        )
 
-    PyTestService.start_launch(
-        session.config.option.rp_launch,
-        tags=session.config.getini('rp_launch_tags'),
-        description=session.config.option.rp_launch_description,
-    )
+        session.config.py_test_service.start_launch(
+            session.config.option.rp_launch,
+            tags=session.config.getini('rp_launch_tags'),
+            description=session.config.getini('rp_launch_description'),
+        )
+        if session.config.pluginmanager.hasplugin('xdist'):
+            wait_launch(session.config.py_test_service.RP.rp_client)
+
+
+def wait_launch(rp_client):
+    timeout = time.time() + LAUNCH_WAIT_TIMEOUT
+    while not rp_client.launch_id:
+        if time.time() > timeout:
+            raise Exception("Launch not found")
+        time.sleep(1)
 
 
 def pytest_sessionfinish(session):
@@ -40,7 +67,8 @@ def pytest_sessionfinish(session):
 
     # FixMe: currently method of RP api takes the string parameter
     # so it is hardcoded
-    PyTestService.finish_launch(status='RP_Launch')
+    if is_master(session.config):
+        session.config.py_test_service.finish_launch(status='RP_Launch')
 
 
 def pytest_configure(config):
@@ -49,9 +77,11 @@ def pytest_configure(config):
     if not config.option.rp_launch_description:
         config.option.rp_launch_description = config.getini('rp_launch_description')
 
-    if config.pluginmanager.hasplugin('xdist'):
-        raise Exception(
-            "pytest report portal is not compatible with 'xdist' plugin.")
+    if is_master(config):
+        config.py_test_service = PyTestServiceClass()
+    else:
+        config.py_test_service = pickle.loads(config.slaveinput['py_test_service'])
+        config.py_test_service.RP.listener.start()
 
     # set Pytest_Reporter and configure it
 
@@ -59,20 +89,21 @@ def pytest_configure(config):
         # This check can go away once we support pytest >= 3.3
         try:
             config._reporter = RPReportListener(
+                config.py_test_service,
                 _pytest.logging.get_actual_log_level(config, 'rp_log_level')
             )
         except TypeError:
             # No log level set either in INI or CLI
-            config._reporter = RPReportListener()
+            config._reporter = RPReportListener(config.py_test_service)
     else:
-        config._reporter = RPReportListener()
+        config._reporter = RPReportListener(config.py_test_service)
 
     if hasattr(config, '_reporter'):
         config.pluginmanager.register(config._reporter)
 
 
 def pytest_unconfigure(config):
-    PyTestService.terminate_service()
+    config.py_test_service.terminate_service()
 
     if hasattr(config, '_reporter'):
         reporter = config._reporter
