@@ -4,11 +4,12 @@ from setuptools import setup
 
 
 def read_file(fname):
-    return open(os.path.join(os.path.dirname(__file__), fname)).read()
+    with open(os.path.join(os.path.dirname(__file__), fname)) as f:
+        return f.read()
 
 
-version = '1.0.1'
-tar_url = 'https://github.com/reportportal/agent-python-pytest/tarball/1.0.1'
+version = '1.0.3'
+tar_url = 'https://github.com/reportportal/agent-python-pytest/tarball/1.0.3'
 
 
 requirements = [
@@ -23,7 +24,7 @@ setup(
     name='pytest-reportportal',
     version=version,
     description='Agent for Reporting results of tests to the Report Portal',
-    long_description=read_file('README.rst') + '\n\n',
+    long_description=read_file('README.rst'),
     author='Pavel Papou',
     author_email='SupportEPMC-TSTReportPortal@epam.com',
     url='https://github.com/reportportal/agent-python-pytest',
