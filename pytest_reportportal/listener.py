@@ -19,7 +19,9 @@ class RPReportListener(object):
         self.result = None
         self._log_level = log_level
         if PYTEST_HAS_LOGGING_PLUGIN:
-            self._log_handler = RPLogHandler(log_level, filter_reportportal_client_logs=True)
+            self._log_handler = RPLogHandler(py_test_service=py_test_service,
+                                             level=log_level,
+                                             filter_reportportal_client_logs=True)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_protocol(self, item):

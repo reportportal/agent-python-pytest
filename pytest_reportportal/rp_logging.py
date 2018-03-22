@@ -87,13 +87,11 @@ class RPLogHandler(logging.Handler):
 
         for level in self._sorted_levelnos:
             if level <= record.levelno:
-                break
-
-        return self.py_test_service.post_log(
-            msg,
-            loglevel=self._loglevel_map[level],
-            attachment=record.__dict__.get('attachment', None),
-        )
+                return self.py_test_service.post_log(
+                    msg,
+                    loglevel=self._loglevel_map[level],
+                    attachment=record.__dict__.get('attachment', None),
+                )
 
 
 @contextmanager
