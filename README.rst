@@ -70,6 +70,7 @@ Examples
 For logging of the test item flow to Report Portal, please, use the python
 logging handler provided by plugin like bellow:
 in conftest.py:
+
 .. code-block:: python
 
     @pytest.fixture(scope="function")
@@ -88,7 +89,9 @@ in conftest.py:
         # Add handler to the logger.
         logger.addHandler(rp_handler)
         return logger
+
 in tests:
+
 .. code-block:: python
 
     # In this case only INFO messages will be sent to the Report Portal.
