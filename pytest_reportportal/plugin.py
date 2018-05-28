@@ -16,6 +16,8 @@ try:
 except ImportError:
     PYTEST_HAS_LOGGING_PLUGIN = False
 
+log = logging.getLogger(__name__)
+
 
 def is_master(config):
     """
@@ -27,11 +29,18 @@ def is_master(config):
 
 @pytest.mark.optionalhook
 def pytest_configure_node(node):
+    if node.config._reportportal_enabled is False:
+        # Stop now if the plugin is not properly configured
+        return
     node.slaveinput['py_test_service'] = pickle.dumps(node.config.py_test_service)
 
 
 def pytest_sessionstart(session):
     if session.config.getoption('--collect-only', default=False) is True:
+        return
+
+    if session.config._reportportal_configured is False:
+        # Stop now if the plugin is not properly configured
         return
 
     if is_master(session.config):
@@ -65,6 +74,10 @@ def pytest_sessionfinish(session):
     if session.config.getoption('--collect-only', default=False) is True:
         return
 
+    if session.config._reportportal_configured is False:
+        # Stop now if the plugin is not properly configured
+        return
+
     # FixMe: currently method of RP api takes the string parameter
     # so it is hardcoded
     if is_master(session.config):
@@ -72,6 +85,13 @@ def pytest_sessionfinish(session):
 
 
 def pytest_configure(config):
+    project = config.getini('rp_project')
+    endpoint = config.getini('rp_endpoint')
+    uuid = config.getini('rp_uuid')
+    config._reportportal_configured = all([project, endpoint, uuid])
+    if config._reportportal_configured is False:
+        return
+
     if not config.option.rp_launch:
         config.option.rp_launch = config.getini('rp_launch')
     if not config.option.rp_launch_description:
@@ -103,13 +123,17 @@ def pytest_configure(config):
 
 
 def pytest_unconfigure(config):
+    if config._reportportal_configured is False:
+        # Stop now if the plugin is not properly configured
+        return
+
     config.py_test_service.terminate_service()
 
     if hasattr(config, '_reporter'):
         reporter = config._reporter
         del config._reporter
         config.pluginmanager.unregister(reporter)
-        logging.debug('RP is unconfigured')
+        log.debug('RP is unconfigured')
 
 
 def pytest_addoption(parser):
