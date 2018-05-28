@@ -16,6 +16,8 @@ try:
 except ImportError:
     PYTEST_HAS_LOGGING_PLUGIN = False
 
+log = logging.getLogger(__name__)
+
 
 def is_master(config):
     """
@@ -109,7 +111,7 @@ def pytest_unconfigure(config):
         reporter = config._reporter
         del config._reporter
         config.pluginmanager.unregister(reporter)
-        logging.debug('RP is unconfigured')
+        log.debug('RP is unconfigured')
 
 
 def pytest_addoption(parser):

@@ -73,6 +73,9 @@ class RPLogHandler(logging.Handler):
             # Don't send reportportal_client logs.
             # Specially because we'll hit a max recursion issue
             return False
+        if record.name.startswith('pytest_reportportal'):
+            # Don't send pytest_reportportal logs.
+            return False
         return True
 
     def emit(self, record):
