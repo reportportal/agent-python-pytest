@@ -2,6 +2,7 @@ import logging
 import sys
 import traceback
 import pytest
+import pkg_resources
 
 from time import time
 from six import with_metaclass
@@ -29,6 +30,12 @@ class Singleton(type):
 class PyTestServiceClass(with_metaclass(Singleton, object)):
     def __init__(self):
         self.RP = None
+        try:
+            pkg_resources.get_distribution('reportportal_client >= 3.2.0')
+            self.RP_SUPPORTS_PARAMETERS = True
+        except pkg_resources.VersionConflict:
+            self.RP_SUPPORTS_PARAMETERS = False
+
         self.ignore_errors = True
         self.ignored_tags = []
 
@@ -40,7 +47,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self._errors = queue.Queue()
         if self.RP is None:
             self.ignore_errors = ignore_errors
-            self.ignored_tags = ignored_tags
+            if self.RP_SUPPORTS_PARAMETERS:
+                self.ignored_tags = list(set(ignored_tags).union({'parametrize'}))
+            else:
+                self.ignored_tags = ignored_tags
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', endpoint, project, uuid)
             self.RP = ReportPortalServiceAsync(
@@ -102,6 +112,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'start_time': timestamp(),
             'item_type': 'STEP'
         }
+        if self.RP_SUPPORTS_PARAMETERS:
+            start_rq['parameters'] = self._get_parameters(test_item)
 
         log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
         self.RP.start_test_item(**start_rq)
@@ -111,6 +123,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         # and exclude those which present in rp_ignore_tags parameter
         return [k for k in item.keywords if item.get_marker(k) is not None
                 and k not in self.ignored_tags]
+
+    def _get_parameters(self, item):
+        return item.callspec.params if hasattr(item, 'callspec') else {}
 
     def finish_pytest_item(self, status, issue=None):
         self._stop_if_necessary()
