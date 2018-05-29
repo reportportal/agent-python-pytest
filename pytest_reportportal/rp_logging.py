@@ -60,22 +60,27 @@ class RPLogHandler(logging.Handler):
     }
     _sorted_levelnos = sorted(_loglevel_map.keys(), reverse=True)
 
-    def __init__(self, py_test_service, level=logging.NOTSET,
-                 filter_reportportal_client_logs=False):
+    def __init__(self, py_test_service,
+                 level=logging.NOTSET,
+                 filter_reportportal_client_logs=False,
+                 endpoint=None):
         super(RPLogHandler, self).__init__(level)
-        self.filter_reportportal_client_logs = filter_reportportal_client_logs
         self.py_test_service = py_test_service
+        self.filter_reportportal_client_logs = filter_reportportal_client_logs
+        self.ignored_record_names = ('reportportal_client',
+                                     'pytest_reportportal')
+        self.endpoint = endpoint
 
     def filter(self, record):
         if self.filter_reportportal_client_logs is False:
             return True
-        if record.name.startswith('reportportal_client'):
-            # Don't send reportportal_client logs.
-            # Specially because we'll hit a max recursion issue
+        if record.name.startswith(self.ignored_record_names):
             return False
-        if record.name.startswith('pytest_reportportal'):
-            # Don't send pytest_reportportal logs.
-            return False
+        if record.name == 'urllib3.connectionpool':
+            # Filter the reportportal_client requests instance
+            # urllib3 usage
+            if self.endpoint in self.format(record):
+                return False
         return True
 
     def emit(self, record):
