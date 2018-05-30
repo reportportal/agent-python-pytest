@@ -104,19 +104,17 @@ def pytest_configure(config):
         config.py_test_service.RP.listener.start()
 
     # set Pytest_Reporter and configure it
-
     if PYTEST_HAS_LOGGING_PLUGIN:
         # This check can go away once we support pytest >= 3.3
-        try:
-            config._reporter = RPReportListener(
-                config.py_test_service,
-                _pytest.logging.get_actual_log_level(config, 'rp_log_level')
-            )
-        except TypeError:
-            # No log level set either in INI or CLI
-            config._reporter = RPReportListener(config.py_test_service)
+        log_level = _pytest.logging.get_actual_log_level(config, 'rp_log_level')
+        if log_level is None:
+            log_level = logging.NOTSET
     else:
-        config._reporter = RPReportListener(config.py_test_service)
+        log_level = logging.NOTSET
+
+    config._reporter = RPReportListener(config.py_test_service,
+                                        log_level=log_level,
+                                        endpoint=endpoint)
 
     if hasattr(config, '_reporter'):
         config.pluginmanager.register(config._reporter)
@@ -153,12 +151,12 @@ def pytest_addoption(parser):
         group.addoption(
             '--rp-log-level',
             dest='rp_log_level',
-            default=logging.NOTSET,
+            default=None,
             help='Logging level for automated log records reporting'
         )
         parser.addini(
             'rp_log_level',
-            default=logging.NOTSET,
+            default=None,
             help='Logging level for automated log records reporting'
         )
 

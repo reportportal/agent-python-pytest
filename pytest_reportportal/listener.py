@@ -13,7 +13,9 @@ except ImportError:
 
 
 class RPReportListener(object):
-    def __init__(self, py_test_service, log_level=logging.NOTSET):
+    def __init__(self, py_test_service,
+                 log_level=logging.NOTSET,
+                 endpoint=None):
         # Test Item result
         self.PyTestService = py_test_service
         self.result = None
@@ -21,7 +23,8 @@ class RPReportListener(object):
         if PYTEST_HAS_LOGGING_PLUGIN:
             self._log_handler = RPLogHandler(py_test_service=py_test_service,
                                              level=log_level,
-                                             filter_reportportal_client_logs=True)
+                                             filter_reportportal_client_logs=True,
+                                             endpoint=endpoint)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_protocol(self, item):
