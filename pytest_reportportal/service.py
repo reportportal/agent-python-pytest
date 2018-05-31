@@ -65,7 +65,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         return self.RP
 
     def async_error_handler(self, exc_info):
-        self.terminate_service()
+        self.terminate_service(nowait=True)
         self.RP = None
         self._errors.put_nowait(exc_info)
 
@@ -79,9 +79,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except queue.Empty:
             pass
 
-    def terminate_service(self):
+    def terminate_service(self, nowait=False):
         if self.RP is not None:
-            self.RP.terminate()
+            self.RP.terminate(nowait)
 
     def start_launch(
             self, launch_name, mode=None, tags=None, description=None):
