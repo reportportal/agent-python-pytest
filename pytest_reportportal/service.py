@@ -146,8 +146,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 break
             payload = {
                 'name': self._get_item_name(part),
-                'description': self._get_description(part),
-                'tags': self._get_tags(part),
+                'description': self._get_item_description(part),
+                'tags': self._get_item_tags(part),
                 'start_time': timestamp(),
                 'item_type': 'SUITE'
             }
@@ -156,8 +156,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
         start_rq = {
             'name': self._get_item_name(test_item),
-            'description': self._get_description(test_item),
-            'tags': self._get_tags(test_item),
+            'description': self._get_item_description(test_item),
+            'tags': self._get_item_tags(test_item),
             'start_time': timestamp(),
             'item_type': 'STEP'
         }
@@ -186,7 +186,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         parts.append(item)
         return parts
 
-    def _get_tags(self, item):
+    def _get_item_tags(self, item):
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_tags parameter
         return [k for k in item.keywords if item.get_marker(k) is not None
@@ -271,7 +271,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         return name
 
     @staticmethod
-    def _get_description(test_item):
+    def _get_item_description(test_item):
         if isinstance(test_item, (Class, Function, Module)):
             doc = test_item.obj.__doc__
             if doc is not None:
