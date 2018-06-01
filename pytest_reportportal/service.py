@@ -167,7 +167,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
         self.RP.start_test_item(**start_rq)
 
-    def _get_item_parts(self, item):
+    @staticmethod
+    def _get_item_parts(item):
         parts = []
         parent = item.parent
         if not isinstance(parent, Instance):
