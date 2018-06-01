@@ -75,16 +75,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.RP = None
         self._errors.put_nowait(exc_info)
 
-    def _stop_if_necessary(self):
-        try:
-            exc, msg, tb = self._errors.get(False)
-            traceback.print_exception(exc, msg, tb)
-            sys.stderr.flush()
-            if not self.ignore_errors:
-                pytest.exit(msg)
-        except queue.Empty:
-            pass
-
     def terminate_service(self, nowait=False):
         if self.RP is not None:
             self.RP.terminate(nowait)
@@ -167,35 +157,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
         self.RP.start_test_item(**start_rq)
 
-    @staticmethod
-    def _get_item_parts(item):
-        parts = []
-        parent = item.parent
-        if not isinstance(parent, Instance):
-            parts.append(parent)
-        while True:
-            parent = parent.parent
-            if parent is None:
-                break
-            if isinstance(parent, Instance):
-                continue
-            if isinstance(parent, Session):
-                break
-            parts.append(parent)
-
-        parts.reverse()
-        parts.append(item)
-        return parts
-
-    def _get_item_tags(self, item):
-        # Try to extract names of @pytest.mark.* decorators used for test item
-        # and exclude those which present in rp_ignore_tags parameter
-        return [k for k in item.keywords if item.get_marker(k) is not None
-                and k not in self.ignored_tags]
-
-    def _get_parameters(self, item):
-        return item.callspec.params if hasattr(item, 'callspec') else {}
-
     def finish_pytest_item(self, status, issue=None):
         self._stop_if_necessary()
         if self.RP is None:
@@ -258,6 +219,45 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'attachment': attachment,
         }
         self.RP.log(**sl_rq)
+
+    def _stop_if_necessary(self):
+        try:
+            exc, msg, tb = self._errors.get(False)
+            traceback.print_exception(exc, msg, tb)
+            sys.stderr.flush()
+            if not self.ignore_errors:
+                pytest.exit(msg)
+        except queue.Empty:
+            pass
+
+    @staticmethod
+    def _get_item_parts(item):
+        parts = []
+        parent = item.parent
+        if not isinstance(parent, Instance):
+            parts.append(parent)
+        while True:
+            parent = parent.parent
+            if parent is None:
+                break
+            if isinstance(parent, Instance):
+                continue
+            if isinstance(parent, Session):
+                break
+            parts.append(parent)
+
+        parts.reverse()
+        parts.append(item)
+        return parts
+
+    def _get_item_tags(self, item):
+        # Try to extract names of @pytest.mark.* decorators used for test item
+        # and exclude those which present in rp_ignore_tags parameter
+        return [k for k in item.keywords if item.get_marker(k) is not None
+                and k not in self.ignored_tags]
+
+    def _get_parameters(self, item):
+        return item.callspec.params if hasattr(item, 'callspec') else {}
 
     @staticmethod
     def _get_item_name(test_item):
