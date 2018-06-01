@@ -109,25 +109,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         req_data = self.RP.start_launch(**sl_pt)
         log.debug('ReportPortal - Launch started: response_body=%s', req_data)
 
-    def get_item_parts(self, item):
-        parts = []
-        parent = item.parent
-        if not isinstance(parent, Instance):
-            parts.append(parent)
-        while True:
-            parent = parent.parent
-            if parent is None:
-                break
-            if isinstance(parent, Instance):
-                continue
-            if isinstance(parent, Session):
-                break
-            parts.append(parent)
-
-        parts.reverse()
-        parts.append(item)
-        return parts
-
 
     def collect_tests(self, session):
         self._stop_if_necessary()
@@ -138,7 +119,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             # Start collecting test item parts
             parts_in = []
             parts_out = []
-            parts = self.get_item_parts(item)
+            parts = self._get_item_parts(item)
             # Add all parts in revers order to parts_out
             parts_out.extend(reversed(parts))
             while parts:
@@ -185,6 +166,25 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
         log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
         self.RP.start_test_item(**start_rq)
+
+    def _get_item_parts(self, item):
+        parts = []
+        parent = item.parent
+        if not isinstance(parent, Instance):
+            parts.append(parent)
+        while True:
+            parent = parent.parent
+            if parent is None:
+                break
+            if isinstance(parent, Instance):
+                continue
+            if isinstance(parent, Session):
+                break
+            parts.append(parent)
+
+        parts.reverse()
+        parts.append(item)
+        return parts
 
     def _get_tags(self, item):
         # Try to extract names of @pytest.mark.* decorators used for test item
