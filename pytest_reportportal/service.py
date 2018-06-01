@@ -145,7 +145,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             if part is test_item:
                 break
             payload = {
-                'name': part.name,
+                'name': self._get_item_name(part),
                 'description': self._get_description(part),
                 'tags': self._get_tags(part),
                 'start_time': timestamp(),
@@ -155,7 +155,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self.RP.start_test_item(**payload)
 
         start_rq = {
-            'name': test_item.name,
+            'name': self._get_item_name(test_item),
             'description': self._get_description(test_item),
             'tags': self._get_tags(test_item),
             'start_time': timestamp(),
@@ -259,16 +259,16 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.RP.log(**sl_rq)
 
     @staticmethod
-    def _get_full_name(test_item):
-        fullname = test_item.nodeid
-        if len(fullname) > 256:
-            fullname = fullname[:256]
+    def _get_item_name(test_item):
+        name = test_item.name
+        if len(name) > 256:
+            name = name[:256]
             test_item.warn(
                 'C1',
                 'Test node ID was truncated to "{}" because of name size '
-                'constrains on reportportal'.format(fullname)
+                'constrains on reportportal'.format(name)
             )
-        return fullname
+        return name
 
     @staticmethod
     def _get_description(test_item):
