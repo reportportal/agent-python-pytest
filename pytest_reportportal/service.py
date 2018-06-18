@@ -112,6 +112,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             parts = self._get_item_parts(item)
             # Add all parts in revers order to parts_out
             parts_out.extend(reversed(parts))
+            parts_out.append(None)   # marker
             while parts:
                 part = parts.pop(0)
                 if part in self._start_stack:
@@ -175,9 +176,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.RP.finish_test_item(**fta_rq)
 
         while self._finish_stack:
-            if isinstance(self._finish_stack[0], Function):
-                break
             part = self._finish_stack.pop(0)
+            if part is None:
+                break
             if self._finish_stack.count(part):
                 continue
             payload = {
