@@ -56,7 +56,7 @@ def pytest_sessionstart(session):
         session.config.py_test_service.start_launch(
             session.config.option.rp_launch,
             tags=session.config.getini('rp_launch_tags'),
-            description=session.config.getini('rp_launch_description'),
+            description=session.config.option.rp_launch_description
         )
         if session.config.pluginmanager.hasplugin('xdist'):
             wait_launch(session.config.py_test_service.RP.rp_client)
