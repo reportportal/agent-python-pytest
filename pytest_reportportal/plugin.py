@@ -43,6 +43,9 @@ def pytest_sessionstart(session):
         # Stop now if the plugin is not properly configured
         return
 
+    if not session.config.option.enabled:
+        return
+
     if is_master(session.config):
         session.config.py_test_service.init_service(
             project=session.config.getini('rp_project'),
@@ -106,6 +109,9 @@ def pytest_sessionfinish(session):
 
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
+        return
+
+    if not session.config.option.enabled:
         return
 
     # FixMe: currently method of RP api takes the string parameter
@@ -176,6 +182,14 @@ def pytest_addoption(parser):
         action='store',
         dest='rp_launch_description',
         help='Launch description (overrides rp_launch_description config option)')
+
+    group.addoption(
+        '--reportportal',
+        action='store_true',
+        dest='enabled',
+        default=False,
+        help='Enable ReportPortal plugin'
+    )
 
     if PYTEST_HAS_LOGGING_PLUGIN:
         group.addoption(

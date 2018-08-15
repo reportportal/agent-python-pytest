@@ -144,11 +144,11 @@ If you don't want to attach specific markers, list them in :code:`rp_ignore_tags
 Launching
 ~~~~~~~~~
 
-To run test with Report Portal you can specify name of :code:`launch`:
+To run test with Report Portal you must provide '--reportportal' flag:
 
 .. code-block:: bash
 
-    py.test ./tests --rp-launch AnyLaunchName
+    py.test ./tests --reportportal
 
 
 Troubleshooting
