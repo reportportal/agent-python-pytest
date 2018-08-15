@@ -19,6 +19,7 @@ class RPReportListener(object):
         # Test Item result
         self.PyTestService = py_test_service
         self.result = None
+        self.issue = {}
         self._log_level = log_level
         if PYTEST_HAS_LOGGING_PLUGIN:
             self._log_handler = RPLogHandler(py_test_service=py_test_service,
@@ -37,7 +38,7 @@ class RPReportListener(object):
                     yield
         else:
             yield
-        self.PyTestService.finish_pytest_item(self.result or 'SKIPPED')
+        self.PyTestService.finish_pytest_item(self.result or 'SKIPPED', self.issue or None)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self):
@@ -52,10 +53,16 @@ class RPReportListener(object):
 
         if report.when == 'setup':
             self.result = None
+            self.issue = {}
             if report.failed:
                 # This happens for example when a fixture fails to run
                 # causing the test to error
                 self.result = 'FAILED'
+            elif report.skipped:
+                # This happens when a testcase is marked "skip".  It will
+                # show in reportportal as not requiring investigation.
+                self.result = 'SKIPPED'
+                self.issue['issue_type'] = 'NOT_ISSUE'
 
         if report.when == 'call':
             if report.passed:
