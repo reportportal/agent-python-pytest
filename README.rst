@@ -73,7 +73,7 @@ in conftest.py:
 
 .. code-block:: python
 
-    @pytest.fixture(scope="function")
+    @pytest.fixture(scope="session")
     def rp_logger(request):
         import logging
         # Import Report Portal logger and handler to the test module.
@@ -86,8 +86,6 @@ in conftest.py:
         rp_handler = RPLogHandler(request.node.config.py_test_service)
         # Set INFO level for Report Portal handler.
         rp_handler.setLevel(logging.INFO)
-        # Add handler to the logger.
-        logger.addHandler(rp_handler)
         return logger
 
 in tests:
