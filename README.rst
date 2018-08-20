@@ -62,6 +62,11 @@ The following parameters are optional:
 - :code:`rp_log_batch_size = 20` - size of batch log request
 - :code:`rp_ignore_errors = True` - Ignore Report Portal errors (exit otherwise)
 - :code:`rp_ignore_tags = 'xfail' 'usefixture'` - Ignore specified pytest markers
+- :code:`rp_hierarchy_dirs = True` - Enables hierarchy for tests directories (default False)
+- :code:`rp_hierarchy_module = True` - Enables hierarchy for module (default True)
+- :code:`rp_hierarchy_class = True` - Enables hierarchy for class (default True)
+- :code:`rp_hierarchy_parametrize = True` - Enables hierarchy parametrized tests (default False)
+- :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default 0)
 
 
 Examples
