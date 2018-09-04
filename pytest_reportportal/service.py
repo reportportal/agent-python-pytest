@@ -11,6 +11,7 @@ from six.moves import queue
 from _pytest.main import Session
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.doctest import DoctestItem
+from _pytest.nodes import File, Item
 from reportportal_client import ReportPortalServiceAsync
 
 log = logging.getLogger(__name__)
@@ -105,11 +106,43 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if self.RP is None:
             return
 
+        hier_dirs = session.config.getini('rp_hierarchy_dirs')
+        hier_module = session.config.getini('rp_hierarchy_module')
+        hier_class = session.config.getini('rp_hierarchy_class')
+        hier_param = session.config.getini('rp_hierarchy_parametrize')
+        try:
+            hier_dirs_level = int(session.config.getini('rp_hierarchy_dirs_level'))
+        except ValueError:
+            hier_dirs_level = 0
+
+        dirs_parts = {}
+        tests_parts = {}
+
         for item in session.items:
             # Start collecting test item parts
             parts_in = []
             parts_out = []
-            parts = self._get_item_parts(item)
+            parts = []
+
+            # Hierarchy for directories
+            rp_name = self._add_item_hier_parts_dirs(item, hier_dirs, hier_dirs_level, parts, dirs_parts)
+
+            # Hierarchy for Module and Class
+            item_parts = self._get_item_parts(item)
+            rp_name = self._add_item_hier_parts_other(item_parts, item, Module, hier_module, parts, rp_name)
+            rp_name = self._add_item_hier_parts_other(item_parts, item, Class, hier_class, parts, rp_name)
+
+            # Hierarchy for parametrized tests
+            if hier_param:
+                rp_name = self._add_item_hier_parts_parametrize(item, parts, tests_parts, rp_name)
+
+            # Hierarchy for test itself
+            self._add_item_hier_parts_other(item_parts, item, Function, True, parts, rp_name)
+
+            # Result initialization
+            for part in parts:
+                part._rp_result = "PASSED"
+
             # Add all parts in revers order to parts_out
             parts_out.extend(reversed(parts))
             parts_out.append(None)   # marker
@@ -179,12 +212,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             part = self._finish_stack.pop(0)
             if part is None:
                 break
+            if status == "FAILED":
+                part._rp_result = status
             if self._finish_stack.count(part):
                 continue
             payload = {
                 'end_time': timestamp(),
                 'issue': issue,
-                'status': 'PASSED'
+                'status': part._rp_result
             }
             log.debug('ReportPortal - End TestSuite: request_body=%s', payload)
             self.RP.finish_test_item(**payload)
@@ -231,6 +266,87 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except queue.Empty:
             pass
 
+
+    @staticmethod
+    def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts, dirs_parts, rp_name=""):
+
+        parts_dirs = PyTestServiceClass._get_item_dirs(item)
+        dir_path = item.fspath.new(dirname="", basename="", drive="")
+        rp_name_path = ""
+
+        for dir_name in parts_dirs[dirs_level:]:
+            dir_path = dir_path.join(dir_name)
+            path = str(dir_path)
+
+            if hier_flag:
+                if path in dirs_parts:
+                    item_dir = dirs_parts[path]
+                    rp_name = ""
+                else:
+                    item_dir = File(dir_name, nodeid=dir_name, session=item.session, config=item.session.config)
+                    rp_name += dir_name
+                    item_dir._rp_name = rp_name
+                    dirs_parts[path] = item_dir
+                    rp_name = ""
+
+                report_parts.append(item_dir)
+            else:
+                rp_name_path = path[1:]
+
+        if not hier_flag:
+            rp_name += rp_name_path
+
+        return rp_name
+
+    @staticmethod
+    def _add_item_hier_parts_parametrize(item, report_parts, tests_parts, rp_name=""):
+
+        for mark in item.own_markers:
+            if mark.name == 'parametrize':
+                ch_index = item.nodeid.find("[")
+                test_fullname = item.nodeid[:ch_index if ch_index > 0 else len(item.nodeid)]
+                test_name = item.originalname
+
+                rp_name += ("::" if rp_name else "") + test_name
+
+                if test_fullname in tests_parts:
+                    item_test = tests_parts[test_fullname]
+                else:
+                    item_test = Item(test_fullname, nodeid=test_fullname, session=item.session, config=item.session.config)
+                    item_test._rp_name = rp_name
+                    item_test.obj = item.obj
+                    item_test.keywords = item.keywords
+                    item_test.own_markers = item.own_markers
+                    item_test.parent = item.parent
+
+                    tests_parts[test_fullname] = item_test
+
+                rp_name = ""
+                report_parts.append(item_test)
+                break
+
+        return rp_name
+
+    @staticmethod
+    def _add_item_hier_parts_other(item_parts, item, type, hier_flag, report_parts, rp_name=""):
+
+        for part in item_parts:
+
+            if isinstance(part, type):
+
+                if type is Module:
+                    module_path = str(item.fspath.new(dirname=rp_name, basename=part.fspath.basename, drive=""))
+                    rp_name = module_path if rp_name else module_path[1:]
+                elif type in (Class, Function):
+                    rp_name += ("::" if rp_name else "") + part.name
+
+                if hier_flag:
+                    part._rp_name = rp_name
+                    rp_name = ""
+                    report_parts.append(part)
+
+        return rp_name
+
     @staticmethod
     def _get_item_parts(item):
         parts = []
@@ -251,6 +367,21 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         parts.append(item)
         return parts
 
+    @staticmethod
+    def _get_item_dirs(item):
+
+        root_path = item.session.config.rootdir.strpath
+        dir_path = item.fspath.new(basename="")
+        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="", drive="")
+
+        dir_list = []
+        for directory in rel_dir.parts(reverse=False):
+            dir_name = directory.basename
+            if dir_name:
+                dir_list.append(dir_name)
+
+        return dir_list
+
     def _get_item_tags(self, item):
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_tags parameter
@@ -262,7 +393,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     @staticmethod
     def _get_item_name(test_item):
-        name = test_item.name
+        name = test_item._rp_name
         if len(name) > 256:
             name = name[:256]
             test_item.warn(
@@ -274,7 +405,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     @staticmethod
     def _get_item_description(test_item):
-        if isinstance(test_item, (Class, Function, Module)):
+        if isinstance(test_item, (Class, Function, Module, Item)):
             doc = test_item.obj.__doc__
             if doc is not None:
                 return doc.strip()

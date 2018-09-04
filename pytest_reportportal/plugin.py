@@ -246,3 +246,32 @@ def pytest_addoption(parser):
         'rp_ignore_tags',
         type='args',
         help='Ignore specified pytest markers, i.e parametrize')
+
+    parser.addini(
+        'rp_hierarchy_dirs_level',
+        default=0,
+        help='Directory starting hierarchy level')
+
+    parser.addini(
+        'rp_hierarchy_dirs',
+        default=False,
+        type='bool',
+        help='Enables hierarchy for directories')
+
+    parser.addini(
+        'rp_hierarchy_module',
+        default=True,
+        type='bool',
+        help='Enables hierarchy for module')
+
+    parser.addini(
+        'rp_hierarchy_class',
+        default=True,
+        type='bool',
+        help='Enables hierarchy for class')
+
+    parser.addini(
+        'rp_hierarchy_parametrize',
+        default=False,
+        type='bool',
+        help='Enables hierarchy for parametrized tests')
