@@ -29,7 +29,7 @@ def is_master(config):
 
 @pytest.mark.optionalhook
 def pytest_configure_node(node):
-    if node.config._reportportal_enabled is False:
+    if node.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
     node.slaveinput['py_test_service'] = pickle.dumps(node.config.py_test_service)
