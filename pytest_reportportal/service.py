@@ -354,16 +354,16 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         return rp_name
 
     @staticmethod
-    def _add_item_hier_parts_other(item_parts, item, type, hier_flag, report_parts, rp_name=""):
+    def _add_item_hier_parts_other(item_parts, item, item_type, hier_flag, report_parts, rp_name=""):
 
         for part in item_parts:
 
-            if isinstance(part, type):
+            if type(part) is item_type:
 
-                if type is Module:
+                if item_type is Module:
                     module_path = str(item.fspath.new(dirname=rp_name, basename=part.fspath.basename, drive=""))
                     rp_name = module_path if rp_name else module_path[1:]
-                elif type in (Class, Function):
+                elif item_type in (Class, Function):
                     rp_name += ("::" if rp_name else "") + part.name
 
                 if hier_flag:
