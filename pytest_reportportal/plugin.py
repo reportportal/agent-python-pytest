@@ -227,6 +227,11 @@ def pytest_addoption(parser):
         help='Launch tags, i.e Performance Regression')
 
     parser.addini(
+        'rp_tests_tags',
+        type='args',
+        help='Tags for all tests items, e.g. Smoke')
+
+    parser.addini(
         'rp_launch_description',
         default='',
         help='Launch description')

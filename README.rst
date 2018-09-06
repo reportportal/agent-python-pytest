@@ -55,7 +55,8 @@ The following parameters are optional:
 
 - :code:`rp_launch = AnyLaunchName` - launch name (could be overridden
   by pytest --rp-launch option, default value is 'Pytest Launch')
-- :code:`rp_launch_tags = 'PyTest' 'Smoke'` - list of tags
+- :code:`rp_launch_tags = 'PyTest' 'Smoke'` - list of tags for launch
+- :code:`rp_tests_tags = 'PyTest' 'Smoke'` - list of tags that will be added for each item in the launch
 - :code:`rp_launch_description = 'Smoke test'` - launch description (could be overridden
   by pytest --rp-launch-description option, default value is '')
 
