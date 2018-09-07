@@ -1,5 +1,10 @@
+stages:
+- test
+- name: deploy
+  if: tag IS present
 language: python
 python:
+  - "2.6"
   - "2.7"
   - "3.4"
   - "3.5"
@@ -7,11 +12,17 @@ python:
 script:
   - python setup.py -q install
 
-deploy:
-  provider: pypi
-  user: reportportal
-  password:
-    secure: r464kwpTXfws7uEEeF70GlJV5YBGqmDDMFSKd3uhlSOK3GDQNQH9q+tMd1OlpHegUaEQ26nnuO0kXqpYrOSiAy8L03WTqhT840I6Y9MYCG/yarrGHs+7L4cF4iQTiUewBuaNO6uwtWBssa9I4mcV6QuRt4zYDzKFGtP6BGm6MAb0IBRNr0cthjbcVajeO91qmTl9TPKHWXRlXhcLqThDshkO/NhOsjJJzMxCMEycjCFM/MywpIOZkgR2YWkiSazMjb9KUVQFCGxl+vnCHFwHhvn/igNNLCUq2dR5r8JQ4HX08uefQSycZBXGEQJ4C3X08VfBk5PKUNOpBR+puYfgKG+UTQl/Z39BDXOVDC47OjP6gI1tcJnpIRlWjYjWU8yXqnkBN28BOycqTB8ewYnq0ni2Cys4AD4IXaPWxmdYJGlxxpLGN1UYzPINi5S6yRzelo0krOg7VEocw/kRC1Cz0hZTN1YdzIsw3GAcadSOEAi2LeUaKqtox9s/eLmkDvZEInWADuW9ofEyMyVi+8pV0CvjhMJ9cn3fBDaVRcotPcPlmZFJdCxEH5X21svSuj7REIu2Uee+pZlqEBuYLZaICVTgG3431xeWRTsaHR9r4+xFnrr6t+xnEdFF45ZcBluX02v/ACtMTZaRJIBh/FyozEkHa84Uujpyuv8hZud9X4Q=
-  distibutions: sdist bdist_wheel
-  on:
-    tags: true
+jobs:
+  include:
+  - stage: deploy
+    python: '3.6'
+    script: skip
+    deploy:
+      stage: deploy
+      provider: pypi
+      on:
+        tags: true
+      distributions: sdist bdist_wheel
+      user: reportportal
+      password:
+        secure: jMfziY/3FrvJPvOIOf+txT+pOYlhhYjNS7rzMqLA6cAaTWW3h0kTIJKmBL6YtJv6q7nr42tgNy8H1eHkRk0eR3XwVZJ0J6H89sQkGRNo6cX9Dl+DJ+PgZIQ2jskTOYErB+J1B69WVx8RKStvmAIB1r5IdoBG8itPJTKrXLb+3QVH9oPTOaH9/JE50WPeU842xLQe04dCG3doIFvVGQYUlI/ZTLCpOiq1p8/K1CIzktMZlDlDfGho8V5uD+RuC8L/ZcJIDBzEP7NN9lzYLgfFSZiT/e48S8trYodON1xID/RWAOye2u0oFNoWeBpvp+JBcfQASSvoCwxOkuRp6R8g91g9E4RCUrYGwCKJqMqk2PjrlRKayfyHQjcu9yyjRtqix3eQV7fen9p2DesZtXTstGkD6GDhLUbQEjC+9ZqYVjVMKDdBtjQuWCrcJQoVSn1DmStK7oqo/am1KSO9OpgHqKGNwageD3fHGyCLxmhoiDRIMKbrDSJ0jmq8awBQ2WkyctLA3EjAy/NQd0Rf+BwjeGjQNa1OseLUKErIDiziPNQ8Po8pLf82qMqV25NtKEbAL60KxjlJO/Vh0UvMnh8OoK3yDrweTHyqDIfLJEymCHWsEPEJOxjYmXFhPPf7rnaTW36sncqr9Sh+TCPb2bGFL0uDQhCaUz9gBP/K1vUJdMM=
