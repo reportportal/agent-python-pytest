@@ -6,3 +6,12 @@ python:
   - "3.6"
 script:
   - python setup.py -q install
+
+deploy:
+  provider: pypi
+  user: reportportal
+  password:
+    secure: r464kwpTXfws7uEEeF70GlJV5YBGqmDDMFSKd3uhlSOK3GDQNQH9q+tMd1OlpHegUaEQ26nnuO0kXqpYrOSiAy8L03WTqhT840I6Y9MYCG/yarrGHs+7L4cF4iQTiUewBuaNO6uwtWBssa9I4mcV6QuRt4zYDzKFGtP6BGm6MAb0IBRNr0cthjbcVajeO91qmTl9TPKHWXRlXhcLqThDshkO/NhOsjJJzMxCMEycjCFM/MywpIOZkgR2YWkiSazMjb9KUVQFCGxl+vnCHFwHhvn/igNNLCUq2dR5r8JQ4HX08uefQSycZBXGEQJ4C3X08VfBk5PKUNOpBR+puYfgKG+UTQl/Z39BDXOVDC47OjP6gI1tcJnpIRlWjYjWU8yXqnkBN28BOycqTB8ewYnq0ni2Cys4AD4IXaPWxmdYJGlxxpLGN1UYzPINi5S6yRzelo0krOg7VEocw/kRC1Cz0hZTN1YdzIsw3GAcadSOEAi2LeUaKqtox9s/eLmkDvZEInWADuW9ofEyMyVi+8pV0CvjhMJ9cn3fBDaVRcotPcPlmZFJdCxEH5X21svSuj7REIu2Uee+pZlqEBuYLZaICVTgG3431xeWRTsaHR9r4+xFnrr6t+xnEdFF45ZcBluX02v/ACtMTZaRJIBh/FyozEkHa84Uujpyuv8hZud9X4Q=
+  distibutions: sdist bdist_wheel
+  on:
+    tags: true
