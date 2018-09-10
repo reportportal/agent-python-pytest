@@ -12,6 +12,7 @@ from _pytest.main import Session
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.doctest import DoctestItem
 from _pytest.nodes import File, Item
+from _pytest.unittest import TestCaseFunction, UnitTestCase
 from reportportal_client import ReportPortalServiceAsync
 
 log = logging.getLogger(__name__)
@@ -157,6 +158,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             item_parts = self._get_item_parts(item)
             rp_name = self._add_item_hier_parts_other(item_parts, item, Module, hier_module, parts, rp_name)
             rp_name = self._add_item_hier_parts_other(item_parts, item, Class, hier_class, parts, rp_name)
+            # Hierarchy for unittest TestCase (class)
+            rp_name = self._add_item_hier_parts_other(item_parts, item, UnitTestCase, hier_class, parts, rp_name)
+
 
             # Hierarchy for parametrized tests
             if hier_param:
@@ -164,6 +168,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
             # Hierarchy for test itself
             self._add_item_hier_parts_other(item_parts, item, Function, True, parts, rp_name)
+            # Hierarchy for unittest TestCaseFunction (test)
+            self._add_item_hier_parts_other(item_parts, item, TestCaseFunction, True, parts, rp_name)
 
             # Result initialization
             for part in parts:
@@ -363,7 +369,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 if item_type is Module:
                     module_path = str(item.fspath.new(dirname=rp_name, basename=part.fspath.basename, drive=""))
                     rp_name = module_path if rp_name else module_path[1:]
-                elif item_type in (Class, Function):
+                elif item_type in (Class, Function, UnitTestCase, TestCaseFunction):
                     rp_name += ("::" if rp_name else "") + part.name
 
                 if hier_flag:
