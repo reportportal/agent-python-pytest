@@ -43,7 +43,7 @@ def pytest_sessionstart(session):
         # Stop now if the plugin is not properly configured
         return
 
-    if not session.config.option.enabled:
+    if not session.config.option.rp_enabled:
         return
 
     if is_master(session.config):
@@ -91,8 +91,7 @@ def pytest_collection_finish(session):
         # Stop now if the plugin is not properly configured
         return
 
-    if is_master(session.config):
-        session.config.py_test_service.collect_tests(session)
+    session.config.py_test_service.collect_tests(session)
 
 
 def wait_launch(rp_client):
@@ -111,7 +110,7 @@ def pytest_sessionfinish(session):
         # Stop now if the plugin is not properly configured
         return
 
-    if not session.config.option.enabled:
+    if not session.config.option.rp_enabled:
         return
 
     # FixMe: currently method of RP api takes the string parameter
@@ -186,7 +185,7 @@ def pytest_addoption(parser):
     group.addoption(
         '--reportportal',
         action='store_true',
-        dest='enabled',
+        dest='rp_enabled',
         default=False,
         help='Enable ReportPortal plugin'
     )
