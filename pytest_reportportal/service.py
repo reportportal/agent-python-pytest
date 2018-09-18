@@ -73,8 +73,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
         self._errors = queue.Queue()
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
-        self._start_stack = []
-        self._finish_stack = []
+        self._hier_parts = {}
+        self._item_parts = {}
 
     def init_service(self, endpoint, project, uuid, log_batch_size,
                      ignore_errors, ignored_tags):
@@ -133,10 +133,17 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if self.RP is None:
             return
 
-        hier_dirs = session.config.getini('rp_hierarchy_dirs')
-        hier_module = session.config.getini('rp_hierarchy_module')
-        hier_class = session.config.getini('rp_hierarchy_class')
-        hier_param = session.config.getini('rp_hierarchy_parametrize')
+        hier_dirs = False
+        hier_module = False
+        hier_class = False
+        hier_param = False
+
+        if not hasattr(session.config, 'slaveinput'):
+            hier_dirs = session.config.getini('rp_hierarchy_dirs')
+            hier_module = session.config.getini('rp_hierarchy_module')
+            hier_class = session.config.getini('rp_hierarchy_class')
+            hier_param = session.config.getini('rp_hierarchy_parametrize')
+
         try:
             hier_dirs_level = int(session.config.getini('rp_hierarchy_dirs_level'))
         except ValueError:
@@ -147,59 +154,45 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
         for item in session.items:
             # Start collecting test item parts
-            parts_in = []
-            parts_out = []
             parts = []
 
             # Hierarchy for directories
             rp_name = self._add_item_hier_parts_dirs(item, hier_dirs, hier_dirs_level, parts, dirs_parts)
 
-            # Hierarchy for Module and Class
+            # Hierarchy for Module and Class/UnitTestCase
             item_parts = self._get_item_parts(item)
             rp_name = self._add_item_hier_parts_other(item_parts, item, Module, hier_module, parts, rp_name)
             rp_name = self._add_item_hier_parts_other(item_parts, item, Class, hier_class, parts, rp_name)
-            # Hierarchy for unittest TestCase (class)
             rp_name = self._add_item_hier_parts_other(item_parts, item, UnitTestCase, hier_class, parts, rp_name)
-
 
             # Hierarchy for parametrized tests
             if hier_param:
                 rp_name = self._add_item_hier_parts_parametrize(item, parts, tests_parts, rp_name)
 
-            # Hierarchy for test itself
-            self._add_item_hier_parts_other(item_parts, item, Function, True, parts, rp_name)
-            # Hierarchy for unittest TestCaseFunction (test)
-            self._add_item_hier_parts_other(item_parts, item, TestCaseFunction, True, parts, rp_name)
+            # Hierarchy for test itself (Function/TestCaseFunction)
+            item._rp_name = rp_name + ("::" if rp_name else "") + item.name
 
             # Result initialization
             for part in parts:
                 part._rp_result = "PASSED"
 
-            # Add all parts in revers order to parts_out
-            parts_out.extend(reversed(parts))
-            parts_out.append(None)   # marker
-            while parts:
-                part = parts.pop(0)
-                if part in self._start_stack:
-                    # If we've seen this part, skip it
-                    continue
-                # We haven't seen this part yet. Could be a Class, Module or Function
-                # Appent to parts_in
-                parts_in.append(part)
-
-            # Update self._start_stack and self._finish_stack
-            self._start_stack.extend(parts_in)
-            self._finish_stack.extend(parts_out)
+            self._item_parts[item] = parts
+            for part in parts:
+                if part not in self._hier_parts:
+                    self._hier_parts[part] = {"finish_counter": 1, "start_flag": False}
+                else:
+                    self._hier_parts[part]["finish_counter"] += 1
 
     def start_pytest_item(self, test_item=None):
         self._stop_if_necessary()
         if self.RP is None:
             return
 
-        while True:
-            part = self._start_stack.pop(0)
-            if part is test_item:
-                break
+        for part in self._item_parts[test_item]:
+            if self._hier_parts[part]["start_flag"]:
+                continue
+            self._hier_parts[part]["start_flag"] = True
+
             payload = {
                 'name': self._get_item_name(part),
                 'description': self._get_item_description(part),
@@ -223,13 +216,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
         self.RP.start_test_item(**start_rq)
 
-    def finish_pytest_item(self, status, issue=None):
+    def finish_pytest_item(self, test_item, status, issue=None):
         self._stop_if_necessary()
         if self.RP is None:
             return
-
-        # Remove the test from the finish stack
-        self._finish_stack.pop(0)
 
         fta_rq = {
             'end_time': timestamp(),
@@ -240,13 +230,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
         self.RP.finish_test_item(**fta_rq)
 
-        while self._finish_stack:
-            part = self._finish_stack.pop(0)
-            if part is None:
-                break
+        parts = self._item_parts[test_item]
+        while len(parts) > 0:
+            part = parts.pop()
             if status == "FAILED":
                 part._rp_result = status
-            if self._finish_stack.count(part):
+            self._hier_parts[part]["finish_counter"] -= 1
+            if self._hier_parts[part]["finish_counter"] > 0:
                 continue
             payload = {
                 'end_time': timestamp(),
@@ -396,7 +386,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             parts.append(parent)
 
         parts.reverse()
-        parts.append(item)
         return parts
 
     @staticmethod

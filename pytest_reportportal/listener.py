@@ -38,7 +38,7 @@ class RPReportListener(object):
                     yield
         else:
             yield
-        self.PyTestService.finish_pytest_item(self.result or 'SKIPPED', self.issue or None)
+        self.PyTestService.finish_pytest_item(item, self.result or 'SKIPPED', self.issue or None)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self):
