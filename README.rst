@@ -68,6 +68,7 @@ The following parameters are optional:
 - :code:`rp_hierarchy_class = True` - Enables hierarchy for class, default `True`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_parametrize = True` - Enables hierarchy parametrized tests, default `False`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
+- :code:`rp_ignore_ssl = False` - Ignore SSL Errors when connecting to the server
 
 
 Examples

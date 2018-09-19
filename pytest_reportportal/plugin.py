@@ -46,6 +46,8 @@ def pytest_sessionstart(session):
     if not session.config.option.rp_enabled:
         return
 
+    verify_ssl = not session.config.getini('rp_ignore_ssl')
+
     if is_master(session.config):
         session.config.py_test_service.init_service(
             project=session.config.getini('rp_project'),
@@ -54,6 +56,7 @@ def pytest_sessionstart(session):
             log_batch_size=int(session.config.getini('rp_log_batch_size')),
             ignore_errors=bool(session.config.getini('rp_ignore_errors')),
             ignored_tags=session.config.getini('rp_ignore_tags'),
+            verify_ssl=verify_ssl
         )
 
         session.config.py_test_service.start_launch(
@@ -279,3 +282,9 @@ def pytest_addoption(parser):
         default=False,
         type='bool',
         help='Enables hierarchy for parametrized tests')
+
+    parser.addini(
+        'rp_ignore_ssl',
+        default=False,
+        type='bool',
+        help='Ignores ssl errors')
