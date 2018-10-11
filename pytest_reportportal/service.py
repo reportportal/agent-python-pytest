@@ -407,9 +407,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
     def _get_item_tags(self, item):
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_tags parameter
-        #return [k for k in item.keywords if item.get_marker(k) is not None
-        #        and k not in self.ignored_tags]
-        tags = [k for k in item.keywords if item.get_marker(k) is not None
+        def get_marker_value(item, keyword):
+            marker = item.keywords.get(keyword)
+            return "{}:{}".format(keyword, marker.args[0]) \
+                if marker and marker.args else keyword
+
+        tags = [get_marker_value(item, k) for k in item.keywords
+                if item.get_marker(k) is not None
                 and k not in self.ignored_tags]
         tags.extend(item.session.config.getini('rp_tests_tags'))
 
