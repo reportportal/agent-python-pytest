@@ -70,6 +70,8 @@ The following parameters are optional:
 - :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
 
+If you like to override the above parameters from command line, or from CI environment based on your build, then pass
+- :code:`-o "rp_launch_tags=Smoke Tests"` during invocation.
 
 Examples
 ~~~~~~~~
