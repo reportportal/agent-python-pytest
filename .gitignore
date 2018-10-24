@@ -1,2 +1,7 @@
 # Created by .ignore support plugin (hsz.mobi)
 .idea
+.pytest_cache
+.dist
+*.pyc
+*.egg-info
+*.egg
