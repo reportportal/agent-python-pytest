@@ -41,7 +41,7 @@ class RPReportListener(object):
         self.PyTestService.finish_pytest_item(item, self.result or 'SKIPPED', self.issue or None)
 
     @pytest.hookimpl(hookwrapper=True)
-    def pytest_runtest_makereport(self):
+    def pytest_runtest_makereport(self, item):
         report = (yield).get_result()
 
         if report.longrepr:
@@ -58,17 +58,61 @@ class RPReportListener(object):
                 # This happens for example when a fixture fails to run
                 # causing the test to error
                 self.result = 'FAILED'
+                self._add_issue_info(item, report)
             elif report.skipped:
                 # This happens when a testcase is marked "skip".  It will
                 # show in reportportal as not requiring investigation.
                 self.result = 'SKIPPED'
-                self.issue['issue_type'] = 'NOT_ISSUE'
+                self._add_issue_info(item, report)
 
         if report.when == 'call':
             if report.passed:
                 item_result = 'PASSED'
             elif report.skipped:
                 item_result = 'SKIPPED'
+                self._add_issue_info(item, report)
             else:
                 item_result = 'FAILED'
+                self._add_issue_info(item, report)
             self.result = item_result
+
+
+    def _add_issue_info(self, item, report):
+
+        issue_type = None
+        comment = ""
+        url = item.session.config.getini('rp_issue_system_url')
+        issue_marks = item.session.config.getini('rp_issue_marks')
+
+        for mark_name in issue_marks:
+            try:
+                mark = item.get_closest_marker(mark_name)
+            except AttributeError:
+                # pytest < 3.6
+                mark = item.get_marker(mark_name)
+
+            if mark:
+                if "reason" in mark.kwargs:
+                    comment += "\n" if comment else ""
+                    comment += mark.kwargs["reason"]
+                if "issue_id" in mark.kwargs:
+                    issue_ids = mark.kwargs["issue_id"]
+                    if not isinstance(issue_ids, list):
+                        issue_ids = [issue_ids]
+                    comment += "\n" if comment else ""
+                    comment += "Issues:"
+
+                    for issue_id in issue_ids:
+                        comment += " [{}]({}{})".format(issue_id, url, issue_id) if url else " {}".format(issue_id)
+
+                if "issue_type" in mark.kwargs:
+                    issue_type = mark.kwargs["issue_type"]
+
+        if comment:
+            self.issue['comment'] = comment
+
+        if issue_type and self.PyTestService.issue_types and (issue_type in self.PyTestService.issue_types):
+            self.issue['issue_type'] = self.PyTestService.issue_types[issue_type]
+            # self.issue['ignoreAnalyzer'] = True ???
+        elif (report.when == 'setup') and report.skipped:
+            self.issue['issue_type'] = 'NOT_ISSUE'

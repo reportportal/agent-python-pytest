@@ -282,6 +282,17 @@ def pytest_addoption(parser):
         help='Enables hierarchy for parametrized tests')
 
     parser.addini(
+        'rp_issue_marks',
+        type='args',
+        default='',
+        help='Pytest marks to get issue information')
+
+    parser.addini(
+        'rp_issue_system_url',
+        default='',
+        help='URL to get issue description. Issue id from pytest mark will be added to this URL')
+
+    parser.addini(
         'rp_verify_ssl',
         default=True,
         type='bool',

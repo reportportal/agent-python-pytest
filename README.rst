@@ -68,6 +68,8 @@ The following parameters are optional:
 - :code:`rp_hierarchy_class = True` - Enables hierarchy for class, default `True`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_parametrize = True` - Enables hierarchy parametrized tests, default `False`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
+- :code:`rp_issue_marks = 'xfail' 'issue'` - Pytest marks that could be used to get issue information (id, type, reason)
+- :code:`rp_issue_system_url = https://bugzilla.olympus.f5net.com/show_bug.cgi?id=` - URL to get issue description (issue id from pytest mark will be added to this URL)
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
 
 If you like to override the above parameters from command line, or from CI environment based on your build, then pass
@@ -156,6 +158,27 @@ To run test with Report Portal you must provide '--reportportal' flag:
 .. code-block:: bash
 
     py.test ./tests --reportportal
+
+
+Test issue info
+~~~~~~~~~
+
+Some pytest marks could be used to specify information about skipped or failed test result.
+List of this marks should be specified in pytest ini file (see :code:`rp_issue_marks`).
+
+The following mark fields are used to get information about test issue:
+
+- :code:`issue_id` - issue id (or list) in tracking system. This id will be added as comment to test fail result. If URL is specified in pytest ini file (see :code:`rp_issue_system_url`), id will added as link to tracking system.
+- :code:`reason` - some comment that will be added to test fail description.
+- :code:`issue_type` - short name of RP issue type that should be assigned to failed or skipped test.
+
+Example:
+
+.. code-block:: python
+
+    @pytest.mark.issue(issue_id="111111", reason="Some bug", issue_type="PB")
+    def test():
+        assert False
 
 
 Troubleshooting
