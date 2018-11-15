@@ -95,6 +95,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 log_batch_size=log_batch_size,
                 verify_ssl=verify_ssl
             )
+            self.project_settiings = self.RP.rp_client.get_project_settings() if self.RP else None
+            self.issue_types = self.get_issue_types()
         else:
             log.debug('The pytest is already initialized')
         return self.RP
@@ -289,6 +291,16 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except queue.Empty:
             pass
 
+    def get_issue_types(self):
+        issue_types = {}
+        if not self.project_settiings:
+            return issue_types
+
+        for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE", "NO_DEFECT", "TO_INVESTIGATE"):
+            for item in self.project_settiings["subTypes"][item_type]:
+                issue_types[item["shortName"]] = item["locator"]
+
+        return issue_types
 
     @staticmethod
     def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts, dirs_parts, rp_name=""):
@@ -408,13 +420,25 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_tags parameter
         def get_marker_value(item, keyword):
-            marker = item.keywords.get(keyword)
+            try:
+                marker = item.get_closest_marker(keyword)
+            except AttributeError:
+                # pytest < 3.6
+                marker = item.keywords.get(keyword)
+
             return "{}:{}".format(keyword, marker.args[0]) \
                 if marker and marker.args else keyword
 
-        tags = [get_marker_value(item, k) for k in item.keywords
-                if item.get_marker(k) is not None
-                and k not in self.ignored_tags]
+        try:
+            tags = [get_marker_value(item, k) for k in item.keywords
+                    if item.get_closest_marker(k) is not None
+                    and k not in self.ignored_tags]
+        except AttributeError:
+            # pytest < 3.6
+            tags = [get_marker_value(item, k) for k in item.keywords
+                    if item.get_marker(k) is not None
+                    and k not in self.ignored_tags]
+
         tags.extend(item.session.config.getini('rp_tests_tags'))
 
         return tags
