@@ -7,6 +7,14 @@ agent-python-pytest
 
 Pytest plugin for reporting test results of Pytest to the 'Reportal Portal'.
 
+* Usage
+* Configuration
+* Examples
+* Launching
+* Send attachement (screenshots)
+* Troubleshooting
+* Copyright Notice
+
 Usage
 -----
 
@@ -181,6 +189,13 @@ Example:
         assert False
 
 
+Send attachement (screenshots)
+----------------
+
+https://github.com/reportportal/client-Python#send-attachement-screenshots
+
+
+
 Troubleshooting
 ~~~~~~~~~
 
@@ -205,9 +220,12 @@ deactivate :code:`pytest_reportportal` plugin with command like:
     py.test -p no:pytest_reportportal ./tests
 
 
+
 Copyright Notice
 ----------------
+..  Copyright Notice:  https://github.com/reportportal/agent-python-pytest#copyright-notice
 
 Licensed under the GPLv3_ license (see the LICENSE file).
 
 .. _GPLv3:  https://www.gnu.org/licenses/quick-guide-gplv3.html
+
