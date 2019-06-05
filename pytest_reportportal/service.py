@@ -1,19 +1,18 @@
 import logging
 import sys
 import traceback
-import pytest
-import pkg_resources
-
 from time import time
-from six import with_metaclass
-from six.moves import queue
 
-from _pytest.main import Session
-from _pytest.python import Class, Function, Instance, Module
+import pkg_resources
+import pytest
 from _pytest.doctest import DoctestItem
+from _pytest.main import Session
 from _pytest.nodes import File, Item
+from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
 from reportportal_client import ReportPortalServiceAsync
+from six import with_metaclass
+from six.moves import queue
 
 log = logging.getLogger(__name__)
 
@@ -92,10 +91,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 project=project,
                 token=uuid,
                 error_handler=self.async_error_handler,
-                log_batch_size=log_batch_size,
-                verify_ssl=verify_ssl
+                log_batch_size=log_batch_size  # ,
+                # verify_ssl=verify_ssl
             )
-            self.project_settiings = self.RP.rp_client.get_project_settings() if self.RP else None
+            self.project_settiings = None  # self.RP.rp_client.get_project_settings() if self.RP else None
             self.issue_types = self.get_issue_types()
         else:
             log.debug('The pytest is already initialized')
@@ -129,7 +128,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Start launch: equest_body=%s', sl_pt)
         req_data = self.RP.start_launch(**sl_pt)
         log.debug('ReportPortal - Launch started: response_body=%s', req_data)
-
 
     def collect_tests(self, session):
         self._stop_if_necessary()
@@ -249,7 +247,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             log.debug('ReportPortal - End TestSuite: request_body=%s', payload)
             self.RP.finish_test_item(**payload)
 
-
     def finish_launch(self, launch=None, status='rp_launch'):
         self._stop_if_necessary()
         if self.RP is None:
@@ -347,7 +344,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 if test_fullname in tests_parts:
                     item_test = tests_parts[test_fullname]
                 else:
-                    item_test = Item(test_fullname, nodeid=test_fullname, session=item.session, config=item.session.config)
+                    item_test = Item(test_fullname, nodeid=test_fullname, session=item.session,
+                                     config=item.session.config)
                     item_test._rp_name = rp_name
                     item_test.obj = item.obj
                     item_test.keywords = item.keywords
@@ -430,9 +428,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 if marker and marker.args else keyword
 
         try:
-            tags = [get_marker_value(item, k) for k in item.keywords
-                    if item.get_closest_marker(k) is not None
-                    and k not in self.ignored_tags]
+            if hasattr(item, 'cls'):
+                tags = [k.name for k in item.cls.pytestmark if k is not None and k not in self.ignored_tags]
+            else:
+                tags = [get_marker_value(item, k) for k in item.keywords
+                        if item.get_closest_marker(k) is not None
+                        and k not in self.ignored_tags]
         except AttributeError:
             # pytest < 3.6
             tags = [get_marker_value(item, k) for k in item.keywords
