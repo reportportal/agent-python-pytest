@@ -297,3 +297,10 @@ def pytest_addoption(parser):
         default=True,
         type='bool',
         help='Verify HTTPS calls')
+
+    parser.addini(
+        'rp_display_suite_test_file',
+        default=True,
+        type='bool',
+        help='Displays the test file of the suite as a convention of "file::suite" - relevant only when '
+             '"rp_hierarchy_module" flag is False')
