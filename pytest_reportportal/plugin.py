@@ -54,7 +54,8 @@ def pytest_sessionstart(session):
             log_batch_size=int(session.config.getini('rp_log_batch_size')),
             ignore_errors=bool(session.config.getini('rp_ignore_errors')),
             ignored_tags=session.config.getini('rp_ignore_tags'),
-            verify_ssl=session.config.getini('rp_verify_ssl')
+            verify_ssl=session.config.getini('rp_verify_ssl'),
+            retries=int(session.config.getini('retries')),
         )
 
         session.config.py_test_service.start_launch(
@@ -297,3 +298,8 @@ def pytest_addoption(parser):
         default=True,
         type='bool',
         help='Verify HTTPS calls')
+
+    parser.addini(
+        'retries',
+        default='0',
+        help='Amount of retries for performing REST calls to RP server')
