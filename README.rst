@@ -79,6 +79,8 @@ The following parameters are optional:
 - :code:`rp_issue_marks = 'xfail' 'issue'` - Pytest marks that could be used to get issue information (id, type, reason)
 - :code:`rp_issue_system_url = https://bugzilla.olympus.f5net.com/show_bug.cgi?id=` - URL to get issue description (issue id from pytest mark will be added to this URL)
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
+- :code:`rp_display_suite_test_file = True` In case of True, include the suite's relative file path in the launch name as a convention of "<RELATIVE_FILE_PATH>::<SUITE_NAME>". In case of False, set the launch name to be the suite name only - this flag is relevant only when "rp_hierarchy_module" flag is set to False
+
 
 If you like to override the above parameters from command line, or from CI environment based on your build, then pass
 - :code:`-o "rp_launch_tags=Smoke Tests"` during invocation.
