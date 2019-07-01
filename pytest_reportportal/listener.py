@@ -1,6 +1,9 @@
-import cgi
 import pytest
 import logging
+try:
+    from html import escape   # python3
+except ImportError:
+    from cgi import escape    # python2
 
 
 try:
@@ -46,8 +49,7 @@ class RPReportListener(object):
 
         if report.longrepr:
             self.PyTestService.post_log(
-                # Used for support python 2.7
-                cgi.escape(report.longreprtext),
+                escape(report.longreprtext),
                 loglevel='ERROR',
             )
 
@@ -101,17 +103,17 @@ class RPReportListener(object):
                         issue_ids = [issue_ids]
                     comment += "\n" if comment else ""
                     comment += "Issues:"
-
                     for issue_id in issue_ids:
-                        comment += " [{}]({}{})".format(issue_id, url, issue_id) if url else " {}".format(issue_id)
+                        template = (" [{issue_id}]" + "({})".format(url)) if url else " {issue_id}"
+                        comment += template.format(issue_id=issue_id)
 
                 if "issue_type" in mark.kwargs:
                     issue_type = mark.kwargs["issue_type"]
 
-        if comment:
-            self.issue['comment'] = comment
-
-        if issue_type and self.PyTestService.issue_types and (issue_type in self.PyTestService.issue_types):
+        if issue_type and self.PyTestService.issue_types \
+                and (issue_type in self.PyTestService.issue_types):
+            if comment:
+                self.issue['comment'] = comment
             self.issue['issue_type'] = self.PyTestService.issue_types[issue_type]
             # self.issue['ignoreAnalyzer'] = True ???
         elif (report.when == 'setup') and report.skipped:
