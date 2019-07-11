@@ -61,6 +61,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def __init__(self):
         self.RP = None
+        self.issue_types = {}
         try:
             pkg_resources.get_distribution('reportportal_client >= 3.2.0')
             self.RP_SUPPORTS_PARAMETERS = True
@@ -292,15 +293,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except queue.Empty:
             pass
 
-    def get_issue_types(self):
-        issue_types = {}
-        if not self.project_settiings:
-            return issue_types
-
-        for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE", "NO_DEFECT", "TO_INVESTIGATE"):
-            for item in self.project_settiings["subTypes"][item_type]:
-                issue_types[item["shortName"]] = item["locator"]
-
+    @staticmethod
+    def get_issue_types():
+        issue_types = {"PB": "PRODUCT_BUG", "AB": "AUTOMATION_BUG", "SI": "SYSTEM_ISSUE", "ND": "NO_DEFECT",
+                       "TI": "TO_INVESTIGATE"}
         return issue_types
 
     @staticmethod

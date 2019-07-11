@@ -59,7 +59,7 @@ class RPReportListener(object):
                 # causing the test to error
                 self.result = 'FAILED'
                 self._add_issue_info(item, report)
-            elif report.skipped:
+            elif report.skipped or item.get_marker('issue'):
                 # This happens when a testcase is marked "skip".  It will
                 # show in reportportal as not requiring investigation.
                 self.result = 'SKIPPED'
@@ -68,7 +68,7 @@ class RPReportListener(object):
         if report.when == 'call':
             if report.passed:
                 item_result = 'PASSED'
-            elif report.skipped:
+            elif report.skipped or item.get_marker('issue'):
                 item_result = 'SKIPPED'
                 self._add_issue_info(item, report)
             else:
@@ -105,8 +105,7 @@ class RPReportListener(object):
                     for issue_id in issue_ids:
                         comment += " [{}]({}{})".format(issue_id, url, issue_id) if url else " {}".format(issue_id)
 
-                if "issue_type" in mark.kwargs:
-                    issue_type = mark.kwargs["issue_type"]
+                issue_type = mark.kwargs.get("issue_type", "PB").upper()
 
         if comment:
             self.issue['comment'] = comment
