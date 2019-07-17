@@ -94,7 +94,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 log_batch_size=log_batch_size  # ,
                 # verify_ssl=verify_ssl
             )
-            self.project_settiings = None  # self.RP.rp_client.get_project_settings() if self.RP else None
+            if self.RP and hasattr(self.RP.rp_client, "get_project_settings"):
+                self.project_settiings = self.RP.rp_client.get_project_settings()
+            else:
+                self.project_settiings = None
             self.issue_types = self.get_issue_types()
         else:
             log.debug('The pytest is already initialized')

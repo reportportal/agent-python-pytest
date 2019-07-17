@@ -77,7 +77,7 @@ The following parameters are optional:
 - :code:`rp_hierarchy_parametrize = True` - Enables hierarchy parametrized tests, default `False`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
 - :code:`rp_issue_marks = 'xfail' 'issue'` - Pytest marks that could be used to get issue information (id, type, reason)
-- :code:`rp_issue_system_url = https://bugzilla.olympus.f5net.com/show_bug.cgi?id=` - URL to get issue description (issue id from pytest mark will be added to this URL)
+- :code:`rp_issue_system_url = http://bugzilla.some.com/show_bug.cgi?id={%issue_id}` - issue URL (issue_id will be filled by parameter from pytest mark)
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
 - :code:`rp_display_suite_test_file = True` In case of True, include the suite's relative file path in the launch name as a convention of "<RELATIVE_FILE_PATH>::<SUITE_NAME>". In case of False, set the launch name to be the suite name only - this flag is relevant only when "rp_hierarchy_module" flag is set to False
 
