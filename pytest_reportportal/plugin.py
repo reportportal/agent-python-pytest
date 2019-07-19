@@ -300,6 +300,14 @@ def pytest_addoption(parser):
         help='Verify HTTPS calls')
 
     parser.addini(
+        'rp_display_suite_test_file',
+        default=True,
+        type='bool',
+        help="In case of True, include the suite's relative file path in the launch name as a convention of "
+             "'<RELATIVE_FILE_PATH>::<SUITE_NAME>'. In case of False, set the launch name to be the suite name "
+             "only - this flag is relevant only when 'rp_hierarchy_module' flag is set to False")
+
+    parser.addini(
         'retries',
         default='0',
         help='Amount of retries for performing REST calls to RP server')
