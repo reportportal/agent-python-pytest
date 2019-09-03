@@ -8,7 +8,7 @@ def read_file(fname):
         return f.read()
 
 
-version = '1.0.4'
+version = '1.0.5'
 tar_url = 'https://github.com/reportportal/agent-python-pytest/tarball/1.0.3'
 
 
@@ -25,13 +25,14 @@ setup(
     version=version,
     description='Agent for Reporting results of tests to the Report Portal',
     long_description=read_file('README.rst'),
+    long_description_content_type='text/markdown',
     author='Pavel Papou',
     author_email='SupportEPMC-TSTReportPortal@epam.com',
     url='https://github.com/reportportal/agent-python-pytest',
     download_url=tar_url,
     packages=['pytest_reportportal'],
     install_requires=requirements,
-    license='GNU General Public License v3',
+    license='Apache 2.0',
     keywords=['testing', 'reporting', 'reportportal', 'pytest'],
     classifiers=[
         'Framework :: Pytest',
