@@ -10,6 +10,7 @@ from _pytest.main import Session
 from _pytest.nodes import File, Item
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
+from _pytest.warning_types import PytestWarning
 from reportportal_client import ReportPortalServiceAsync
 from six import with_metaclass
 from six.moves import queue
@@ -459,9 +460,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if len(name) > 256:
             name = name[:256]
             test_item.warn(
-                'C1',
-                'Test node ID was truncated to "{}" because of name size '
-                'constrains on reportportal'.format(name)
+                PytestWarning(
+                    'Test node ID was truncated to "{}" because of name size '
+                    'constrains on reportportal'.format(name)
+                )
             )
         return name
 
