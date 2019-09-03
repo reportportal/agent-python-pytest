@@ -77,7 +77,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self._item_parts = {}
 
     def init_service(self, endpoint, project, uuid, log_batch_size,
-                     ignore_errors, ignored_tags, verify_ssl=True):
+                     ignore_errors, ignored_tags, verify_ssl=True,
+                     retries=0):
         self._errors = queue.Queue()
         if self.RP is None:
             self.ignore_errors = ignore_errors
@@ -92,10 +93,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 project=project,
                 token=uuid,
                 error_handler=self.async_error_handler,
+                retries=retries,
                 log_batch_size=log_batch_size  # ,
                 # verify_ssl=verify_ssl
             )
-            self.project_settiings = None  # self.RP.rp_client.get_project_settings() if self.RP else None
+            if self.RP and hasattr(self.RP.rp_client, "get_project_settings"):
+                self.project_settiings = self.RP.rp_client.get_project_settings()
+            else:
+                self.project_settiings = None
             self.issue_types = self.get_issue_types()
         else:
             log.debug('The pytest is already initialized')
