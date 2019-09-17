@@ -49,7 +49,7 @@ class RPReportListener(object):
 
         if report.longrepr:
             self.PyTestService.post_log(
-                escape(report.longreprtext),
+                escape(report.longreprtext, False),
                 loglevel='ERROR',
             )
 
@@ -109,6 +109,8 @@ class RPReportListener(object):
 
                 if "issue_type" in mark.kwargs:
                     issue_type = mark.kwargs["issue_type"]
+
+        issue_type = "TI" if issue_type is None else issue_type
 
         if issue_type and self.PyTestService.issue_types \
                 and (issue_type in self.PyTestService.issue_types):
