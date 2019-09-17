@@ -98,9 +98,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 # verify_ssl=verify_ssl
             )
             if self.RP and hasattr(self.RP.rp_client, "get_project_settings"):
-                self.project_settiings = self.RP.rp_client.get_project_settings()
+                self.project_settings = self.RP.rp_client.get_project_settings()
             else:
-                self.project_settiings = None
+                self.project_settings = None
             self.issue_types = self.get_issue_types()
         else:
             log.debug('The pytest is already initialized')
@@ -300,11 +300,11 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def get_issue_types(self):
         issue_types = {}
-        if not self.project_settiings:
+        if not self.project_settings:
             return issue_types
 
         for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE", "NO_DEFECT", "TO_INVESTIGATE"):
-            for item in self.project_settiings["subTypes"][item_type]:
+            for item in self.project_settings["subTypes"][item_type]:
                 issue_types[item["shortName"]] = item["locator"]
 
         return issue_types
