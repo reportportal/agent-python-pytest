@@ -8,8 +8,7 @@ def read_file(fname):
         return f.read()
 
 
-version = '1.0.5'
-tar_url = 'https://github.com/reportportal/agent-python-pytest/tarball/1.0.3'
+version = '1.0.8'
 
 
 requirements = [
@@ -29,7 +28,6 @@ setup(
     author='Pavel Papou',
     author_email='SupportEPMC-TSTReportPortal@epam.com',
     url='https://github.com/reportportal/agent-python-pytest',
-    download_url=tar_url,
     packages=['pytest_reportportal'],
     install_requires=requirements,
     license='Apache 2.0',
