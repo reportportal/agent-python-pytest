@@ -13,7 +13,7 @@ tar_url = 'https://github.com/reportportal/agent-python-pytest/tarball/1.0.3'
 
 
 requirements = [
-    'reportportal-client>=3.1.0',
+    'reportportal-client>=3.2.3',
     'pytest>=3.0.7',
     'six>=1.10.0',
     'dill>=0.2.7.1',
@@ -46,4 +46,9 @@ setup(
             'pytest_reportportal = pytest_reportportal.plugin',
         ]
     },
+    setup_requires=['pytest-runner'],
+    tests_require=[
+        'pytest',
+        'delayed-assert'
+    ]
 )
