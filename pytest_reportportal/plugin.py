@@ -68,24 +68,6 @@ def pytest_sessionstart(session):
             wait_launch(session.config.py_test_service.RP.rp_client)
 
 
-@pytest.hookimpl(trylast=True)
-def pytest_collection_modifyitems(session, config, items):
-    if session.config._reportportal_configured is False:
-        # Stop now if the plugin is not properly configured
-        return
-
-    # Items need to be sorted so that we can hierarchically report
-    # * test-filename:
-    #   * Test Suite:
-    #     * Test case
-    #
-    # Hopefully sorting by fspath and parnt name will allow proper
-    # order between test modules and any test classes.
-    # We don't sort by nodeid because that changes the order of
-    # parametrized tests which can rely on that order
-    items.sort(key=lambda f: (f.fspath, f.parent.name))
-
-
 def pytest_collection_finish(session):
     if session.config.getoption('--collect-only', default=False) is True:
         return
