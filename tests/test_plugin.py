@@ -1,6 +1,5 @@
 """This modules includes unit tests for the plugin."""
 
-from requests.exceptions import RequestException
 try:
     from unittest.mock import create_autospec, Mock, patch
 except ImportError:
@@ -8,8 +7,16 @@ except ImportError:
 
 from _pytest.config import Config
 from  delayed_assert import expect, assert_expectations
+import pytest
+from requests.exceptions import RequestException
 
 from pytest_reportportal.plugin import pytest_configure
+from pytest_reportportal import RPLogger
+
+
+@pytest.fixture
+def logger():
+    return RPLogger("pytest_reportportal.test")
 
 
 @patch('pytest_reportportal.plugin.requests.get')
@@ -30,4 +37,29 @@ def test_stop_plugin_configuration_on_conn_error(mocked_get):
            'Received unexpected return value from pytest_configure.')
     expect(mocked_config._reportportal_configured is False,
            'The value of the _reportportal_configured is not False.')
+    assert_expectations()
+
+
+@patch('pytest_reportportal.RPLogger.handle')
+@pytest.mark.parametrize("log_level", ("info", "debug", "warning", "error"))
+def test_logger_handle_attachment(mock_handler, logger, log_level):
+    """Test logger call for different log levels with some text attachment."""
+    log_call = getattr(logger, log_level)
+    attachment = "Some {} attachment".format(log_level)
+    log_call("Some {} message".format(log_level), attachment=attachment)
+    expect(mock_handler.call_count == 1, "logger.handle called more than 1 time")
+    expect(getattr(mock_handler.call_args[0][0], "attachment") == attachment,
+           "record.attachment in args doesn't match real value")
+    assert_expectations()
+
+
+@patch('pytest_reportportal.RPLogger.handle')
+@pytest.mark.parametrize("log_level", ("info", "debug", "warning", "error"))
+def test_logger_handle_no_attachment(mock_handler, logger, log_level):
+    """Test logger call for different log levels without any attachment."""
+    log_call = getattr(logger, log_level)
+    log_call("Some {} message".format(log_level))
+    expect(mock_handler.call_count == 1, "logger.handle called more than 1 time")
+    expect(getattr(mock_handler.call_args[0][0], "attachment") is None,
+           "record.attachment in args is not None")
     assert_expectations()

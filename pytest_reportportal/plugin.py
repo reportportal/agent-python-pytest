@@ -37,14 +37,8 @@ def pytest_configure_node(node):
 
 
 def pytest_sessionstart(session):
-    if session.config.getoption('--collect-only', default=False) is True:
-        return
-
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
-        return
-
-    if not session.config.option.rp_enabled:
         return
 
     if is_master(session.config):
@@ -87,9 +81,6 @@ def pytest_collection_modifyitems(session, config, items):
 
 
 def pytest_collection_finish(session):
-    if session.config.getoption('--collect-only', default=False) is True:
-        return
-
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
@@ -106,14 +97,8 @@ def wait_launch(rp_client):
 
 
 def pytest_sessionfinish(session):
-    if session.config.getoption('--collect-only', default=False) is True:
-        return
-
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
-        return
-
-    if not session.config.option.rp_enabled:
         return
 
     # FixMe: currently method of RP api takes the string parameter
@@ -125,6 +110,13 @@ def pytest_sessionfinish(session):
 
 
 def pytest_configure(config):
+
+    if config.getoption('--collect-only', default=False) or \
+            config.getoption('--setup-plan', default=False) or \
+            not config.option.rp_enabled:
+        config._reportportal_configured = False
+        return
+
     project = config.getini('rp_project')
     endpoint = config.getini('rp_endpoint')
     uuid = config.getini('rp_uuid')
