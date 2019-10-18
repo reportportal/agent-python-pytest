@@ -231,7 +231,7 @@ Copyright Notice
 ----------------
 ..  Copyright Notice:  https://github.com/reportportal/agent-python-pytest#copyright-notice
 
-Licensed under the GPLv3_ license (see the LICENSE file).
+Licensed under the `Apache 2.0`_ license (see the LICENSE file).
 
-.. _GPLv3:  https://www.gnu.org/licenses/quick-guide-gplv3.html
+.. _Apache 2.0:  https://www.apache.org/licenses/LICENSE-2.0
 
