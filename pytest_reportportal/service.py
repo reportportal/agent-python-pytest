@@ -7,10 +7,23 @@ import pkg_resources
 import pytest
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
-from _pytest.nodes import File, Item
+
+try:
+    pkg_resources.get_distribution('pytest >= 3.4.0')
+    from _pytest.nodes import File, Item
+except pkg_resources.VersionConflict:
+    from _pytest.main import File, Item
+
+try:
+    pkg_resources.get_distribution('pytest >= 3.8.0')
+    from _pytest.warning_types import PytestWarning
+except pkg_resources.VersionConflict:
+    from pytest_reportportal.errors import PytestWarning
+
+
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
-from _pytest.warning_types import PytestWarning
+
 from reportportal_client import ReportPortalServiceAsync
 from six import with_metaclass
 from six.moves import queue
@@ -94,8 +107,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 token=uuid,
                 error_handler=self.async_error_handler,
                 retries=retries,
-                log_batch_size=log_batch_size  # ,
-                # verify_ssl=verify_ssl
+                log_batch_size=log_batch_size,
+                verify_ssl=verify_ssl
             )
             if self.RP and hasattr(self.RP.rp_client, "get_project_settings"):
                 self.project_settings = self.RP.rp_client.get_project_settings()

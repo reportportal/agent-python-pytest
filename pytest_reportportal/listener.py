@@ -112,7 +112,7 @@ class RPReportListener(object):
 
         issue_type = "TI" if issue_type is None else issue_type
 
-        if issue_type and self.PyTestService.issue_types \
+        if issue_type and getattr(self.PyTestService, 'issue_types', False) \
                 and (issue_type in self.PyTestService.issue_types):
             if comment:
                 self.issue['comment'] = comment
