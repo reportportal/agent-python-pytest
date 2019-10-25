@@ -14,9 +14,16 @@ try:
 except pkg_resources.VersionConflict:
     from _pytest.main import File, Item
 
+try:
+    pkg_resources.get_distribution('pytest >= 3.8.0')
+    from _pytest.warning_types import PytestWarning
+except pkg_resources.VersionConflict:
+    from pytest_reportportal.errors import PytestWarning
+
+
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
-from _pytest.warning_types import PytestWarning
+
 from reportportal_client import ReportPortalServiceAsync
 from six import with_metaclass
 from six.moves import queue
