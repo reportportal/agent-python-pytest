@@ -121,6 +121,12 @@ def pytest_sessionfinish(session):
     if is_master(session.config):
         session.config.py_test_service.finish_launch(status='RP_Launch')
 
+    print("\nReportPortal finished publishing. Check run at: {}/ui/#{}/launches/all/{}".format(
+        session.config.py_test_service.endpoint,
+        session.config.py_test_service.project,
+        session.config.py_test_service.get_launch_id(),
+    ))
+
     session.config.py_test_service.terminate_service()
 
 

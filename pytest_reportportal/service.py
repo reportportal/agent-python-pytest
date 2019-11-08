@@ -110,6 +110,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 log_batch_size=log_batch_size,
                 verify_ssl=verify_ssl
             )
+            self.endpoint = endpoint
+            self.project = project
             if self.RP and hasattr(self.RP.rp_client, "get_project_settings"):
                 self.project_settings = self.RP.rp_client.get_project_settings()
             else:
@@ -118,6 +120,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         else:
             log.debug('The pytest is already initialized')
         return self.RP
+
+    def get_launch_id(self):
+        if (
+            self.RP
+            and getattr(self.RP, "rp_client", False)
+            and getattr(self.RP.rp_client, "launch_id", False)
+        ):
+            return self.RP.rp_client.launch_id
 
     def async_error_handler(self, exc_info):
         self.terminate_service(nowait=True)
