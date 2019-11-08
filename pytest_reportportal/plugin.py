@@ -67,6 +67,15 @@ def pytest_sessionstart(session):
         if session.config.pluginmanager.hasplugin('xdist'):
             wait_launch(session.config.py_test_service.RP.rp_client)
 
+        print(
+            "\nReportPortal started publishing. "
+            "Check run at: {}/ui/#{}/launches/all/{}".format(
+                session.config.py_test_service.endpoint,
+                session.config.py_test_service.project,
+                session.config.py_test_service.get_launch_id(),
+            )
+        )
+
 
 @pytest.hookimpl(trylast=True)
 def pytest_collection_modifyitems(session, config, items):
@@ -121,11 +130,14 @@ def pytest_sessionfinish(session):
     if is_master(session.config):
         session.config.py_test_service.finish_launch(status='RP_Launch')
 
-    print("\nReportPortal finished publishing. Check run at: {}/ui/#{}/launches/all/{}".format(
-        session.config.py_test_service.endpoint,
-        session.config.py_test_service.project,
-        session.config.py_test_service.get_launch_id(),
-    ))
+    print(
+        "\nReportPortal finished publishing. "
+        "Check run at: {}/ui/#{}/launches/all/{}".format(
+            session.config.py_test_service.endpoint,
+            session.config.py_test_service.project,
+            session.config.py_test_service.get_launch_id(),
+        )
+    )
 
     session.config.py_test_service.terminate_service()
 
