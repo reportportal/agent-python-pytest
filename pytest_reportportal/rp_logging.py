@@ -149,5 +149,7 @@ def patching_logger_class():
         yield
 
     finally:
-        logger_class._log = original_log
-        logger_class.makeRecord = original_makeRecord
+        if hasattr(logger_class, '_patched'):
+            logger_class._log = original_log
+            logger_class.makeRecord = original_makeRecord
+            del logger_class._patched
