@@ -44,7 +44,7 @@ class RPLogger(logging.getLoggerClass()):
             record = self.makeRecord(self.name, level, fn, lno, msg, args,
                                      exc_info, func, extra, sinfo)
 
-        if not record.attachment:
+        if not getattr(record, 'attachment', None):
             record.attachment = attachment
         self.handle(record)
 
