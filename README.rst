@@ -2,13 +2,12 @@
 agent-python-pytest
 ===================
 
-
-**Important:** this is BETA2 version. Please post issue in case if any found
-
-Pytest plugin for reporting test results of Pytest to the 'Reportal Portal'.
+Pytest plugin for reporting test results of Pytest to the Reportal Portal.
 
 * Usage
+* Installation
 * Configuration
+* Contribution
 * Examples
 * Launching
 * Send attachement (screenshots)
@@ -26,6 +25,22 @@ To install pytest plugin execute next command in a terminal:
 .. code-block:: bash
 
     pip install pytest-reportportal
+
+**IMPORTANT!**
+The latest version **does not** support Report Portal versions below 5.0.0.
+
+Specify the last one release of the client version 1 to install or update the client for other versions of Report Portal below 5.0.0:
+
+.. code-block:: bash
+
+    pip install pytest-reportportal~=1.0
+
+
+Contribution
+~~~~~~~~~~~~~
+
+All the fixes for the agent that supports Report Portal versions below 5.0.0 should go into the v1 branch.
+The master branch will store the code base for the agent for Report Portal versions 5 and above.
 
 
 Configuration
@@ -105,7 +120,6 @@ in conftest.py:
 
     @pytest.fixture(scope="session")
     def rp_logger(request):
-        import logging
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG)
         # Create handler for Report Portal if the service has been
