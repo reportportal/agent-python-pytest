@@ -32,7 +32,7 @@ class RPReportListener(object):
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_protocol(self, item):
-        self.PyTestService.start_pytest_item(item)
+        item_id = self.PyTestService.start_pytest_item(item)
         if PYTEST_HAS_LOGGING_PLUGIN:
             # This check can go away once we support pytest >= 3.3
             with patching_logger_class():
@@ -41,7 +41,8 @@ class RPReportListener(object):
                     yield
         else:
             yield
-        self.PyTestService.finish_pytest_item(item, self.result or 'SKIPPED', self.issue or None)
+        self.PyTestService.finish_pytest_item(
+            item, item_id, self.result or 'SKIPPED', self.issue or None)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self, item):

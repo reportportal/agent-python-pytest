@@ -104,9 +104,7 @@ def pytest_sessionfinish(session):
     # FixMe: currently method of RP api takes the string parameter
     # so it is hardcoded
     if is_master(session.config):
-        session.config.py_test_service.finish_launch(status='RP_Launch')
-
-    session.config.py_test_service.terminate_service()
+        session.config.py_test_service.finish_launch()
 
 
 def pytest_configure(config):
