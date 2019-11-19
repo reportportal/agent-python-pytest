@@ -32,6 +32,12 @@ class RPReportListener(object):
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_protocol(self, item):
+        # Adding issues id marks to the test item
+        # if client doesn't support item updates
+        update_supported = self.PyTestService.is_item_update_supported()
+        if not update_supported:
+            self._add_issue_id_marks(item)
+
         self.PyTestService.start_pytest_item(item)
         if PYTEST_HAS_LOGGING_PLUGIN:
             # This check can go away once we support pytest >= 3.3
@@ -41,6 +47,12 @@ class RPReportListener(object):
                     yield
         else:
             yield
+        # Updating item in RP (tags and description)
+        # if client supports
+        if update_supported:
+            self._add_issue_id_marks(item)
+            self.PyTestService.update_pytest_item(item)
+        # Finishing item in RP
         self.PyTestService.finish_pytest_item(item, self.result or 'SKIPPED', self.issue or None)
 
     @pytest.hookimpl(hookwrapper=True)
@@ -53,67 +65,88 @@ class RPReportListener(object):
                 loglevel='ERROR',
             )
 
+        # Defining test result
         if report.when == 'setup':
             self.result = None
             self.issue = {}
-            if report.failed:
-                # This happens for example when a fixture fails to run
-                # causing the test to error
-                self.result = 'FAILED'
-                self._add_issue_info(item, report)
-            elif report.skipped:
-                # This happens when a testcase is marked "skip".  It will
-                # show in reportportal as not requiring investigation.
+
+        if report.failed:
+            self.result = 'FAILED'
+        elif report.skipped:
+            if self.result in (None, 'PASSED'):
                 self.result = 'SKIPPED'
-                self._add_issue_info(item, report)
+        else:
+            if self.result is None:
+                self.result = 'PASSED'
 
-        if report.when == 'call':
-            if report.passed:
-                item_result = 'PASSED'
-            elif report.skipped:
-                item_result = 'SKIPPED'
-                self._add_issue_info(item, report)
-            else:
-                item_result = 'FAILED'
-                self._add_issue_info(item, report)
-            self.result = item_result
+        # Adding test comment and issue type
+        self._add_issue_info(item, report)
 
+    def _add_issue_id_marks(self, item):
+        """Add marks with issue id.
+
+        :param item: pytest test item
+        """
+        issue_marks = item.session.config.getini('rp_issue_marks')
+        if item.session.config.getini('rp_issue_id_marks'):
+            for mark_name in issue_marks:
+                for mark in item.iter_markers(name=mark_name):
+                    if mark:
+                        issue_ids = mark.kwargs.get("issue_id", [])
+                        if not isinstance(issue_ids, list):
+                            issue_ids = [issue_ids]
+                        for issue_id in issue_ids:
+                            mark_issue = "{}:{}".format(mark.name, issue_id)
+                            try:
+                                pytest.mark._markers.add(mark_issue)  # register mark in pytest,
+                            except AttributeError:               # for pytest >= 4.5.0
+                                pass
+                            item.add_marker(mark_issue)
 
     def _add_issue_info(self, item, report):
+        """Add issues description and issue_type to the test item.
 
-        issue_type = None
-        comment = ""
+        :param item: pytest test item
+        :param report: pytest report instance
+        """
         url = item.session.config.getini('rp_issue_system_url')
         issue_marks = item.session.config.getini('rp_issue_marks')
+        issue_type = None
+        comment = ""
 
         for mark_name in issue_marks:
-            try:
-                mark = item.get_closest_marker(mark_name)
-            except AttributeError:
-                # pytest < 3.6
-                mark = item.get_marker(mark_name)
+            for mark in item.iter_markers(name=mark_name):
+                if not mark:
+                    continue
 
-            if mark:
-                if "reason" in mark.kwargs:
-                    comment += "\n" if comment else ""
-                    comment += mark.kwargs["reason"]
-                if "issue_id" in mark.kwargs:
-                    issue_ids = mark.kwargs["issue_id"]
-                    if not isinstance(issue_ids, list):
-                        issue_ids = [issue_ids]
-                    comment += "\n" if comment else ""
-                    comment += "Issues:"
+                mark_comment = ""
+                mark_url = mark.kwargs.get("url", None) or url
+                issue_ids = mark.kwargs.get("issue_id", [])
+                if not isinstance(issue_ids, list):
+                    issue_ids = [issue_ids]
+
+                if issue_ids:
+                    mark_comment = mark.kwargs.get("reason", mark.name)
+                    mark_comment += ":"
                     for issue_id in issue_ids:
-                        template = (" [{issue_id}]" + "({})".format(url)) if url else " {issue_id}"
-                        comment += template.format(issue_id=issue_id)
+                        issue_url = mark_url.format(issue_id=issue_id) if mark_url else None
+                        template = " [{issue_id}]({url})" if issue_url else " {issue_id}"
+                        mark_comment += template.format(issue_id=issue_id, url=issue_url)
+                elif "reason" in mark.kwargs:
+                     mark_comment = mark.kwargs["reason"]
 
-                if "issue_type" in mark.kwargs:
+                if mark_comment:
+                    comment += ("\n* " if comment else "* ") + mark_comment
+
+                # Set issue_type only for first issue mark
+                if "issue_type" in mark.kwargs and issue_type is None:
                     issue_type = mark.kwargs["issue_type"]
 
+        # default value
         issue_type = "TI" if issue_type is None else issue_type
 
-        if issue_type and getattr(self.PyTestService, 'issue_types', False) \
-                and (issue_type in self.PyTestService.issue_types):
+        if issue_type and \
+                (issue_type in getattr(self.PyTestService, 'issue_types', ())):
             if comment:
                 self.issue['comment'] = comment
             self.issue['issue_type'] = self.PyTestService.issue_types[issue_type]

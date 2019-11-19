@@ -10,7 +10,9 @@ from  delayed_assert import expect, assert_expectations
 import pytest
 from requests.exceptions import RequestException
 
+from pytest_reportportal.listener import RPReportListener
 from pytest_reportportal.plugin import pytest_configure
+from pytest_reportportal.service import PyTestServiceClass
 from pytest_reportportal import RPLogger
 
 
@@ -62,4 +64,108 @@ def test_logger_handle_no_attachment(mock_handler, logger, log_level):
     expect(mock_handler.call_count == 1, "logger.handle called more than 1 time")
     expect(getattr(mock_handler.call_args[0][0], "attachment") is None,
            "record.attachment in args is not None")
+    assert_expectations()
+
+
+def test_pytest_runtest_protocol(request):
+    """Test listener pytest_runtest_protocol hook."""
+    rp_service = Mock()
+    rp_service.is_item_update_supported = Mock(return_value=False)
+    rp_listener = RPReportListener(rp_service)
+    rp_listener._add_issue_id_marks = Mock()
+    test_item = Mock()
+
+    next(rp_listener.pytest_runtest_protocol(test_item))
+
+    expect(rp_listener._add_issue_id_marks.call_count == 1,
+            "_add_issue_id_marks called more than 1 time")
+    assert_expectations()
+
+
+@patch('reportportal_client.service.ReportPortalService.get_project_settings')
+def test_is_item_update_supported(request):
+    """Test listener public is_client_support_item_update method."""
+    func = None
+    rp_service = PyTestServiceClass()
+    rp_service.init_service("endpoint", "project", "uuid", 20, False, [])
+
+    if hasattr(rp_service.RP, "update_test_item"):
+        rp_service.RP.supported_methods.remove("update_test_item")
+        func = rp_service.RP.update_test_item
+        delattr(type(rp_service.RP), "update_test_item")
+
+
+    result = rp_service.is_item_update_supported()
+    expect(result == False,
+           "incorrect result for is_client_support_item_update method")
+
+    rp_service.RP.update_test_item = func
+    rp_service.RP.supported_methods.append("update_test_item")
+
+    result = rp_service.is_item_update_supported()
+    expect(result == True,
+           "incorrect result for is_client_support_item_update method")
+    assert_expectations()
+
+
+def test_add_issue_info(request):
+    """Test listener helper _add_issue_info method."""
+    rp_service = Mock()
+    rp_listener = RPReportListener(rp_service)
+    rp_service.issue_types = {"TST": "TEST"}
+
+    report = Mock()
+    report.when = "call"
+    report.skipped = False
+
+    def getini(option):
+        if option == "rp_issue_system_url":
+            return "https://bug.com/{issue_id}"
+        elif option == "rp_issue_marks":
+            return ["issue"]
+        return None
+
+    def iter_markers(name=None):
+        for mark in [pytest.mark.issue(issue_id="456823", issue_type="TST")]:
+            yield mark
+
+    test_item = Mock()
+    test_item.session.config.getini = getini
+    test_item.iter_markers = iter_markers
+
+    rp_listener._add_issue_info(test_item, report)
+
+    expect(rp_listener.issue['issue_type'] == "TEST",
+           "incorrect test issue_type")
+    expect(rp_listener.issue['comment'] == "* issue: [456823](https://bug.com/456823)",
+           "incorrect test comment")
+    assert_expectations()
+
+
+def test_add_issue_id_marks(request):
+    """Test listener helper _add_issue_id_marks method."""
+    rp_service = Mock()
+    rp_listener = RPReportListener(rp_service)
+
+    def getini(option):
+        if option == "rp_issue_id_marks":
+            return True
+        elif option == "rp_issue_marks":
+            return ["issue"]
+        return None
+
+    def iter_markers(name=None):
+        for mark in [pytest.mark.issue(issue_id="456823")]:
+            yield mark
+
+    test_item = Mock()
+    test_item.session.config.getini = getini
+    test_item.iter_markers = iter_markers
+
+    rp_listener._add_issue_id_marks(test_item)
+
+    expect(test_item.add_marker.call_count == 1,
+           "item.add_marker called more than 1 time")
+    expect(test_item.add_marker.call_args[0][0] == "issue:456823",
+           "item.add_marker called with incorrect parameters")
     assert_expectations()

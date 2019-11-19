@@ -240,6 +240,31 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
         self.RP.start_test_item(**start_rq)
 
+    def is_item_update_supported(self):
+        """Check item update API call client support."""
+        return hasattr(self.RP, "update_test_item")
+
+    def update_pytest_item(self, test_item=None):
+        """Make item update API call.
+
+        :param test_item: pytest test item
+        """
+        self._stop_if_necessary()
+        if self.RP is None:
+            return
+
+        # if update_test_item is not supported in client
+        if not self.is_item_update_supported():
+            log.debug('ReportPortal - Update TestItem: method is not defined')
+            return
+
+        start_rq = {
+            'description': self._get_item_description(test_item),
+            'tags': self._get_item_tags(test_item),
+        }
+        log.debug('ReportPortal - Update TestItem: request_body=%s', start_rq)
+        self.RP.update_test_item(**start_rq)
+
     def finish_pytest_item(self, test_item, status, issue=None):
         self._stop_if_necessary()
         if self.RP is None:
