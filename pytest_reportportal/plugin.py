@@ -318,6 +318,12 @@ def pytest_addoption(parser):
              "only - this flag is relevant only when 'rp_hierarchy_module' flag is set to False")
 
     parser.addini(
+        'rp_issue_id_marks',
+        type='bool',
+        default=True,
+        help='Adding tag with issue id to the test')
+
+    parser.addini(
         'retries',
         default='0',
         help='Amount of retries for performing REST calls to RP server')
