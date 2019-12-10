@@ -142,14 +142,14 @@ def patching_logger_class():
                 return record
             return makeRecord
 
-        if not logger_class == RPLogger and not hasattr(logger_class, "_patched"):
+        if not issubclass(logger_class, RPLogger):
             logger_class._log = wrap_log(logger_class._log)
             logger_class.makeRecord = wrap_makeRecord(logger_class.makeRecord)
-            logger_class._patched = True
+            logging.setLoggerClass(RPLogger)
         yield
 
     finally:
-        if hasattr(logger_class, '_patched'):
+        if not issubclass(logger_class, RPLogger):
             logger_class._log = original_log
             logger_class.makeRecord = original_makeRecord
-            del logger_class._patched
+            logging.setLoggerClass(logger_class)
