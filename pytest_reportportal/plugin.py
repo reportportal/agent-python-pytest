@@ -101,12 +101,14 @@ def pytest_sessionfinish(session):
         # Stop now if the plugin is not properly configured
         return
 
-    # FixMe: currently method of RP api takes the string parameter
-    # so it is hardcoded
-    if is_master(session.config):
-        session.config.py_test_service.finish_launch(status='RP_Launch')
+    shouldfail = getattr(session, 'shouldfail', False)
+    nowait = True if shouldfail else False
 
-    session.config.py_test_service.terminate_service()
+    if is_master(session.config):
+        session.config.py_test_service.finish_launch(
+            status='RP_Launch', force=nowait)
+
+    session.config.py_test_service.terminate_service(nowait=nowait)
 
 
 def pytest_configure(config):

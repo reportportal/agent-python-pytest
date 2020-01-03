@@ -295,7 +295,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             log.debug('ReportPortal - End TestSuite: request_body=%s', payload)
             self.RP.finish_test_item(**payload)
 
-    def finish_launch(self, launch=None, status='rp_launch'):
+    def finish_launch(self, status='rp_launch', force=False):
         self._stop_if_necessary()
         if self.RP is None:
             return
@@ -306,7 +306,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'status': status
         }
         log.debug('ReportPortal - Finish launch: request_body=%s', fl_rq)
-        self.RP.finish_launch(**fl_rq)
+        if not force:
+            self.RP.finish_launch(**fl_rq)
+        else:
+            self.RP.stop_launch(**fl_rq)
 
     def post_log(self, message, loglevel='INFO', attachment=None):
         self._stop_if_necessary()

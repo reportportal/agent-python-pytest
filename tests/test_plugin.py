@@ -6,12 +6,12 @@ except ImportError:
     from mock import create_autospec, Mock, patch
 
 from _pytest.config import Config
-from  delayed_assert import expect, assert_expectations
+from delayed_assert import expect, assert_expectations
 import pytest
 from requests.exceptions import RequestException
 
 from pytest_reportportal.listener import RPReportListener
-from pytest_reportportal.plugin import pytest_configure
+from pytest_reportportal.plugin import pytest_configure, pytest_sessionfinish
 from pytest_reportportal.service import PyTestServiceClass
 from pytest_reportportal import RPLogger
 
@@ -168,4 +168,28 @@ def test_add_issue_id_marks(request):
            "item.add_marker called more than 1 time")
     expect(test_item.add_marker.call_args[0][0] == "issue:456823",
            "item.add_marker called with incorrect parameters")
+    assert_expectations()
+
+
+@patch('pytest_reportportal.plugin.is_master', Mock(return_value=True))
+@pytest.mark.parametrize('shouldfail, outcome', [
+    (False, False), ('stopping after 1 failures', True)
+])
+def test_sessionfinish_with_maxfail(shouldfail, outcome):
+    """Test session_finish logic when the maxfail Pytest argument is in use.
+
+    :param shouldfail: shouldfail attribute value for the Session object
+    :param outcome:    nowait argument value passed to the terminate_service()
+    """
+    mocked_session = Mock()
+    mocked_session.shouldfail = shouldfail
+    mocked_session.config = Mock()
+    mocked_session.config._reportportal_configured = True
+    mocked_session.config.py_test_service.terminate_service = Mock()
+    mocked_session.config.py_test_service.finish_launch = Mock()
+    pytest_sessionfinish(mocked_session)
+    expect(lambda: mocked_session.config.py_test_service.
+        finish_launch.assert_called_with(force=outcome, status='RP_Launch'))
+    expect(lambda: mocked_session.config.py_test_service.
+        terminate_service.assert_called_with(nowait=outcome))
     assert_expectations()
