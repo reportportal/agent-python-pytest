@@ -105,8 +105,7 @@ def pytest_sessionfinish(session):
     nowait = True if shouldfail else False
 
     if is_master(session.config):
-        session.config.py_test_service.finish_launch(
-            status='RP_Launch', force=nowait)
+        session.config.py_test_service.finish_launch(force=nowait)
 
     session.config.py_test_service.terminate_service(nowait=nowait)
 
