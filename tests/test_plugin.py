@@ -189,7 +189,7 @@ def test_sessionfinish_with_maxfail(shouldfail, outcome):
     mocked_session.config.py_test_service.finish_launch = Mock()
     pytest_sessionfinish(mocked_session)
     expect(lambda: mocked_session.config.py_test_service.
-        finish_launch.assert_called_with(force=outcome, status='RP_Launch'))
+        finish_launch.assert_called_with(force=outcome))
     expect(lambda: mocked_session.config.py_test_service.
         terminate_service.assert_called_with(nowait=outcome))
     assert_expectations()
