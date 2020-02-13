@@ -87,7 +87,7 @@ def test_is_item_update_supported(request):
     """Test listener public is_client_support_item_update method."""
     func = None
     rp_service = PyTestServiceClass()
-    rp_service.init_service("endpoint", "project", "uuid", 20, False, [])
+    rp_service.init_service("endpoint", "project", "uuid", 20, False, [], True)
 
     if hasattr(rp_service.RP, "update_test_item"):
         rp_service.RP.supported_methods.remove("update_test_item")
