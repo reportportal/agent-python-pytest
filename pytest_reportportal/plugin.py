@@ -49,6 +49,7 @@ def pytest_sessionstart(session):
             log_batch_size=int(session.config.getini('rp_log_batch_size')),
             ignore_errors=bool(session.config.getini('rp_ignore_errors')),
             ignored_tags=session.config.getini('rp_ignore_tags'),
+            skipped_issue=session.config.getini('rp_skipped_issue'),
             verify_ssl=session.config.getini('rp_verify_ssl'),
             retries=int(session.config.getini('retries')),
         )
@@ -264,6 +265,12 @@ def pytest_addoption(parser):
         'rp_ignore_tags',
         type='args',
         help='Ignore specified pytest markers, i.e parametrize')
+
+    parser.addini(
+        'rp_skipped_issue',
+        default=True,
+        type='bool',
+        help='Consider skipped tests as issues')
 
     parser.addini(
         'rp_hierarchy_dirs_level',
