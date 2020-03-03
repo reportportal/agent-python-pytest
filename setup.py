@@ -8,11 +8,11 @@ def read_file(fname):
         return f.read()
 
 
-version = '1.0.9'
+version = '1.10.0'
 
 
 requirements = [
-    'reportportal-client>=3.2.3',
+    'reportportal-client~=3.0',
     'pytest>=3.0.7',
     'six>=1.10.0',
     'dill>=0.2.7.1',
