@@ -8,7 +8,7 @@ def read_file(fname):
         return f.read()
 
 
-version = '1.10.0'
+version = '1.10.1'
 
 
 requirements = [

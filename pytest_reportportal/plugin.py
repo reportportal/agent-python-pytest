@@ -3,6 +3,7 @@
 
 import logging
 import dill as pickle
+import pkg_resources
 import pytest
 import requests
 import time
@@ -12,9 +13,15 @@ from .listener import RPReportListener
 
 try:
     # This try/except can go away once we support pytest >= 3.3
-    import _pytest.logging
+    pkg_resources.get_distribution('pytest >= 3.3.0')
     PYTEST_HAS_LOGGING_PLUGIN = True
-except ImportError:
+    try:
+        # This try/except can go away once we support pytest >= 5.4.0
+        from _pytest.logging import get_actual_log_level
+    except ImportError:
+        from _pytest.logging import get_log_level_for_setting as \
+            get_actual_log_level
+except pkg_resources.VersionConflict:
     PYTEST_HAS_LOGGING_PLUGIN = False
 
 log = logging.getLogger(__name__)
@@ -157,7 +164,7 @@ def pytest_configure(config):
     # set Pytest_Reporter and configure it
     if PYTEST_HAS_LOGGING_PLUGIN:
         # This check can go away once we support pytest >= 3.3
-        log_level = _pytest.logging.get_actual_log_level(config, 'rp_log_level')
+        log_level = get_actual_log_level(config, 'rp_log_level')
         if log_level is None:
             log_level = logging.NOTSET
     else:
