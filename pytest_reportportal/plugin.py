@@ -3,6 +3,7 @@
 
 import logging
 import dill as pickle
+import pkg_resources
 import pytest
 import requests
 import time
@@ -12,9 +13,15 @@ from .listener import RPReportListener
 
 try:
     # This try/except can go away once we support pytest >= 3.3
-    import _pytest.logging
+    pkg_resources.get_distribution('pytest >= 3.3.0')
     PYTEST_HAS_LOGGING_PLUGIN = True
-except ImportError:
+    try:
+        # This try/except can go away once we support pytest >= 5.4.0
+        from _pytest.logging import get_actual_log_level
+    except ImportError:
+        from _pytest.logging import get_log_level_for_setting as \
+            get_actual_log_level
+except pkg_resources.VersionConflict:
     PYTEST_HAS_LOGGING_PLUGIN = False
 
 log = logging.getLogger(__name__)
@@ -59,7 +66,7 @@ def pytest_sessionstart(session):
             description=session.config.option.rp_launch_description
         )
         if session.config.pluginmanager.hasplugin('xdist'):
-            wait_launch(session.config.py_test_service.RP.rp_client)
+            wait_launch(session.config.py_test_service.rp)
 
 
 @pytest.hookimpl(trylast=True)
@@ -101,14 +108,8 @@ def pytest_sessionfinish(session):
         # Stop now if the plugin is not properly configured
         return
 
-    shouldfail = getattr(session, 'shouldfail', False)
-    nowait = True if shouldfail else False
-
     if is_master(session.config):
-        session.config.py_test_service.finish_launch(
-            status='RP_Launch', force=nowait)
-
-    session.config.py_test_service.terminate_service(nowait=nowait)
+        session.config.py_test_service.finish_launch()
 
 
 def pytest_configure(config):
@@ -152,12 +153,11 @@ def pytest_configure(config):
         config.py_test_service = PyTestServiceClass()
     else:
         config.py_test_service = pickle.loads(config.slaveinput['py_test_service'])
-        config.py_test_service.RP.listener.start()
 
     # set Pytest_Reporter and configure it
     if PYTEST_HAS_LOGGING_PLUGIN:
         # This check can go away once we support pytest >= 3.3
-        log_level = _pytest.logging.get_actual_log_level(config, 'rp_log_level')
+        log_level = get_actual_log_level(config, 'rp_log_level')
         if log_level is None:
             log_level = logging.NOTSET
     else:

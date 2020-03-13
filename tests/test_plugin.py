@@ -89,21 +89,21 @@ def test_is_item_update_supported(request):
     rp_service = PyTestServiceClass()
     rp_service.init_service("endpoint", "project", "uuid", 20, False, [])
 
-    if hasattr(rp_service.RP, "update_test_item"):
-        rp_service.RP.supported_methods.remove("update_test_item")
-        func = rp_service.RP.update_test_item
-        delattr(type(rp_service.RP), "update_test_item")
+    if hasattr(rp_service.rp, "update_test_item"):
+        rp_service.rp.supported_methods.remove("update_test_item")
+        func = rp_service.rp.update_test_item
+        delattr(type(rp_service.rp), "update_test_item")
 
 
     result = rp_service.is_item_update_supported()
-    expect(result == False,
+    expect(result is False,
            "incorrect result for is_client_support_item_update method")
 
-    rp_service.RP.update_test_item = func
-    rp_service.RP.supported_methods.append("update_test_item")
+    rp_service.rp.update_test_item = func
+    setattr(rp_service.rp, "update_test_item", Mock())
 
     result = rp_service.is_item_update_supported()
-    expect(result == True,
+    expect(result is True,
            "incorrect result for is_client_support_item_update method")
     assert_expectations()
 
@@ -189,7 +189,5 @@ def test_sessionfinish_with_maxfail(shouldfail, outcome):
     mocked_session.config.py_test_service.finish_launch = Mock()
     pytest_sessionfinish(mocked_session)
     expect(lambda: mocked_session.config.py_test_service.
-        finish_launch.assert_called_with(force=outcome, status='RP_Launch'))
-    expect(lambda: mocked_session.config.py_test_service.
-        terminate_service.assert_called_with(nowait=outcome))
+        finish_launch.assert_called_with())
     assert_expectations()
