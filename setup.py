@@ -8,7 +8,7 @@ def read_file(fname):
         return f.read()
 
 
-version = '5.0.0'
+version = '5.0.1'
 
 
 requirements = [
@@ -34,9 +34,10 @@ setup(
     classifiers=[
         'Framework :: Pytest',
         'Programming Language :: Python :: 2.7',
-        'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
-        'Programming Language :: Python :: 3.6'
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
+        'Programming Language :: Python :: 3.8'
         ],
     entry_points={
         'pytest11': [
