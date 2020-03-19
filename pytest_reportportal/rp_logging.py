@@ -44,7 +44,7 @@ class RPLogger(logging.getLoggerClass()):
             record = self.makeRecord(self.name, level, fn, lno, msg, args,
                                      exc_info, func, extra, sinfo)
 
-        if not record.attachment:
+        if not getattr(record, 'attachment', None):
             record.attachment = attachment
         self.handle(record)
 
@@ -142,12 +142,14 @@ def patching_logger_class():
                 return record
             return makeRecord
 
-        if not logger_class == RPLogger and not hasattr(logger_class, "_patched"):
+        if not issubclass(logger_class, RPLogger):
             logger_class._log = wrap_log(logger_class._log)
             logger_class.makeRecord = wrap_makeRecord(logger_class.makeRecord)
-            logger_class._patched = True
+            logging.setLoggerClass(RPLogger)
         yield
 
     finally:
-        logger_class._log = original_log
-        logger_class.makeRecord = original_makeRecord
+        if not issubclass(logger_class, RPLogger):
+            logger_class._log = original_log
+            logger_class.makeRecord = original_makeRecord
+            logging.setLoggerClass(logger_class)

@@ -8,11 +8,11 @@ def read_file(fname):
         return f.read()
 
 
-version = '1.0.8'
+version = '5.0.0'
 
 
 requirements = [
-    'reportportal-client>=3.2.3',
+    'reportportal-client~=5.0.0',
     'pytest>=3.0.7',
     'six>=1.10.0',
     'dill>=0.2.7.1',
@@ -25,7 +25,6 @@ setup(
     description='Agent for Reporting results of tests to the Report Portal',
     long_description=read_file('README.rst'),
     long_description_content_type='text/markdown',
-    author='Pavel Papou',
     author_email='SupportEPMC-TSTReportPortal@epam.com',
     url='https://github.com/reportportal/agent-python-pytest',
     packages=['pytest_reportportal'],

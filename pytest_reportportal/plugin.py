@@ -3,6 +3,7 @@
 
 import logging
 import dill as pickle
+import pkg_resources
 import pytest
 import requests
 import time
@@ -12,9 +13,15 @@ from .listener import RPReportListener
 
 try:
     # This try/except can go away once we support pytest >= 3.3
-    import _pytest.logging
+    pkg_resources.get_distribution('pytest >= 3.3.0')
     PYTEST_HAS_LOGGING_PLUGIN = True
-except ImportError:
+    try:
+        # This try/except can go away once we support pytest >= 5.4.0
+        from _pytest.logging import get_actual_log_level
+    except ImportError:
+        from _pytest.logging import get_log_level_for_setting as \
+            get_actual_log_level
+except pkg_resources.VersionConflict:
     PYTEST_HAS_LOGGING_PLUGIN = False
 
 log = logging.getLogger(__name__)
@@ -37,14 +44,8 @@ def pytest_configure_node(node):
 
 
 def pytest_sessionstart(session):
-    if session.config.getoption('--collect-only', default=False) is True:
-        return
-
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
-        return
-
-    if not session.config.option.rp_enabled:
         return
 
     if is_master(session.config):
@@ -65,13 +66,10 @@ def pytest_sessionstart(session):
             description=session.config.option.rp_launch_description
         )
         if session.config.pluginmanager.hasplugin('xdist'):
-            wait_launch(session.config.py_test_service.RP.rp_client)
+            wait_launch(session.config.py_test_service.rp)
 
 
 def pytest_collection_finish(session):
-    if session.config.getoption('--collect-only', default=False) is True:
-        return
-
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
@@ -88,25 +86,22 @@ def wait_launch(rp_client):
 
 
 def pytest_sessionfinish(session):
-    if session.config.getoption('--collect-only', default=False) is True:
-        return
-
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
 
-    if not session.config.option.rp_enabled:
-        return
-
-    # FixMe: currently method of RP api takes the string parameter
-    # so it is hardcoded
     if is_master(session.config):
-        session.config.py_test_service.finish_launch(status='RP_Launch')
-
-    session.config.py_test_service.terminate_service()
+        session.config.py_test_service.finish_launch()
 
 
 def pytest_configure(config):
+
+    if config.getoption('--collect-only', default=False) or \
+            config.getoption('--setup-plan', default=False) or \
+            not config.option.rp_enabled:
+        config._reportportal_configured = False
+        return
+
     project = config.getini('rp_project')
     endpoint = config.getini('rp_endpoint')
     uuid = config.getini('rp_uuid')
@@ -140,12 +135,11 @@ def pytest_configure(config):
         config.py_test_service = PyTestServiceClass()
     else:
         config.py_test_service = pickle.loads(config.slaveinput['py_test_service'])
-        config.py_test_service.RP.listener.start()
 
     # set Pytest_Reporter and configure it
     if PYTEST_HAS_LOGGING_PLUGIN:
         # This check can go away once we support pytest >= 3.3
-        log_level = _pytest.logging.get_actual_log_level(config, 'rp_log_level')
+        log_level = get_actual_log_level(config, 'rp_log_level')
         if log_level is None:
             log_level = logging.NOTSET
     else:
@@ -306,6 +300,12 @@ def pytest_addoption(parser):
         help="In case of True, include the suite's relative file path in the launch name as a convention of "
              "'<RELATIVE_FILE_PATH>::<SUITE_NAME>'. In case of False, set the launch name to be the suite name "
              "only - this flag is relevant only when 'rp_hierarchy_module' flag is set to False")
+
+    parser.addini(
+        'rp_issue_id_marks',
+        type='bool',
+        default=True,
+        help='Adding tag with issue id to the test')
 
     parser.addini(
         'retries',

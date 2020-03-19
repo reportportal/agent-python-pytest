@@ -2,13 +2,12 @@
 agent-python-pytest
 ===================
 
-
-**Important:** this is BETA2 version. Please post issue in case if any found
-
-Pytest plugin for reporting test results of Pytest to the 'Reportal Portal'.
+Pytest plugin for reporting test results of Pytest to the Reportal Portal.
 
 * Usage
+* Installation
 * Configuration
+* Contribution
 * Examples
 * Launching
 * Send attachement (screenshots)
@@ -26,6 +25,22 @@ To install pytest plugin execute next command in a terminal:
 .. code-block:: bash
 
     pip install pytest-reportportal
+
+**IMPORTANT!**
+The latest version **does not** support Report Portal versions below 5.0.0.
+
+Specify the last one release of the client version 1 to install or update the client for other versions of Report Portal below 5.0.0:
+
+.. code-block:: bash
+
+    pip install pytest-reportportal~=1.0
+
+
+Contribution
+~~~~~~~~~~~~~
+
+All the fixes for the agent that supports Report Portal versions below 5.0.0 should go into the v1 branch.
+The master branch will store the code base for the agent for Report Portal versions 5 and above.
 
 
 Configuration
@@ -78,6 +93,7 @@ The following parameters are optional:
 - :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
 - :code:`rp_issue_marks = 'xfail' 'issue'` - Pytest marks that could be used to get issue information (id, type, reason)
 - :code:`rp_issue_system_url = http://bugzilla.some.com/show_bug.cgi?id={%issue_id}` - issue URL (issue_id will be filled by parameter from pytest mark)
+- :code:`rp_issue_id_marks = True` - Enables adding marks for issue ids (e.g. "issue:123456")
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
 - :code:`rp_display_suite_test_file = True` In case of True, include the suite's relative file path in the launch name as a convention of "<RELATIVE_FILE_PATH>::<SUITE_NAME>". In case of False, set the launch name to be the suite name only - this flag is relevant only when "rp_hierarchy_module" flag is set to False
 
@@ -94,20 +110,29 @@ in conftest.py:
 
 .. code-block:: python
 
+    import logging
+    import sys
+
+    import pytest
+
+    from pytest_reportportal import RPLogger, RPLogHandler
+
+
     @pytest.fixture(scope="session")
     def rp_logger(request):
-        import logging
         logger = logging.getLogger(__name__)
         logger.setLevel(logging.DEBUG)
         # Create handler for Report Portal if the service has been
         # configured and started.
         if hasattr(request.node.config, 'py_test_service'):
             # Import Report Portal logger and handler to the test module.
-            from pytest_reportportal import RPLogger, RPLogHandler
             logging.setLoggerClass(RPLogger)
             rp_handler = RPLogHandler(request.node.config.py_test_service)
+            # Add additional handlers if it is necessary
+            console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setLevel(logging.INFO)
+            logger.addHandler(console_handler)
         else:
-            import sys
             rp_handler = logging.StreamHandler(sys.stdout)
         # Set INFO level for Report Portal handler.
         rp_handler.setLevel(logging.INFO)
@@ -231,7 +256,7 @@ Copyright Notice
 ----------------
 ..  Copyright Notice:  https://github.com/reportportal/agent-python-pytest#copyright-notice
 
-Licensed under the GPLv3_ license (see the LICENSE file).
+Licensed under the `Apache 2.0`_ license (see the LICENSE file).
 
-.. _GPLv3:  https://www.gnu.org/licenses/quick-guide-gplv3.html
+.. _Apache 2.0:  https://www.apache.org/licenses/LICENSE-2.0
 
