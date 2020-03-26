@@ -72,8 +72,21 @@ class Singleton(type):
 
 
 class PyTestServiceClass(with_metaclass(Singleton, object)):
+    """Pytest service class for reporting test results to the Report Portal."""
 
     def __init__(self):
+        """Initialize instance attributes."""
+        self._agent_name = 'pytest-reportportal'
+        self._errors = queue.Queue()
+        self._hier_parts = {}
+        self._issue_types = {}
+        self._item_parts = {}
+        self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
+        self.ignore_errors = True
+        self.ignored_tags = []
+        self.log_batch_size = 20
+        self.log_item_id = None
+        self.parent_item_id = None
         self.rp = None
         self.rp_supports_parameters = True
         try:
@@ -81,27 +94,35 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except pkg_resources.VersionConflict:
             self.rp_supports_parameters = False
 
-        self.log_item_id = None
-        self.parent_item_id = None
+    @property
+    def issue_types(self):
+        """Issue types for the Report Portal project."""
+        if not self._issue_types:
+            if not self.project_settings:
+                return self._issue_types
+            for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE",
+                              "NO_DEFECT", "TO_INVESTIGATE"):
+                for item in self.project_settings["subTypes"][item_type]:
+                    self._issue_types[item["shortName"]] = item["locator"]
+        return self._issue_types
 
-        self.ignore_errors = True
-        self.ignored_tags = []
-
-        self._errors = queue.Queue()
-        self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
-        self._hier_parts = {}
-        self._item_parts = {}
-
-    def init_service(self, endpoint, project, uuid, log_batch_size,
-                     ignore_errors, ignored_tags, verify_ssl=True,
+    def init_service(self,
+                     endpoint,
+                     project,
+                     uuid,
+                     log_batch_size,
+                     ignore_errors,
+                     ignored_tags,
+                     verify_ssl=True,
                      retries=0):
+        """Update self.rp with the instance of the ReportPortalService."""
         self._errors = queue.Queue()
         if self.rp is None:
             self.ignore_errors = ignore_errors
+            self.ignored_tags = ignored_tags
             if self.rp_supports_parameters:
-                self.ignored_tags = list(set(ignored_tags).union({'parametrize'}))
-            else:
-                self.ignored_tags = ignored_tags
+                self.ignored_tags = list(
+                    set(ignored_tags).union({'parametrize'}))
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', endpoint, project, uuid)
             self.rp = ReportPortalService(
@@ -111,18 +132,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 retries=retries,
                 verify_ssl=verify_ssl
             )
+            self.project_settings = None
             if self.rp and hasattr(self.rp, "get_project_settings"):
                 self.project_settings = self.rp.get_project_settings()
-            else:
-                self.project_settings = None
-            self.issue_types = self.get_issue_types()
         else:
             log.debug('The pytest is already initialized')
         return self.rp
-
-    def async_error_handler(self, exc_info):
-        self.rp = None
-        self._errors.put_nowait(exc_info)
 
     def start_launch(self,
                      launch_name,
@@ -133,7 +148,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if self.rp is None:
             return
 
+        system_info = self.rp.get_system_information(self._agent_name)
+        system_info['system'] = True
         sl_pt = {
+            'attributes': system_info,
             'name': launch_name,
             'start_time': timestamp(),
             'description': description,
@@ -281,8 +299,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
 
         parts = self._item_parts[test_item]
-        if not parts:
-            self.rp.finish_test_item(**fta_rq)
+        self.rp.finish_test_item(**fta_rq)
         while len(parts) > 0:
             part = parts.pop()
             if status == "FAILED":
@@ -323,12 +340,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             loglevel = 'INFO'
 
         sl_rq = {
+            'item_id': self.log_item_id,
             'time': timestamp(),
             'message': message,
             'level': loglevel,
-            'attachment': attachment,
+            'attachment': attachment
         }
-        self.rp.log_batch((sl_rq,), item_id=self.log_item_id)
+        self.rp.log(**sl_rq)
 
     def _stop_if_necessary(self):
         try:
@@ -339,17 +357,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 pytest.exit(msg)
         except queue.Empty:
             pass
-
-    def get_issue_types(self):
-        issue_types = {}
-        if not self.project_settings:
-            return issue_types
-
-        for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE", "NO_DEFECT", "TO_INVESTIGATE"):
-            for item in self.project_settings["subTypes"][item_type]:
-                issue_types[item["shortName"]] = item["locator"]
-
-        return issue_types
 
     @staticmethod
     def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts, dirs_parts, rp_name=""):

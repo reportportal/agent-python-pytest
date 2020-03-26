@@ -150,7 +150,7 @@ class RPReportListener(object):
                 (issue_type in getattr(self.PyTestService, 'issue_types', ())):
             if comment:
                 self.issue['comment'] = comment
-            self.issue['issue_type'] = self.PyTestService.issue_types[issue_type]
+            self.issue['issueType'] = self.PyTestService.issue_types[issue_type]
             # self.issue['ignoreAnalyzer'] = True ???
         elif (report.when == 'setup') and report.skipped:
-            self.issue['issue_type'] = 'NOT_ISSUE'
+            self.issue['issueType'] = 'NOT_ISSUE'
