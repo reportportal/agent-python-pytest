@@ -54,3 +54,10 @@ def rp_service():
                     'ReportPortalService.get_project_settings'):
         service.init_service("endpoint", "project", "uuid", 20, False, [])
         return service
+
+
+@fixture(scope="session")
+def code_ref(request):
+    """Return the directory of the currently running test script."""
+
+    return request.fspath
