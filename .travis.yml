@@ -10,7 +10,7 @@ python:
   - "3.7"
   - "3.8"
 install:
-  - pip install pycodestyle pydocstyle pytest delayed-assert requests reportportal-client
+  - pip install pycodestyle pydocstyle pytest delayed-assert requests reportportal-client dill
 before_script:
   - pycodestyle .
   - pydocstyle .
