@@ -1,3 +1,5 @@
+"""This package contains pytest agent."""
+
 from .rp_logging import RPLogger, RPLogHandler
 
 __all__ = ['RPLogger', 'RPLogHandler']

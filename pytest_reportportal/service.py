@@ -1,3 +1,5 @@
+"""PyTestServiceClass for work with pytest."""
+
 import logging
 import sys
 import traceback
@@ -20,7 +22,6 @@ try:
 except pkg_resources.VersionConflict:
     from pytest_reportportal.errors import PytestWarning
 
-
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
 
@@ -32,10 +33,17 @@ log = logging.getLogger(__name__)
 
 
 def timestamp():
+    """Time for difference between start and finish tests."""
     return str(int(time() * 1000))
 
 
 def trim_docstring(docstring):
+    """
+    Convert docstring.
+
+    :param docstring input docstring
+    :return: docstring
+    """
     if not docstring:
         return ''
     # Convert tabs to spaces (following the normal Python rules)
@@ -62,9 +70,16 @@ def trim_docstring(docstring):
 
 
 class Singleton(type):
+    """Class Singleton pattern."""
+
     _instances = {}
 
     def __call__(cls, *args, **kwargs):
+        """Redefine call method.
+
+        :param args  list of additional params
+        :param kwargs dict of additional params
+        """
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(
                 *args, **kwargs)
@@ -144,6 +159,15 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      mode=None,
                      description=None,
                      **kwargs):
+        """
+        Launch test items.
+
+        :param launch_name: name of the launch
+        :param mode: mode
+        :param description: description of launch test
+        :param kwargs: additional params
+        :return: item_id
+        """
         self._stop_if_necessary()
         if self.rp is None:
             return
@@ -163,6 +187,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         return item_id
 
     def collect_tests(self, session):
+        """
+        Collect all tests.
+
+        :param session: pytest.Session
+        :return: None
+        """
         self._stop_if_necessary()
         if self.rp is None:
             return
@@ -178,10 +208,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             hier_module = session.config.getini('rp_hierarchy_module')
             hier_class = session.config.getini('rp_hierarchy_class')
             hier_param = session.config.getini('rp_hierarchy_parametrize')
-            display_suite_file_name = session.config.getini('rp_display_suite_test_file')
+            display_suite_file_name = session.config.getini(
+                'rp_display_suite_test_file')
 
         try:
-            hier_dirs_level = int(session.config.getini('rp_hierarchy_dirs_level'))
+            hier_dirs_level = int(
+                session.config.getini('rp_hierarchy_dirs_level'))
         except ValueError:
             hier_dirs_level = 0
 
@@ -193,17 +225,27 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             parts = []
 
             # Hierarchy for directories
-            rp_name = self._add_item_hier_parts_dirs(item, hier_dirs, hier_dirs_level, parts, dirs_parts)
+            rp_name = self._add_item_hier_parts_dirs(item, hier_dirs,
+                                                     hier_dirs_level, parts,
+                                                     dirs_parts)
 
             # Hierarchy for Module and Class/UnitTestCase
             item_parts = self._get_item_parts(item)
-            rp_name = self._add_item_hier_parts_other(item_parts, item, Module, hier_module, parts, rp_name)
-            rp_name = self._add_item_hier_parts_other(item_parts, item, Class, hier_class, parts, rp_name)
-            rp_name = self._add_item_hier_parts_other(item_parts, item, UnitTestCase, hier_class, parts, rp_name)
+            rp_name = self._add_item_hier_parts_other(item_parts, item, Module,
+                                                      hier_module, parts,
+                                                      rp_name)
+            rp_name = self._add_item_hier_parts_other(item_parts, item, Class,
+                                                      hier_class, parts,
+                                                      rp_name)
+            rp_name = self._add_item_hier_parts_other(item_parts, item,
+                                                      UnitTestCase, hier_class,
+                                                      parts, rp_name)
 
             # Hierarchy for parametrized tests
             if hier_param:
-                rp_name = self._add_item_hier_parts_parametrize(item, parts, tests_parts, rp_name)
+                rp_name = self._add_item_hier_parts_parametrize(item, parts,
+                                                                tests_parts,
+                                                                rp_name)
 
             # Hierarchy for test itself (Function/TestCaseFunction)
             item._rp_name = rp_name + ("::" if rp_name else "") + item.name
@@ -214,14 +256,23 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
             self._item_parts[item] = parts
             for part in parts:
-                if '_pytest.python.Class' in str(type(part)) and not display_suite_file_name and not hier_module:
+                if '_pytest.python.Class' in str(type(
+                        part)) and not display_suite_file_name and not \
+                        hier_module:
                     part._rp_name = part._rp_name.split("::")[-1]
                 if part not in self._hier_parts:
-                    self._hier_parts[part] = {"finish_counter": 1, "start_flag": False}
+                    self._hier_parts[part] = {"finish_counter": 1,
+                                              "start_flag": False}
                 else:
                     self._hier_parts[part]["finish_counter"] += 1
 
     def start_pytest_item(self, test_item=None):
+        """
+        Start pytest_item.
+
+        :param test_item: pytest.Item
+        :return: item_id
+        """
         self._stop_if_necessary()
         if self.rp is None:
             return
@@ -236,7 +287,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 'description': self._get_item_description(part),
                 'start_time': timestamp(),
                 'item_type': 'SUITE',
-                'parent_item_id': self.parent_item_id
+                'parent_item_id': self.parent_item_id,
+                'code_ref': test_item.fspath
             }
             log.debug('ReportPortal - Start Suite: request_body=%s', payload)
             item_id = self.rp.start_test_item(**payload)
@@ -249,7 +301,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'description': self._get_item_description(test_item),
             'start_time': timestamp(),
             'item_type': 'TEST',
-            'parent_item_id': self.parent_item_id
+            'parent_item_id': self.parent_item_id,
+            'code_ref': '{0} - {1}'.format(test_item.fspath, test_item.name)
         }
         if self.rp_supports_parameters:
             start_rq['parameters'] = self._get_parameters(test_item)
@@ -267,6 +320,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         """Make item update API call.
 
         :param test_item: pytest test item
+        :return None
         """
         self._stop_if_necessary()
         if self.rp is None:
@@ -285,6 +339,15 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.rp.update_test_item(**start_rq)
 
     def finish_pytest_item(self, test_item, item_id, status, issue=None):
+        """
+        Finish pytest_item.
+
+        :param test_item: test_item
+        :param item_id:  Pytest.Item
+        :param status: ''
+        :param issue: ''
+        :return: None
+        """
         self._stop_if_necessary()
         if self.rp is None:
             return
@@ -317,6 +380,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self.rp.finish_test_item(**payload)
 
     def finish_launch(self, status=None, **kwargs):
+        """
+        Finish tests launch.
+
+        :param status: ''
+        :param kwargs: additional params
+        :return: None
+        """
         self._stop_if_necessary()
         if self.rp is None:
             return
@@ -330,6 +400,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.rp.finish_launch(**fl_rq)
 
     def post_log(self, message, loglevel='INFO', attachment=None):
+        """
+        Send log.
+
+        :param message: message in log body
+        :param loglevel: 'INFO','ERROR'
+        :param attachment: attachment file
+        :return: None
+        """
         self._stop_if_necessary()
         if self.rp is None:
             return
@@ -349,6 +427,11 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.rp.log(**sl_rq)
 
     def _stop_if_necessary(self):
+        """
+        Stop tests if errors.
+
+        :return: None
+        """
         try:
             exc, msg, tb = self._errors.get(False)
             traceback.print_exception(exc, msg, tb)
@@ -359,8 +442,19 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             pass
 
     @staticmethod
-    def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts, dirs_parts, rp_name=""):
+    def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts,
+                                  dirs_parts, rp_name=""):
+        """
+        Add item to hierarchy of tests.
 
+        :param item: Pytest.Item
+        :param hier_flag: flag
+        :param dirs_level: int value of level
+        :param report_parts: ''
+        :param dirs_parts: ''
+        :param rp_name:  report name
+        :return: rp_name
+        """
         parts_dirs = PyTestServiceClass._get_item_dirs(item)
         dir_path = item.fspath.new(dirname="", basename="", drive="")
         rp_name_path = ""
@@ -374,7 +468,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                     item_dir = dirs_parts[path]
                     rp_name = ""
                 else:
-                    item_dir = File(dir_name, nodeid=dir_name, session=item.session, config=item.session.config)
+                    item_dir = File(dir_name, nodeid=dir_name,
+                                    session=item.session,
+                                    config=item.session.config)
                     rp_name += dir_name
                     item_dir._rp_name = rp_name
                     dirs_parts[path] = item_dir
@@ -390,12 +486,23 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         return rp_name
 
     @staticmethod
-    def _add_item_hier_parts_parametrize(item, report_parts, tests_parts, rp_name=""):
+    def _add_item_hier_parts_parametrize(item, report_parts, tests_parts,
+                                         rp_name=""):
+        """
+        Add item in parents with params.
 
+        :param item: pytest.Item
+        :param report_parts: ''
+        :param tests_parts: ''
+        :param rp_name: name of report
+        :return: rp_name
+        """
         for mark in item.own_markers:
             if mark.name == 'parametrize':
                 ch_index = item.nodeid.find("[")
-                test_fullname = item.nodeid[:ch_index if ch_index > 0 else len(item.nodeid)]
+                test_fullname = item.nodeid[
+                                :ch_index if ch_index > 0 else len(
+                                    item.nodeid)]
                 test_name = item.originalname
 
                 rp_name += ("::" if rp_name else "") + test_name
@@ -403,7 +510,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 if test_fullname in tests_parts:
                     item_test = tests_parts[test_fullname]
                 else:
-                    item_test = Item(test_fullname, nodeid=test_fullname, session=item.session,
+                    item_test = Item(test_fullname, nodeid=test_fullname,
+                                     session=item.session,
                                      config=item.session.config)
                     item_test._rp_name = rp_name
                     item_test.obj = item.obj
@@ -420,16 +528,33 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         return rp_name
 
     @staticmethod
-    def _add_item_hier_parts_other(item_parts, item, item_type, hier_flag, report_parts, rp_name=""):
+    def _add_item_hier_parts_other(item_parts, item, item_type, hier_flag,
+                                   report_parts, rp_name=""):
+        """
+        Add item to other hierarchy levels.
 
+        :param item_parts: ''
+        :param item: pytest.Item
+        :param item_type: (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
+         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
+        AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST
+        :param hier_flag: ''
+        :param report_parts: ''
+        :param rp_name: report name
+        :return: rp_name
+        """
         for part in item_parts:
 
             if type(part) is item_type:
 
                 if item_type is Module:
-                    module_path = str(item.fspath.new(dirname=rp_name, basename=part.fspath.basename, drive=""))
+                    module_path = str(
+                        item.fspath.new(dirname=rp_name,
+                                        basename=part.fspath.basename,
+                                        drive=""))
                     rp_name = module_path if rp_name else module_path[1:]
-                elif item_type in (Class, Function, UnitTestCase, TestCaseFunction):
+                elif item_type in (Class, Function, UnitTestCase,
+                                   TestCaseFunction):
                     rp_name += ("::" if rp_name else "") + part.name
 
                 if hier_flag:
@@ -441,6 +566,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     @staticmethod
     def _get_item_parts(item):
+        """
+        Get item of parents.
+
+        :param item: pytest.Item
+        :return list of parents
+        """
         parts = []
         parent = item.parent
         if not isinstance(parent, Instance):
@@ -460,10 +591,16 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     @staticmethod
     def _get_item_dirs(item):
+        """
+        Get directory of item.
 
+        :param item: pytest.Item
+        :return: list of dirs
+        """
         root_path = item.session.config.rootdir.strpath
         dir_path = item.fspath.new(basename="")
-        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="", drive="")
+        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
+                               drive="")
 
         dir_list = []
         for directory in rel_dir.parts(reverse=False):
@@ -474,6 +611,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         return dir_list
 
     def _get_item_tags(self, item):
+        """
+        Get tags of item.
+
+        :param item: pytest.Item
+        :return: list of tags
+        """
+
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_tags parameter
         def get_marker_value(item, keyword):
@@ -501,10 +645,22 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         return tags
 
     def _get_parameters(self, item):
+        """
+        Get params of item.
+
+        :param item: Pytest.Item
+        :return: dict of params
+        """
         return item.callspec.params if hasattr(item, 'callspec') else {}
 
     @staticmethod
     def _get_item_name(test_item):
+        """
+        Get name of item.
+
+        :param test_item: pytest.Item
+        :return: name
+        """
         name = test_item._rp_name
         if len(name) > 256:
             name = name[:256]
@@ -518,6 +674,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     @staticmethod
     def _get_item_description(test_item):
+        """
+        Get description of item.
+
+        :param test_item: pytest.Item
+        :return string description
+        """
         if isinstance(test_item, (Class, Function, Module, Item)):
             doc = test_item.obj.__doc__
             if doc is not None:

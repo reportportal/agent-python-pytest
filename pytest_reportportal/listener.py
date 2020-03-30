@@ -1,14 +1,16 @@
+"""RPReportListener define built-in pytest functions."""
 import pytest
 import logging
-try:
-    from html import escape   # python3
-except ImportError:
-    from cgi import escape    # python2
 
+try:
+    from html import escape  # python3
+except ImportError:
+    from cgi import escape  # python2
 
 try:
     # This try/except can go away once we support pytest >= 3.3
     import _pytest.logging
+
     PYTEST_HAS_LOGGING_PLUGIN = True
     from .rp_logging import RPLogHandler, patching_logger_class
 except ImportError:
@@ -16,24 +18,49 @@ except ImportError:
 
 
 class RPReportListener(object):
+    """RPReportListener class."""
+
     def __init__(self, py_test_service,
                  log_level=logging.NOTSET,
                  endpoint=None):
+        """
+        Initialize RPReport Listener instance.
+
+        :param py_test_service: PyTestServiceClass instance
+        :param log_level ('CRITICAL','ERROR', 'WARNING','INFO',
+        'DEBUG','NOTSET')
+        :param endpoint: http link
+        """
         # Test Item result
         self.PyTestService = py_test_service
         self.result = None
         self.issue = {}
         self._log_level = log_level
         if PYTEST_HAS_LOGGING_PLUGIN:
-            self._log_handler = RPLogHandler(py_test_service=py_test_service,
-                                             level=log_level,
-                                             filter_reportportal_client_logs=True,
-                                             endpoint=endpoint)
+            self._log_handler = \
+                RPLogHandler(py_test_service=py_test_service,
+                             level=log_level,
+                             filter_reportportal_client_logs=True,
+                             endpoint=endpoint)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_protocol(self, item):
-        # Adding issues id marks to the test item
-        # if client doesn't support item updates
+        """
+        Adding issues id marks to the test item.
+
+        if client doesn't support item updates
+        :param item:    {name:'',
+                        start_time:'',
+                        item_type:'',
+                        description:None,
+                        attributes:None,
+                        parameters:None,
+                        parent_item_id:None,
+                        has_stats:True,
+                        **kwargs}
+        :return: generator object
+
+        """
         update_supported = self.PyTestService.is_item_update_supported()
         if not update_supported:
             self._add_issue_id_marks(item)
@@ -58,6 +85,12 @@ class RPReportListener(object):
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self, item):
+        """
+         Change runtest_makereport function.
+
+        :param item: test_item
+        :return: None
+        """
         report = (yield).get_result()
 
         if report.longrepr:
@@ -99,8 +132,10 @@ class RPReportListener(object):
                         for issue_id in issue_ids:
                             mark_issue = "{}:{}".format(mark.name, issue_id)
                             try:
-                                pytest.mark._markers.add(mark_issue)  # register mark in pytest,
-                            except AttributeError:               # for pytest >= 4.5.0
+                                # register mark in pytest
+                                pytest.mark._markers.add(mark_issue),
+                                # for pytest >= 4.5.0
+                            except AttributeError:
                                 pass
                             item.add_marker(mark_issue)
 
@@ -130,11 +165,14 @@ class RPReportListener(object):
                     mark_comment = mark.kwargs.get("reason", mark.name)
                     mark_comment += ":"
                     for issue_id in issue_ids:
-                        issue_url = mark_url.format(issue_id=issue_id) if mark_url else None
-                        template = " [{issue_id}]({url})" if issue_url else " {issue_id}"
-                        mark_comment += template.format(issue_id=issue_id, url=issue_url)
+                        issue_url = mark_url.format(issue_id=issue_id) if \
+                            mark_url else None
+                        template = " [{issue_id}]({url})" if issue_url \
+                            else " {issue_id}"
+                        mark_comment += template.format(issue_id=issue_id,
+                                                        url=issue_url)
                 elif "reason" in mark.kwargs:
-                     mark_comment = mark.kwargs["reason"]
+                    mark_comment = mark.kwargs["reason"]
 
                 if mark_comment:
                     comment += ("\n* " if comment else "* ") + mark_comment
@@ -150,7 +188,8 @@ class RPReportListener(object):
                 (issue_type in getattr(self.PyTestService, 'issue_types', ())):
             if comment:
                 self.issue['comment'] = comment
-            self.issue['issueType'] = self.PyTestService.issue_types[issue_type]
+            self.issue['issueType'] = \
+                self.PyTestService.issue_types[issue_type]
             # self.issue['ignoreAnalyzer'] = True ???
         elif (report.when == 'setup') and report.skipped:
             self.issue['issueType'] = 'NOT_ISSUE'
