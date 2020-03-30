@@ -1,9 +1,17 @@
+"""Config for setup package pytest agent."""
+
 import os
 
 from setuptools import setup
 
 
 def read_file(fname):
+    """
+    Read file.
+
+    :param fname: string of filename
+    :return: File descriptor
+    """
     with open(os.path.join(os.path.dirname(__file__), fname)) as f:
         return f.read()
 
