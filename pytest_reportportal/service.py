@@ -245,6 +245,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self._hier_parts[part]["item_id"] = item_id
 
         start_rq = {
+            'attributes': self._get_item_markers(test_item),
             'name': self._get_item_name(test_item),
             'description': self._get_item_description(test_item),
             'start_time': timestamp(),
@@ -258,31 +259,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         item_id = self.rp.start_test_item(**start_rq)
         self.log_item_id = item_id
         return item_id
-
-    def is_item_update_supported(self):
-        """Check item update API call client support."""
-        return hasattr(self.rp, "update_test_item")
-
-    def update_pytest_item(self, test_item=None):
-        """Make item update API call.
-
-        :param test_item: pytest test item
-        """
-        self._stop_if_necessary()
-        if self.rp is None:
-            return
-
-        # if update_test_item is not supported in client
-        if not self.is_item_update_supported():
-            log.debug('ReportPortal - Update TestItem: method is not defined')
-            return
-
-        start_rq = {
-            'description': self._get_item_description(test_item),
-            'tags': self._get_item_tags(test_item),
-        }
-        log.debug('ReportPortal - Update TestItem: request_body=%s', start_rq)
-        self.rp.update_test_item(**start_rq)
 
     def finish_pytest_item(self, test_item, item_id, status, issue=None):
         self._stop_if_necessary()
@@ -473,7 +449,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
         return dir_list
 
-    def _get_item_tags(self, item):
+    def _get_item_markers(self, item):
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_tags parameter
         def get_marker_value(item, keyword):
@@ -487,17 +463,15 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 if marker and marker.args else keyword
 
         try:
-            tags = [get_marker_value(item, k) for k in item.keywords
-                    if item.get_closest_marker(k) is not None
-                    and k not in self.ignored_tags]
+            get_marker = getattr(item, "get_closest_marker")
         except AttributeError:
-            # pytest < 3.6
-            tags = [get_marker_value(item, k) for k in item.keywords
-                    if item.get_marker(k) is not None
-                    and k not in self.ignored_tags]
+            get_marker = getattr(item, "get_marker")
+        tags = [{"value": get_marker_value(item, k)}
+                for k in item.keywords if get_marker(k) is not None
+                and k not in self.ignored_tags]
 
-        tags.extend(item.session.config.getini('rp_tests_tags'))
-
+        tags.extend([{"value": tag}
+                     for tag in item.session.config.getini('rp_tests_tags')])
         return tags
 
     def _get_parameters(self, item):

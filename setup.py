@@ -12,7 +12,7 @@ version = '5.0.1'
 
 
 requirements = [
-    'reportportal-client~=5.0.0',
+    'reportportal-client>=5.0.2',
     'pytest>=3.0.7',
     'six>=1.10.0',
     'dill>=0.2.7.1',

@@ -74,30 +74,6 @@ def test_pytest_runtest_protocol(mocked_item):
     assert_expectations()
 
 
-def test_is_item_update_supported(rp_service):
-    """Test listener public is_client_support_item_update method.
-
-    :param rp_service: Pytest fixture
-    """
-    func = None
-
-    if hasattr(rp_service.rp, 'update_test_item'):
-        func = rp_service.rp.update_test_item
-        delattr(type(rp_service.rp), 'update_test_item')
-
-    result = rp_service.is_item_update_supported()
-    expect(result is False,
-           "incorrect result for is_client_support_item_update method")
-
-    rp_service.rp.update_test_item = func
-    setattr(rp_service.rp, 'update_test_item', mock.Mock())
-
-    result = rp_service.is_item_update_supported()
-    expect(result is True,
-           'incorrect result for is_client_support_item_update method')
-    assert_expectations()
-
-
 def test_add_issue_info(rp_listener, rp_service):
     """Test listener helper _add_issue_info method.
 

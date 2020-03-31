@@ -40,13 +40,13 @@ def mocked_session(mocked_config):
     return mocked_session
 
 
-@fixture(scope='session')
+@fixture()
 def rp_listener(rp_service):
     """Prepare instance of the RPReportListener for testing."""
     return RPReportListener(rp_service)
 
 
-@fixture(scope='session')
+@fixture()
 def rp_service():
     """Prepare instance of the PyTestServiceClass for testing."""
     service = PyTestServiceClass()
