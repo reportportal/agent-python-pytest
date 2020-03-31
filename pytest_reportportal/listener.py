@@ -27,8 +27,8 @@ class RPReportListener(object):
         """Initialize RPReport Listener instance.
 
         :param py_test_service: PyTestServiceClass instance
-        :param log_level:       One of the 'CRITICAL', 'ERROR', 'WARNING','INFO',
-                                'DEBUG', 'NOTSET'
+        :param log_level:       One of the 'CRITICAL', 'ERROR',
+                                'WARNING','INFO','DEBUG', 'NOTSET'
         :param endpoint:        Report Portal API endpoint
         """
         # Test Item result

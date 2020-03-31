@@ -20,8 +20,8 @@ def test_pytest_runtest_protocol(mocked_item):
 
     next(rp_listener.pytest_runtest_protocol(mocked_item))
 
-    expect(rp_listener._add_issue_id_marks.call_count == 1,
-           '_add_issue_id_marks called more than 1 time')
+    assert (rp_listener._add_issue_id_marks.call_count == 1,
+            '_add_issue_id_marks called more than 1 time')
 
     assert_expectations()
 
@@ -93,6 +93,7 @@ def test_add_issue_id_marks(rp_listener, mocked_item):
     :param rp_listener: Pytest fixture
     :param mocked_item: Pytest fixture
     """
+
     def getini(option):
         if option == "rp_issue_id_marks":
             return True
