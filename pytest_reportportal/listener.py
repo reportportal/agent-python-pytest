@@ -1,6 +1,7 @@
-"""RPReportListener define built-in pytest functions."""
-import pytest
+"""RPReportListener implements Pytest hooks required for item reporting."""
+
 import logging
+import pytest
 
 try:
     from html import escape  # python3
@@ -23,13 +24,12 @@ class RPReportListener(object):
     def __init__(self, py_test_service,
                  log_level=logging.NOTSET,
                  endpoint=None):
-        """
-        Initialize RPReport Listener instance.
+        """Initialize RPReport Listener instance.
 
         :param py_test_service: PyTestServiceClass instance
-        :param log_level ('CRITICAL','ERROR', 'WARNING','INFO',
-        'DEBUG','NOTSET')
-        :param endpoint: http link
+        :param log_level:       One of the 'CRITICAL', 'ERROR', 'WARNING','INFO',
+                                'DEBUG', 'NOTSET'
+        :param endpoint:        Report Portal API endpoint
         """
         # Test Item result
         self.PyTestService = py_test_service
@@ -48,18 +48,8 @@ class RPReportListener(object):
         """
         Adding issues id marks to the test item.
 
-        if client doesn't support item updates
-        :param item:    {name:'',
-                        start_time:'',
-                        item_type:'',
-                        description:None,
-                        attributes:None,
-                        parameters:None,
-                        parent_item_id:None,
-                        has_stats:True,
-                        **kwargs}
+        :param item:  Pytest.Item
         :return: generator object
-
         """
         update_supported = self.PyTestService.is_item_update_supported()
         if not update_supported:
@@ -88,7 +78,7 @@ class RPReportListener(object):
         """
          Change runtest_makereport function.
 
-        :param item: test_item
+        :param item: pytest.Item
         :return: None
         """
         report = (yield).get_result()

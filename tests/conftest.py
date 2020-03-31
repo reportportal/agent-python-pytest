@@ -45,7 +45,8 @@ def mocked_session(mocked_config):
 @fixture(scope='session')
 def rp_listener(rp_service):
     """Prepare instance of the RPReportListener for testing."""
-    return RPReportListener(rp_service)
+    rp_listener = RPReportListener(rp_service)
+    return rp_listener
 
 
 @fixture(scope='session')

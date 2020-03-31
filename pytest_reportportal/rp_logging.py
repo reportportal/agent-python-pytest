@@ -14,7 +14,7 @@ class RPLogger(logging.getLoggerClass()):
         """
         Initialize RPLogger instance.
 
-        :param name: name of log
+        :param name:  logger name
         :param level: level of logs
         """
         super(RPLogger, self).__init__(name, level=level)
@@ -102,7 +102,7 @@ class RPLogHandler(logging.Handler):
 
     def filter(self, record):
         """
-        Filter the reportportal_client requests.
+        Filter the reportportal_client messages.
 
         :param record:
         :return: bool

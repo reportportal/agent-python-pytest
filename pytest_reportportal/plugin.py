@@ -1,4 +1,4 @@
-"""Define Pytest built-in functions."""
+"""This module contains changed pytest for report-portal."""
 
 # This program is free software: you can redistribute it
 # and/or modify it under the terms of the GPL licence

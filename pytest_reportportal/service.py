@@ -1,4 +1,4 @@
-"""PyTestServiceClass for work with pytest."""
+"""This module includes Service functions for work with pytest agent."""
 
 import logging
 import sys
@@ -401,7 +401,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def post_log(self, message, loglevel='INFO', attachment=None):
         """
-        Send log.
+        Send a log message to the Report Portal.
 
         :param message: message in log body
         :param loglevel: 'INFO','ERROR'
@@ -428,7 +428,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def _stop_if_necessary(self):
         """
-        Stop tests if errors.
+        Stop tests if any error occurs.
 
         :return: None
         """
@@ -445,7 +445,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
     def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts,
                                   dirs_parts, rp_name=""):
         """
-        Add item to hierarchy of tests.
+        Add item to hierarchy of parents located in directory.
 
         :param item: Pytest.Item
         :param hier_flag: flag
@@ -489,11 +489,11 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
     def _add_item_hier_parts_parametrize(item, report_parts, tests_parts,
                                          rp_name=""):
         """
-        Add item in parents with params.
+        Add item to hierarchy of parents with params.
 
         :param item: pytest.Item
-        :param report_parts: ''
-        :param tests_parts: ''
+        :param report_parts: Parent reports
+        :param tests_parts: test item parts
         :param rp_name: name of report
         :return: rp_name
         """
@@ -531,15 +531,15 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
     def _add_item_hier_parts_other(item_parts, item, item_type, hier_flag,
                                    report_parts, rp_name=""):
         """
-        Add item to other hierarchy levels.
+        Add item to hierarchy of parents.
 
-        :param item_parts: ''
+        :param item_parts: Parent_items
         :param item: pytest.Item
         :param item_type: (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
          BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
-        AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST
-        :param hier_flag: ''
-        :param report_parts: ''
+        AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST)
+        :param hier_flag: bool state
+        :param report_parts: list of parent reports
         :param rp_name: report name
         :return: rp_name
         """
