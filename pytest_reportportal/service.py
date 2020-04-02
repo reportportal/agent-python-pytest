@@ -475,7 +475,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         return tags
 
     def _get_parameters(self, item):
-        return item.callspec.params if hasattr(item, 'callspec') else {}
+        return item.callspec.params if hasattr(item, 'callspec') else None
 
     @staticmethod
     def _get_item_name(test_item):
