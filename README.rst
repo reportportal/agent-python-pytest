@@ -69,23 +69,23 @@ Example of :code:`pytest.ini`:
     rp_endpoint = http://192.168.1.10:8080
     rp_project = user_personal
     rp_launch = AnyLaunchName
-    rp_launch_tags = 'PyTest' 'Smoke'
+    rp_launch_attributes = 'PyTest' 'Smoke'
     rp_launch_description = 'Smoke test'
     rp_ignore_errors = True
-    rp_ignore_tags = 'xfail' 'usefixture'
+    rp_ignore_attributes = 'xfail' 'usefixture'
 
 The following parameters are optional:
 
 - :code:`rp_launch = AnyLaunchName` - launch name (could be overridden
   by pytest --rp-launch option, default value is 'Pytest Launch')
-- :code:`rp_launch_tags = 'PyTest' 'Smoke'` - list of tags for launch
-- :code:`rp_tests_tags = 'PyTest' 'Smoke'` - list of tags that will be added for each item in the launch
+- :code:`rp_launch_attributes = 'PyTest' 'Smoke'` - list of attributes for launch
+- :code:`rp_tests_attributes = 'PyTest' 'Smoke'` - list of attributes that will be added for each item in the launch
 - :code:`rp_launch_description = 'Smoke test'` - launch description (could be overridden
   by pytest --rp-launch-description option, default value is '')
 
 - :code:`rp_log_batch_size = 20` - size of batch log request
 - :code:`rp_ignore_errors = True` - Ignore Report Portal errors (exit otherwise)
-- :code:`rp_ignore_tags = 'xfail' 'usefixture'` - Ignore specified pytest markers
+- :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers
 - :code:`rp_hierarchy_dirs = True` - Enables hierarchy for tests directories, default `False`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_module = True` - Enables hierarchy for module, default `True`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_class = True` - Enables hierarchy for class, default `True`. Doesn't support 'xdist' plugin.
@@ -99,7 +99,7 @@ The following parameters are optional:
 
 
 If you like to override the above parameters from command line, or from CI environment based on your build, then pass
-- :code:`-o "rp_launch_tags=Smoke Tests"` during invocation.
+- :code:`-o "rp_launch_attributes=Smoke Tests"` during invocation.
 
 Examples
 ~~~~~~~~
@@ -174,8 +174,8 @@ Plugin can report doc-strings of tests as :code:`descriptions`:
         """
         pass
 
-Pytest markers will be attached as :code:`tags` to Report Portal items.
-In the following example tags 'linux' and 'win32' will be used:
+Pytest markers will be attached as :code:`attributes` to Report Portal items.
+In the following example attributes 'linux' and 'win32' will be used:
 
 .. code-block:: python
 
@@ -186,7 +186,7 @@ In the following example tags 'linux' and 'win32' will be used:
     def test_one():
         pass
 
-If you don't want to attach specific markers, list them in :code:`rp_ignore_tags` parameter
+If you don't want to attach specific markers, list them in :code:`rp_ignore_attributes` parameter
 
 
 Launching
