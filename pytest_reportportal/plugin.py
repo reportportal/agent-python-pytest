@@ -55,14 +55,16 @@ def pytest_sessionstart(session):
             uuid=session.config.getini('rp_uuid'),
             log_batch_size=int(session.config.getini('rp_log_batch_size')),
             ignore_errors=bool(session.config.getini('rp_ignore_errors')),
-            ignored_tags=session.config.getini('rp_ignore_tags'),
+            ignored_attributes=session.config.getini('rp_ignore_attributes'),
             verify_ssl=session.config.getini('rp_verify_ssl'),
             retries=int(session.config.getini('retries')),
         )
 
+        attributes = [{'value': tag} for tag in
+                      session.config.getini('rp_launch_attributes')]
         session.config.py_test_service.start_launch(
             session.config.option.rp_launch,
-            tags=session.config.getini('rp_launch_tags'),
+            attributes=attributes,
             description=session.config.option.rp_launch_description
         )
         if session.config.pluginmanager.hasplugin('xdist'):
@@ -235,14 +237,14 @@ def pytest_addoption(parser):
         help='Launch name')
 
     parser.addini(
-        'rp_launch_tags',
+        'rp_launch_attributes',
         type='args',
-        help='Launch tags, i.e Performance Regression')
+        help='Launch attributes, i.e Performance Regression')
 
     parser.addini(
-        'rp_tests_tags',
+        'rp_tests_attributes',
         type='args',
-        help='Tags for all tests items, e.g. Smoke')
+        help='Attributes for all tests items, e.g. Smoke')
 
     parser.addini(
         'rp_launch_description',
@@ -261,7 +263,7 @@ def pytest_addoption(parser):
         help='Ignore Report Portal errors (exit otherwise)')
 
     parser.addini(
-        'rp_ignore_tags',
+        'rp_ignore_attributes',
         type='args',
         help='Ignore specified pytest markers, i.e parametrize')
 

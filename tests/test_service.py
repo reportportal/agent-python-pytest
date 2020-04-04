@@ -6,12 +6,12 @@ from delayed_assert import expect, assert_expectations
 import pytest
 
 
-def test_item_tags(rp_service):
-    """Test that item tags are generated in a supported way."""
+def test_item_attributes(rp_service):
+    """Test that item attributes are generated in a supported way."""
     rp_service.is_item_update_supported = mock.Mock(return_value=False)
 
     def getini(option):
-        if option == 'rp_tests_tags':
+        if option == 'rp_tests_attributes':
             return ['ini_marker']
 
     def get_closest_marker(name):

@@ -25,6 +25,7 @@ from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
 
 from reportportal_client import ReportPortalService
+from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
 from six.moves import queue
 
@@ -83,7 +84,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self._item_parts = {}
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
         self.ignore_errors = True
-        self.ignored_tags = []
+        self.ignored_attributes = []
         self.log_batch_size = 20
         self.log_item_id = None
         self.parent_item_id = None
@@ -112,17 +113,17 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      uuid,
                      log_batch_size,
                      ignore_errors,
-                     ignored_tags,
+                     ignored_attributes,
                      verify_ssl=True,
                      retries=0):
         """Update self.rp with the instance of the ReportPortalService."""
         self._errors = queue.Queue()
         if self.rp is None:
             self.ignore_errors = ignore_errors
-            self.ignored_tags = ignored_tags
+            self.ignored_attributes = ignored_attributes
             if self.rp_supports_parameters:
-                self.ignored_tags = list(
-                    set(ignored_tags).union({'parametrize'}))
+                self.ignored_attributes = list(
+                    set(ignored_attributes).union({'parametrize'}))
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', endpoint, project, uuid)
             self.rp = ReportPortalService(
@@ -143,15 +144,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      launch_name,
                      mode=None,
                      description=None,
+                     attributes=None,
                      **kwargs):
         self._stop_if_necessary()
         if self.rp is None:
             return
 
-        system_info = self.rp.get_system_information(self._agent_name)
-        system_info['system'] = True
         sl_pt = {
-            'attributes': system_info,
+            'attributes': self._get_launch_attributes(attributes),
             'name': launch_name,
             'start_time': timestamp(),
             'description': description,
@@ -449,9 +449,22 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
         return dir_list
 
+    def _get_launch_attributes(self, ini_attrs):
+        """Generate launch attributes in the format supported by the client.
+
+        :param list ini_attrs: List for attributes from the pytest.ini file
+        """
+        attributes = ini_attrs or []
+
+        system_info = self.rp.get_system_information(self._agent_name)
+        system_info['system'] = True
+        system_attributes = _dict_to_payload(system_info)
+
+        return attributes + system_attributes
+
     def _get_item_markers(self, item):
         # Try to extract names of @pytest.mark.* decorators used for test item
-        # and exclude those which present in rp_ignore_tags parameter
+        # and exclude those which present in rp_ignore_attributes parameter
         def get_marker_value(item, keyword):
             try:
                 marker = item.get_closest_marker(keyword)
@@ -466,13 +479,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             get_marker = getattr(item, "get_closest_marker")
         except AttributeError:
             get_marker = getattr(item, "get_marker")
-        tags = [{"value": get_marker_value(item, k)}
-                for k in item.keywords if get_marker(k) is not None
-                and k not in self.ignored_tags]
+        attributes = [{"value": get_marker_value(item, k)}
+                      for k in item.keywords if get_marker(k) is not None
+                      and k not in self.ignored_attributes]
 
-        tags.extend([{"value": tag}
-                     for tag in item.session.config.getini('rp_tests_tags')])
-        return tags
+        attributes.extend([{"value": tag} for tag in
+                           item.session.config.getini('rp_tests_attributes')])
+        return attributes
 
     def _get_parameters(self, item):
         return item.callspec.params if hasattr(item, 'callspec') else None
