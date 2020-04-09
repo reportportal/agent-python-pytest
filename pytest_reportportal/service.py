@@ -226,8 +226,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if self.rp is None:
             return
 
+        self.parent_item_id = None
         for part in self._item_parts[test_item]:
             if self._hier_parts[part]["start_flag"]:
+                self.parent_item_id = self._hier_parts[part]["item_id"]
                 continue
             self._hier_parts[part]["start_flag"] = True
 
@@ -350,7 +352,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                     item_dir = dirs_parts[path]
                     rp_name = ""
                 else:
-                    item_dir = File(dir_name, nodeid=dir_name, session=item.session, config=item.session.config)
+                    item_dir = File(dir_path, nodeid=dir_name, session=item.session, config=item.session.config)
                     rp_name += dir_name
                     item_dir._rp_name = rp_name
                     dirs_parts[path] = item_dir
