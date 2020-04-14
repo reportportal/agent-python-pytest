@@ -32,12 +32,7 @@ class RPReportListener(object):
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_protocol(self, item):
-        # Adding issues id marks to the test item
-        # if client doesn't support item updates
-        update_supported = self.PyTestService.is_item_update_supported()
-        if not update_supported:
-            self._add_issue_id_marks(item)
-
+        self._add_issue_id_marks(item)
         item_id = self.PyTestService.start_pytest_item(item)
         if PYTEST_HAS_LOGGING_PLUGIN:
             # This check can go away once we support pytest >= 3.3
@@ -47,11 +42,6 @@ class RPReportListener(object):
                     yield
         else:
             yield
-        # Updating item in RP (tags and description)
-        # if client supports
-        if update_supported:
-            self._add_issue_id_marks(item)
-            self.PyTestService.update_pytest_item(item)
         # Finishing item in RP
         self.PyTestService.finish_pytest_item(
             item, item_id, self.result or 'SKIPPED', self.issue or None)
@@ -150,7 +140,7 @@ class RPReportListener(object):
                 (issue_type in getattr(self.PyTestService, 'issue_types', ())):
             if comment:
                 self.issue['comment'] = comment
-            self.issue['issue_type'] = self.PyTestService.issue_types[issue_type]
+            self.issue['issueType'] = self.PyTestService.issue_types[issue_type]
             # self.issue['ignoreAnalyzer'] = True ???
         elif (report.when == 'setup') and report.skipped:
-            self.issue['issue_type'] = 'NOT_ISSUE'
+            self.issue['issueType'] = 'NOT_ISSUE'

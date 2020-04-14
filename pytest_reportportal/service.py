@@ -25,6 +25,7 @@ from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
 
 from reportportal_client import ReportPortalService
+from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
 from six.moves import queue
 
@@ -72,8 +73,21 @@ class Singleton(type):
 
 
 class PyTestServiceClass(with_metaclass(Singleton, object)):
+    """Pytest service class for reporting test results to the Report Portal."""
 
     def __init__(self):
+        """Initialize instance attributes."""
+        self._agent_name = 'pytest-reportportal'
+        self._errors = queue.Queue()
+        self._hier_parts = {}
+        self._issue_types = {}
+        self._item_parts = {}
+        self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
+        self.ignore_errors = True
+        self.ignored_attributes = []
+        self.log_batch_size = 20
+        self.log_item_id = None
+        self.parent_item_id = None
         self.rp = None
         self.rp_supports_parameters = True
         try:
@@ -81,27 +95,35 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except pkg_resources.VersionConflict:
             self.rp_supports_parameters = False
 
-        self.log_item_id = None
-        self.parent_item_id = None
+    @property
+    def issue_types(self):
+        """Issue types for the Report Portal project."""
+        if not self._issue_types:
+            if not self.project_settings:
+                return self._issue_types
+            for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE",
+                              "NO_DEFECT", "TO_INVESTIGATE"):
+                for item in self.project_settings["subTypes"][item_type]:
+                    self._issue_types[item["shortName"]] = item["locator"]
+        return self._issue_types
 
-        self.ignore_errors = True
-        self.ignored_tags = []
-
-        self._errors = queue.Queue()
-        self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
-        self._hier_parts = {}
-        self._item_parts = {}
-
-    def init_service(self, endpoint, project, uuid, log_batch_size,
-                     ignore_errors, ignored_tags, verify_ssl=True,
+    def init_service(self,
+                     endpoint,
+                     project,
+                     uuid,
+                     log_batch_size,
+                     ignore_errors,
+                     ignored_attributes,
+                     verify_ssl=True,
                      retries=0):
+        """Update self.rp with the instance of the ReportPortalService."""
         self._errors = queue.Queue()
         if self.rp is None:
             self.ignore_errors = ignore_errors
+            self.ignored_attributes = ignored_attributes
             if self.rp_supports_parameters:
-                self.ignored_tags = list(set(ignored_tags).union({'parametrize'}))
-            else:
-                self.ignored_tags = ignored_tags
+                self.ignored_attributes = list(
+                    set(ignored_attributes).union({'parametrize'}))
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', endpoint, project, uuid)
             self.rp = ReportPortalService(
@@ -111,29 +133,25 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 retries=retries,
                 verify_ssl=verify_ssl
             )
+            self.project_settings = None
             if self.rp and hasattr(self.rp, "get_project_settings"):
                 self.project_settings = self.rp.get_project_settings()
-            else:
-                self.project_settings = None
-            self.issue_types = self.get_issue_types()
         else:
             log.debug('The pytest is already initialized')
         return self.rp
-
-    def async_error_handler(self, exc_info):
-        self.rp = None
-        self._errors.put_nowait(exc_info)
 
     def start_launch(self,
                      launch_name,
                      mode=None,
                      description=None,
+                     attributes=None,
                      **kwargs):
         self._stop_if_necessary()
         if self.rp is None:
             return
 
         sl_pt = {
+            'attributes': self._get_launch_attributes(attributes),
             'name': launch_name,
             'start_time': timestamp(),
             'description': description,
@@ -208,8 +226,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if self.rp is None:
             return
 
+        self.parent_item_id = None
         for part in self._item_parts[test_item]:
             if self._hier_parts[part]["start_flag"]:
+                self.parent_item_id = self._hier_parts[part]["item_id"]
                 continue
             self._hier_parts[part]["start_flag"] = True
 
@@ -227,6 +247,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self._hier_parts[part]["item_id"] = item_id
 
         start_rq = {
+            'attributes': self._get_item_markers(test_item),
             'name': self._get_item_name(test_item),
             'description': self._get_item_description(test_item),
             'start_time': timestamp(),
@@ -240,31 +261,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         item_id = self.rp.start_test_item(**start_rq)
         self.log_item_id = item_id
         return item_id
-
-    def is_item_update_supported(self):
-        """Check item update API call client support."""
-        return hasattr(self.rp, "update_test_item")
-
-    def update_pytest_item(self, test_item=None):
-        """Make item update API call.
-
-        :param test_item: pytest test item
-        """
-        self._stop_if_necessary()
-        if self.rp is None:
-            return
-
-        # if update_test_item is not supported in client
-        if not self.is_item_update_supported():
-            log.debug('ReportPortal - Update TestItem: method is not defined')
-            return
-
-        start_rq = {
-            'description': self._get_item_description(test_item),
-            'tags': self._get_item_tags(test_item),
-        }
-        log.debug('ReportPortal - Update TestItem: request_body=%s', start_rq)
-        self.rp.update_test_item(**start_rq)
 
     def finish_pytest_item(self, test_item, item_id, status, issue=None):
         self._stop_if_necessary()
@@ -281,8 +277,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
 
         parts = self._item_parts[test_item]
-        if not parts:
-            self.rp.finish_test_item(**fta_rq)
+        self.rp.finish_test_item(**fta_rq)
         while len(parts) > 0:
             part = parts.pop()
             if status == "FAILED":
@@ -323,12 +318,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             loglevel = 'INFO'
 
         sl_rq = {
+            'item_id': self.log_item_id,
             'time': timestamp(),
             'message': message,
             'level': loglevel,
-            'attachment': attachment,
+            'attachment': attachment
         }
-        self.rp.log_batch((sl_rq,), item_id=self.log_item_id)
+        self.rp.log(**sl_rq)
 
     def _stop_if_necessary(self):
         try:
@@ -339,17 +335,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 pytest.exit(msg)
         except queue.Empty:
             pass
-
-    def get_issue_types(self):
-        issue_types = {}
-        if not self.project_settings:
-            return issue_types
-
-        for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE", "NO_DEFECT", "TO_INVESTIGATE"):
-            for item in self.project_settings["subTypes"][item_type]:
-                issue_types[item["shortName"]] = item["locator"]
-
-        return issue_types
 
     @staticmethod
     def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts, dirs_parts, rp_name=""):
@@ -367,7 +352,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                     item_dir = dirs_parts[path]
                     rp_name = ""
                 else:
-                    item_dir = File(dir_name, nodeid=dir_name, session=item.session, config=item.session.config)
+                    item_dir = File(dir_path, nodeid=dir_name, session=item.session, config=item.session.config)
                     rp_name += dir_name
                     item_dir._rp_name = rp_name
                     dirs_parts[path] = item_dir
@@ -466,9 +451,22 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
         return dir_list
 
-    def _get_item_tags(self, item):
+    def _get_launch_attributes(self, ini_attrs):
+        """Generate launch attributes in the format supported by the client.
+
+        :param list ini_attrs: List for attributes from the pytest.ini file
+        """
+        attributes = ini_attrs or []
+
+        system_info = self.rp.get_system_information(self._agent_name)
+        system_info['system'] = True
+        system_attributes = _dict_to_payload(system_info)
+
+        return attributes + system_attributes
+
+    def _get_item_markers(self, item):
         # Try to extract names of @pytest.mark.* decorators used for test item
-        # and exclude those which present in rp_ignore_tags parameter
+        # and exclude those which present in rp_ignore_attributes parameter
         def get_marker_value(item, keyword):
             try:
                 marker = item.get_closest_marker(keyword)
@@ -480,21 +478,19 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 if marker and marker.args else keyword
 
         try:
-            tags = [get_marker_value(item, k) for k in item.keywords
-                    if item.get_closest_marker(k) is not None
-                    and k not in self.ignored_tags]
+            get_marker = getattr(item, "get_closest_marker")
         except AttributeError:
-            # pytest < 3.6
-            tags = [get_marker_value(item, k) for k in item.keywords
-                    if item.get_marker(k) is not None
-                    and k not in self.ignored_tags]
+            get_marker = getattr(item, "get_marker")
+        attributes = [{"value": get_marker_value(item, k)}
+                      for k in item.keywords if get_marker(k) is not None
+                      and k not in self.ignored_attributes]
 
-        tags.extend(item.session.config.getini('rp_tests_tags'))
-
-        return tags
+        attributes.extend([{"value": tag} for tag in
+                           item.session.config.getini('rp_tests_attributes')])
+        return attributes
 
     def _get_parameters(self, item):
-        return item.callspec.params if hasattr(item, 'callspec') else {}
+        return item.callspec.params if hasattr(item, 'callspec') else None
 
     @staticmethod
     def _get_item_name(test_item):
