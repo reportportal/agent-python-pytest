@@ -157,7 +157,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'description': description,
             'mode': mode,
         }
-        log.debug('ReportPortal - Start launch: equest_body=%s', sl_pt)
+        log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
         item_id = self.rp.start_launch(**sl_pt)
         log.debug('ReportPortal - Launch started: id=%s', item_id)
         return item_id
