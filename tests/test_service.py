@@ -42,4 +42,3 @@ def test_get_item_parameters(rp_service):
     expect(rp_service._get_parameters(test_item) is None)
 
     assert_expectations()
-
