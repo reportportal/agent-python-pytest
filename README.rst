@@ -103,7 +103,6 @@ The following parameters are optional:
 If you like to override the above parameters from command line, or from CI environment based on your build, then pass
 - :code:`-o "rp_launch_attributes=Smoke Tests"` during invocation.
 
-If
 
 Examples
 ~~~~~~~~
