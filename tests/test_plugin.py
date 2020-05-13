@@ -142,6 +142,10 @@ def test_add_issue_id_marks(rp_listener, mocked_item):
 
 
 def test_uuid_env_var_override(mocked_session):
+    """
+    Test setting RP_UUID env variable overrides the rp_uuid config value
+    :param mocked_session: pytest fixture
+    """
     os.environ['RP_UUID'] = 'foobar'
     mocked_session.config.py_test_service = mock.Mock()
     mocked_session.config.option = mock.Mock()
