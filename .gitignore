@@ -13,6 +13,7 @@ dist/
 .installed.cfg
 *.egg
 MANIFEST
+.eggs
 
 # Installer logs
 pip-log.txt

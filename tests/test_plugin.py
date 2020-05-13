@@ -1,13 +1,14 @@
 """This modules includes unit tests for the plugin."""
 
 from six.moves import mock
+import os
 
 from delayed_assert import expect, assert_expectations
 import pytest
 from requests.exceptions import RequestException
 
 from pytest_reportportal.listener import RPReportListener
-from pytest_reportportal.plugin import pytest_configure
+from pytest_reportportal.plugin import pytest_configure, pytest_sessionstart
 
 
 @mock.patch('pytest_reportportal.plugin.requests.get')
@@ -138,3 +139,14 @@ def test_add_issue_id_marks(rp_listener, mocked_item):
     expect(mocked_item.add_marker.call_args[0][0] == "issue:456823",
            "item.add_marker called with incorrect parameters")
     assert_expectations()
+
+
+def test_uuid_env_var_override(mocked_session):
+    os.environ['RP_UUID'] = 'foobar'
+    mocked_session.config.py_test_service = mock.Mock()
+    mocked_session.config.option = mock.Mock()
+    mocked_session.config.pluginmanager = mock.Mock()
+    mocked_session.config.py_test_service.init_service = mock.Mock()
+    pytest_sessionstart(mocked_session)
+    args, kwargs = mocked_session.config.py_test_service.init_service.call_args
+    assert kwargs.get('uuid') == 'foobar'

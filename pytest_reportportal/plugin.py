@@ -2,7 +2,7 @@
 # and/or modify it under the terms of the GPL licence
 
 import logging
-import os
+from os import getenv
 import dill as pickle
 import pkg_resources
 import pytest
@@ -53,7 +53,7 @@ def pytest_sessionstart(session):
         session.config.py_test_service.init_service(
             project=session.config.getini('rp_project'),
             endpoint=session.config.getini('rp_endpoint'),
-            uuid=session.config.getini('rp_uuid') if not os.environ.get('RP_UUID') else os.environ['RP_UUID'],
+            uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
             log_batch_size=int(session.config.getini('rp_log_batch_size')),
             ignore_errors=bool(session.config.getini('rp_ignore_errors')),
             ignored_attributes=session.config.getini('rp_ignore_attributes'),
@@ -107,7 +107,7 @@ def pytest_configure(config):
 
     project = config.getini('rp_project')
     endpoint = config.getini('rp_endpoint')
-    uuid = config.getini('rp_uuid') if not os.environ.get('RP_UUID') else os.environ['RP_UUID']
+    uuid = getenv('RP_UUID') or config.getini('rp_uuid')
     ignore_errors = config.getini('rp_ignore_errors')
     config._reportportal_configured = all([project, endpoint, uuid])
 
