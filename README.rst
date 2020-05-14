@@ -74,6 +74,8 @@ Example of :code:`pytest.ini`:
     rp_ignore_errors = True
     rp_ignore_attributes = 'xfail' 'usefixture'
 
+- The :code:`rp_uuid` can also be set with the environment variable `RP_UUID`. This will override the value set for :code:`rp_uuid` in pytest.ini
+
 The following parameters are optional:
 
 - :code:`rp_launch = AnyLaunchName` - launch name (could be overridden
