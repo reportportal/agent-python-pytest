@@ -1,3 +1,5 @@
+"""This module contains changed pytest for report-portal."""
+
 # This program is free software: you can redistribute it
 # and/or modify it under the terms of the GPL licence
 
@@ -30,21 +32,36 @@ log = logging.getLogger(__name__)
 
 def is_master(config):
     """
-    True if the code running the given pytest.config object is running in a xdist master
-    node or not running xdist at all.
+    Validate slaveinput attribute.
+
+    True if the code running the given pytest.config object
+    is running in a xdist master node or not running xdist at all.
     """
     return not hasattr(config, 'slaveinput')
 
 
 @pytest.mark.optionalhook
 def pytest_configure_node(node):
+    """
+    Configure node of tests.
+
+    :param node: Node
+    :return: pickle of RPService
+    """
     if node.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
-    node.slaveinput['py_test_service'] = pickle.dumps(node.config.py_test_service)
+    node.slaveinput['py_test_service'] = pickle.dumps(node.config.
+                                                      py_test_service)
 
 
 def pytest_sessionstart(session):
+    """
+    Start test session.
+
+    :param session: Session
+    :return: None
+    """
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
@@ -72,7 +89,39 @@ def pytest_sessionstart(session):
             wait_launch(session.config.py_test_service.rp)
 
 
+@pytest.hookimpl(trylast=True)
+def pytest_collection_modifyitems(session, config, items):
+    """
+    Modify  and sort items in tests.
+
+    :param session: pytest.Session
+    :param config:
+    :param items: list of pytest.Item
+    :return: None
+    """
+    if session.config._reportportal_configured is False:
+        # Stop now if the plugin is not properly configured
+        return
+
+    # Items need to be sorted so that we can hierarchically report
+    # * test-filename:
+    #   * Test Suite:
+    #     * Test case
+    #
+    # Hopefully sorting by fspath and parnt name will allow proper
+    # order between test modules and any test classes.
+    # We don't sort by nodeid because that changes the order of
+    # parametrized tests which can rely on that order
+    items.sort(key=lambda f: (f.fspath, f.parent.name))
+
+
 def pytest_collection_finish(session):
+    """
+    Collect tests if session is configured.
+
+    :param session: pytest.Session
+    :return: None
+    """
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
@@ -81,6 +130,12 @@ def pytest_collection_finish(session):
 
 
 def wait_launch(rp_client):
+    """
+    Wait for initialize RP_Service.
+
+    :param rp_client: RP_Service
+    :return: None
+    """
     timeout = time.time() + LAUNCH_WAIT_TIMEOUT
     while not rp_client.launch_id:
         if time.time() > timeout:
@@ -89,6 +144,12 @@ def wait_launch(rp_client):
 
 
 def pytest_sessionfinish(session):
+    """
+    Finish session if has attr  'slaveinput'.
+
+    :param session: pytest.Session
+    :return: None
+    """
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
@@ -98,7 +159,12 @@ def pytest_sessionfinish(session):
 
 
 def pytest_configure(config):
+    """
+    Configure RPReportListener for send logs.
 
+    :param config: Config file
+    :return:  None
+    """
     if config.getoption('--collect-only', default=False) or \
             config.getoption('--setup-plan', default=False) or \
             not config.option.rp_enabled:
@@ -132,12 +198,14 @@ def pytest_configure(config):
     if not config.option.rp_launch:
         config.option.rp_launch = config.getini('rp_launch')
     if not config.option.rp_launch_description:
-        config.option.rp_launch_description = config.getini('rp_launch_description')
+        config.option.rp_launch_description = config.\
+            getini('rp_launch_description')
 
     if is_master(config):
         config.py_test_service = PyTestServiceClass()
     else:
-        config.py_test_service = pickle.loads(config.slaveinput['py_test_service'])
+        config.py_test_service = pickle.loads(config.
+                                              slaveinput['py_test_service'])
 
     # set Pytest_Reporter and configure it
     if PYTEST_HAS_LOGGING_PLUGIN:
@@ -157,6 +225,12 @@ def pytest_configure(config):
 
 
 def pytest_unconfigure(config):
+    """
+    Clear config from reporter.
+
+    :param config: Config file
+    :return: None
+    """
     if config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
@@ -169,6 +243,12 @@ def pytest_unconfigure(config):
 
 
 def pytest_addoption(parser):
+    """
+    Add parameter in config of reporter.
+
+    :param parser: Config
+    :return:  None
+    """
     group = parser.getgroup('reporting')
     group.addoption(
         '--rp-launch',
@@ -179,7 +259,8 @@ def pytest_addoption(parser):
         '--rp-launch-description',
         action='store',
         dest='rp_launch_description',
-        help='Launch description (overrides rp_launch_description config option)')
+        help='Launch description (overrides '
+             'rp_launch_description config option)')
 
     group.addoption(
         '--reportportal',
@@ -288,7 +369,8 @@ def pytest_addoption(parser):
     parser.addini(
         'rp_issue_system_url',
         default='',
-        help='URL to get issue description. Issue id from pytest mark will be added to this URL')
+        help='URL to get issue description. Issue id '
+             'from pytest mark will be added to this URL')
 
     parser.addini(
         'rp_verify_ssl',
@@ -300,9 +382,12 @@ def pytest_addoption(parser):
         'rp_display_suite_test_file',
         default=True,
         type='bool',
-        help="In case of True, include the suite's relative file path in the launch name as a convention of "
-             "'<RELATIVE_FILE_PATH>::<SUITE_NAME>'. In case of False, set the launch name to be the suite name "
-             "only - this flag is relevant only when 'rp_hierarchy_module' flag is set to False")
+        help="In case of True, include the suite's relative"
+             " file path in the launch name as a convention of "
+             "'<RELATIVE_FILE_PATH>::<SUITE_NAME>'. "
+             "In case of False, set the launch name to be the suite name "
+             "only - this flag is relevant only when"
+             " 'rp_hierarchy_module' flag is set to False")
 
     parser.addini(
         'rp_issue_id_marks',

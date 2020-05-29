@@ -21,6 +21,8 @@ def mocked_item(mocked_session):
     """Mock Pytest item for testing."""
     test_item = mock.Mock()
     test_item.session = mocked_session
+    test_item.fspath = '/path/to/test'
+    test_item.name = 'test_item'
     return test_item
 
 
