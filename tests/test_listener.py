@@ -20,10 +20,10 @@ def test_pytest_runtest_protocol(mocked_item):
 
     next(rp_listener.pytest_runtest_protocol(mocked_item))
 
-    assert (rp_listener._add_issue_id_marks.call_count == 1,
-            '_add_issue_id_marks called more than 1 time')
-
+    expect(rp_listener._add_issue_id_marks.call_count == 1,
+           '_add_issue_id_marks called more than 1 time')
     assert_expectations()
+
 
 def test_add_issue_info(rp_listener, rp_service):
     """Test listener helper _add_issue_info method.
