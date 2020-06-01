@@ -13,6 +13,7 @@ class RPLogger(logging.getLoggerClass()):
     def __init__(self, name, level=0):
         """
         Initialize RPLogger instance.
+
         :param name:  logger name
         :param level: level of logs
         """
@@ -86,6 +87,7 @@ class RPLogHandler(logging.Handler):
                  endpoint=None):
         """
         Initialize RPLogHandler instance.
+
         :param py_test_service: RP Service instance
         :param level: level of logging
         :param filter_reportportal_client_logs:
