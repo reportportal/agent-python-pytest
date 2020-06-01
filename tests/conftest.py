@@ -29,12 +29,14 @@ def mocked_item(mocked_session, mocked_module):
     test_item.parent = mocked_module
     return test_item
 
+
 @fixture()
 def mocked_module(mocked_session):
     """Mock Pytest Module for testing."""
     mocked_module = mock.Mock()
     mocked_module.parent = mocked_session
     return mocked_module
+
 
 @fixture()
 def mocked_config():

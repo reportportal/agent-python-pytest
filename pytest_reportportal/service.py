@@ -298,13 +298,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self.parent_item_id = item_id
             self._hier_parts[part]["item_id"] = item_id
 
+        # Item type should be sent as "STEP" until we upgrade to RPv6.
+        # Details at:
+        # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
         start_rq = {
             'attributes': self._get_item_markers(test_item),
             'name': self._get_item_name(test_item),
             'description': self._get_item_description(test_item),
             'start_time': timestamp(),
-            # Item type should be sent as "STEP" until we upgrade to RPv6.
-            # Details at: https://github.com/reportportal/agent-Python-RobotFramework/issues/56
             'item_type': 'STEP',
             'parent_item_id': self.parent_item_id,
             'code_ref': '{0} - {1}'.format(test_item.fspath, test_item.name)

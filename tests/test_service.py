@@ -41,6 +41,7 @@ def test_get_item_parameters(mocked_item, rp_service):
 
     assert_expectations()
 
+
 @mock.patch('reportportal_client.service.ReportPortalService.start_test_item')
 def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
                          rp_service):
@@ -63,6 +64,7 @@ def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
         'norecursedirs': ['.*', 'build', 'dist', 'CVS', '_darcs', '{arch}',
                           '*.egg', 'venv']
     }
+
     def get_closest_marker(name):
         return {'test_marker': pytest.mark.test_marker}.get(name)
 
