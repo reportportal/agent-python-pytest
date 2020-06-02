@@ -25,13 +25,13 @@ class RPLogger(logging.getLoggerClass()):
         Low-level logging routine which creates a LogRecord and then calls.
 
         all the handlers of this logger to handle the record
-        :param level level of log
-        :param msg message in log body
-        :param args additional args
-        :param exc_info system exclusion info
-        :param extra extra info
-        :param stack_info stacktrace info
-        :param attachment attachment file
+        :param level:      level of log
+        :param msg:        message in log body
+        :param args:       additional args
+        :param exc_info:   system exclusion info
+        :param extra:      extra info
+        :param stack_info: stacktrace info
+        :param attachment: attachment file
         """
         sinfo = None
         if logging._srcfile:
@@ -83,19 +83,20 @@ class RPLogHandler(logging.Handler):
 
     def __init__(self, py_test_service,
                  level=logging.NOTSET,
-                 filter_reportportal_client_logs=False,
+                 filter_client_logs=False,
                  endpoint=None):
         """
         Initialize RPLogHandler instance.
 
-        :param py_test_service: RP Service instance
-        :param level: level of logging
-        :param filter_reportportal_client_logs:
-        :param endpoint: link to send reports
+        :param py_test_service:    RP Service instance
+        :param level:              level of logging
+        :param filter_client_logs: if True throw away logs emitted by a
+        ReportPortal client
+        :param endpoint:           link to send reports
         """
         super(RPLogHandler, self).__init__(level)
         self.py_test_service = py_test_service
-        self.filter_reportportal_client_logs = filter_reportportal_client_logs
+        self.filter_client_logs = filter_client_logs
         self.ignored_record_names = ('reportportal_client',
                                      'pytest_reportportal')
         self.endpoint = endpoint
@@ -104,10 +105,11 @@ class RPLogHandler(logging.Handler):
         """
         Filter the reportportal_client messages.
 
-        :param record:
-        :return: bool
+        :param record: a log record to filter
+        :return: bool - False if it is an agent or client log and
+        'filter_client_logs' attribute is True, other way always True
         """
-        if self.filter_reportportal_client_logs is False:
+        if not self.filter_client_logs:
             return True
         if record.name.startswith(self.ignored_record_names):
             return False
@@ -122,8 +124,8 @@ class RPLogHandler(logging.Handler):
         """
         Emit function.
 
-        :param record: Record of requests
-        :return: log
+        :param record: a log Record of requests
+        :return: log ID
         """
         msg = ''
 

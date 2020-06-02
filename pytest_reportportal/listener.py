@@ -1,12 +1,12 @@
 """RPReportListener implements Pytest hooks required for item reporting."""
 
-import logging
 import pytest
-
+import logging
 try:
     from html import escape  # python3
 except ImportError:
     from cgi import escape  # python2
+
 
 try:
     # This try/except can go away once we support pytest >= 3.3
@@ -40,7 +40,7 @@ class RPReportListener(object):
             self._log_handler = \
                 RPLogHandler(py_test_service=py_test_service,
                              level=log_level,
-                             filter_reportportal_client_logs=True,
+                             filter_client_logs=True,
                              endpoint=endpoint)
 
     @pytest.hookimpl(hookwrapper=True)
@@ -51,10 +51,7 @@ class RPReportListener(object):
         :param item:  Pytest.Item
         :return: generator object
         """
-        update_supported = self.PyTestService.is_item_update_supported()
-        if not update_supported:
-            self._add_issue_id_marks(item)
-
+        self._add_issue_id_marks(item)
         item_id = self.PyTestService.start_pytest_item(item)
         if PYTEST_HAS_LOGGING_PLUGIN:
             # This check can go away once we support pytest >= 3.3

@@ -22,6 +22,7 @@ try:
 except pkg_resources.VersionConflict:
     from pytest_reportportal.errors import PytestWarning
 
+
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
 
@@ -42,7 +43,7 @@ def trim_docstring(docstring):
     """
     Convert docstring.
 
-    :param docstring input docstring
+    :param docstring: input docstring
     :return: docstring
     """
     if not docstring:
@@ -78,8 +79,8 @@ class Singleton(type):
     def __call__(cls, *args, **kwargs):
         """Redefine call method.
 
-        :param args  list of additional params
-        :param kwargs dict of additional params
+        :param args:   list of additional params
+        :param kwargs: dict of additional params
         """
         if cls not in cls._instances:
             cls._instances[cls] = super(Singleton, cls).__call__(
@@ -165,10 +166,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         Launch test items.
 
         :param launch_name: name of the launch
-        :param mode: mode
+        :param mode:        mode
         :param description: description of launch test
-        :param kwargs: additional params
-        :return: item_id
+        :param kwargs:      additional params
+        :return: item ID
         """
         self._stop_if_necessary()
         if self.rp is None:
@@ -271,7 +272,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         Start pytest_item.
 
         :param test_item: pytest.Item
-        :return: item_id
+        :return: item ID
         """
         self._stop_if_necessary()
         if self.rp is None:
@@ -318,40 +319,15 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.log_item_id = item_id
         return item_id
 
-    def is_item_update_supported(self):
-        """Check item update API call client support."""
-        return hasattr(self.rp, "update_test_item")
-
-    def update_pytest_item(self, test_item=None):
-        """Make item update API call.
-
-        :param test_item: pytest test item
-        :return None
-        """
-        self._stop_if_necessary()
-        if self.rp is None:
-            return
-
-        # if update_test_item is not supported in client
-        if not self.is_item_update_supported():
-            log.debug('ReportPortal - Update TestItem: method is not defined')
-            return
-
-        start_rq = {
-            'description': self._get_item_description(test_item),
-            'tags': self._get_item_tags(test_item),
-        }
-        log.debug('ReportPortal - Update TestItem: request_body=%s', start_rq)
-        self.rp.update_test_item(**start_rq)
-
     def finish_pytest_item(self, test_item, item_id, status, issue=None):
         """
         Finish pytest_item.
 
         :param test_item: test_item
-        :param item_id:  Pytest.Item
-        :param status: ''
-        :param issue: ''
+        :param item_id:   Pytest.Item
+        :param status:    an item finish status (PASSED, FAILED, STOPPED,
+        SKIPPED, RESETED, CANCELLED, INFO, WARN)
+        :param issue:     an external system issue reference
         :return: None
         """
         self._stop_if_necessary()
@@ -389,7 +365,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         """
         Finish tests launch.
 
-        :param status: ''
+        :param status: an launch status (PASSED, FAILED, STOPPED, SKIPPED,
+        INTERRUPTED, CANCELLED, INFO, WARN)
         :param kwargs: additional params
         :return: None
         """
@@ -409,8 +386,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         """
         Send a log message to the Report Portal.
 
-        :param message: message in log body
-        :param loglevel: 'INFO','ERROR'
+        :param message:    message in log body
+        :param loglevel:   a level of a log entry (ERROR, WARN, INFO, DEBUG,
+        TRACE, FATAL, UNKNOWN)
         :param attachment: attachment file
         :return: None
         """
@@ -453,13 +431,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         """
         Add item to hierarchy of parents located in directory.
 
-        :param item: Pytest.Item
-        :param hier_flag: flag
-        :param dirs_level: int value of level
+        :param item:         Pytest.Item
+        :param hier_flag:    flag
+        :param dirs_level:   int value of level
         :param report_parts: ''
-        :param dirs_parts: ''
-        :param rp_name:  report name
-        :return: rp_name
+        :param dirs_parts:   ''
+        :param rp_name:      report name
+        :return: str rp_name
         """
         parts_dirs = PyTestServiceClass._get_item_dirs(item)
         dir_path = item.fspath.new(dirname="", basename="", drive="")
@@ -497,11 +475,11 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         """
         Add item to hierarchy of parents with params.
 
-        :param item: pytest.Item
+        :param item:         pytest.Item
         :param report_parts: Parent reports
-        :param tests_parts: test item parts
-        :param rp_name: name of report
-        :return: rp_name
+        :param tests_parts:  test item parts
+        :param rp_name:      name of report
+        :return: str rp_name
         """
         for mark in item.own_markers:
             if mark.name == 'parametrize':
@@ -539,15 +517,15 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         """
         Add item to hierarchy of parents.
 
-        :param item_parts: Parent_items
-        :param item: pytest.Item
-        :param item_type: (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
+        :param item_parts:  Parent_items
+        :param item:        pytest.Item
+        :param item_type:   (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
          BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
         AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST)
-        :param hier_flag: bool state
+        :param hier_flag:    bool state
         :param report_parts: list of parent reports
-        :param rp_name: report name
-        :return: rp_name
+        :param rp_name:      report name
+        :return: str rp_name
         """
         for part in item_parts:
 
