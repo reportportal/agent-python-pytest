@@ -1,4 +1,4 @@
-"""This modules includes unit tests for the plugin."""
+"""This modules includes unit tests for the listener."""
 
 from six.moves import mock
 

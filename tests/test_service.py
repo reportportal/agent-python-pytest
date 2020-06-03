@@ -48,10 +48,10 @@ def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
     """ Test that a test code reference constructed and bypassed to a client
 
     :param mocked_item_start: mocked start_test_item method reference
-    :param mocked_item: a mocked test item
-    :param mocked_session: a mocked test session
-    :param rp_service: an instance of
-    reportportal_client.service.ReportPortalService
+    :param mocked_item:       a mocked test item
+    :param mocked_session:    a mocked test session
+    :param rp_service:        an instance of
+                              reportportal_client.service.ReportPortalService
     """
     ini = {
         'rp_hierarchy_parametrize': False,
