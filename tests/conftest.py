@@ -52,7 +52,7 @@ def mocked_config():
 @fixture()
 def mocked_session(mocked_config):
     """Mock Pytest session for testing."""
-    mocked_session = mock.Mock(Session)
+    mocked_session = mock.create_autospec(Session)
     mocked_session.config = mocked_config
     return mocked_session
 
