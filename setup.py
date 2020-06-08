@@ -1,9 +1,17 @@
+"""Config for setup package pytest agent."""
+
 import os
 
 from setuptools import setup
 
 
 def read_file(fname):
+    """
+    Read file.
+
+    :param fname: string of filename
+    :return: File descriptor
+    """
     with open(os.path.join(os.path.dirname(__file__), fname)) as f:
         return f.read()
 
@@ -12,7 +20,7 @@ version = '5.0.4'
 
 
 requirements = [
-    'reportportal-client>=5.0.2',
+    'reportportal-client>=5.0.3',
     'pytest>=3.0.7',
     'six>=1.10.0',
     'dill>=0.2.7.1',

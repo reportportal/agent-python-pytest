@@ -8,4 +8,3 @@ class PytestWarning(UserWarning):
     up to 3.8.0. Get rid of this code once we drop support for Pytest versions
     below 3.8.0.
     """
-    pass

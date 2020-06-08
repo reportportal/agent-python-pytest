@@ -1,3 +1,5 @@
+"""RPLogger class for low-level logging in tests."""
+
 import sys
 import logging
 from contextlib import contextmanager
@@ -6,14 +8,30 @@ from six import PY2
 
 
 class RPLogger(logging.getLoggerClass()):
+    """RPLogger class for logging tests."""
+
     def __init__(self, name, level=0):
+        """
+        Initialize RPLogger instance.
+
+        :param name:  logger name
+        :param level: level of logs
+        """
         super(RPLogger, self).__init__(name, level=level)
 
     def _log(self, level, msg, args,
              exc_info=None, extra=None, stack_info=False, attachment=None):
         """
-        Low-level logging routine which creates a LogRecord and then calls
-        all the handlers of this logger to handle the record.
+        Low-level logging routine which creates a LogRecord and then calls.
+
+        all the handlers of this logger to handle the record
+        :param level:      level of log
+        :param msg:        message in log body
+        :param args:       additional args
+        :param exc_info:   system exclusion info
+        :param extra:      extra info
+        :param stack_info: stacktrace info
+        :param attachment: attachment file
         """
         sinfo = None
         if logging._srcfile:
@@ -50,6 +68,8 @@ class RPLogger(logging.getLoggerClass()):
 
 
 class RPLogHandler(logging.Handler):
+    """RPLogHandler class for logging tests."""
+
     # Map loglevel codes from `logging` module to ReportPortal text names:
     _loglevel_map = {
         logging.NOTSET: 'TRACE',
@@ -63,17 +83,33 @@ class RPLogHandler(logging.Handler):
 
     def __init__(self, py_test_service,
                  level=logging.NOTSET,
-                 filter_reportportal_client_logs=False,
+                 filter_client_logs=False,
                  endpoint=None):
+        """
+        Initialize RPLogHandler instance.
+
+        :param py_test_service:    RP Service instance
+        :param level:              level of logging
+        :param filter_client_logs: if True throw away logs emitted by a
+        ReportPortal client
+        :param endpoint:           link to send reports
+        """
         super(RPLogHandler, self).__init__(level)
         self.py_test_service = py_test_service
-        self.filter_reportportal_client_logs = filter_reportportal_client_logs
+        self.filter_client_logs = filter_client_logs
         self.ignored_record_names = ('reportportal_client',
                                      'pytest_reportportal')
         self.endpoint = endpoint
 
     def filter(self, record):
-        if self.filter_reportportal_client_logs is False:
+        """
+        Filter the reportportal_client messages.
+
+        :param record: a log record to filter
+        :return: bool - False if it is an agent or client log and
+        'filter_client_logs' attribute is True, other way always True
+        """
+        if not self.filter_client_logs:
             return True
         if record.name.startswith(self.ignored_record_names):
             return False
@@ -85,6 +121,12 @@ class RPLogHandler(logging.Handler):
         return True
 
     def emit(self, record):
+        """
+        Emit function.
+
+        :param record: a log Record of requests
+        :return: log ID
+        """
         msg = ''
 
         try:
@@ -105,6 +147,12 @@ class RPLogHandler(logging.Handler):
 
 @contextmanager
 def patching_logger_class():
+    """
+    Add patch for RPLogger class.
+
+    Updated attachment in logs
+    :return: wrapped function
+    """
     logger_class = logging.getLoggerClass()
     original_log = logger_class._log
     original_makeRecord = logger_class.makeRecord
