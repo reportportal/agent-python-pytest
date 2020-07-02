@@ -79,7 +79,7 @@ def pytest_sessionstart(session):
         )
 
         attributes = [{'value': tag} if len(tag.split(":")) == 1
-                      else {'key': tag.split(":")[0], 
+                      else {'key': tag.split(":")[0],
                             'value': tag.split(":")[1]} for tag in
                       session.config.getini('rp_launch_attributes')]
         session.config.py_test_service.start_launch(
