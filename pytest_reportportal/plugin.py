@@ -78,8 +78,9 @@ def pytest_sessionstart(session):
             retries=int(session.config.getini('retries')),
         )
 
-        attributes = [{'value': tag} if len(tag.split(":")) == 1 else {'key': tag.split(":")[0],
-                                                                       'value': tag.split(":")[1]} for tag in
+        attributes = [{'value': tag} if len(tag.split(":")) == 1
+                      else {'key': tag.split(":")[0], 
+                            'value': tag.split(":")[1]} for tag in
                       session.config.getini('rp_launch_attributes')]
         session.config.py_test_service.start_launch(
             session.config.option.rp_launch,
