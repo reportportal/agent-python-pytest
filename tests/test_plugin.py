@@ -7,8 +7,11 @@ from delayed_assert import expect, assert_expectations
 import pytest
 from requests.exceptions import RequestException
 
-from pytest_reportportal.listener import RPReportListener
-from pytest_reportportal.plugin import pytest_configure, pytest_sessionstart
+from pytest_reportportal.plugin import (
+    get_launch_attributes,
+    pytest_configure,
+    pytest_sessionstart
+)
 
 
 @mock.patch('pytest_reportportal.plugin.requests.get')
@@ -71,3 +74,10 @@ def test_uuid_env_var_override(mocked_session):
     pytest_sessionstart(mocked_session)
     args, kwargs = mocked_session.config.py_test_service.init_service.call_args
     assert kwargs.get('uuid') == 'foobar'
+
+
+def test_get_launch_attributes():
+    """Test get_launch_attributes functionality."""
+    expected_out = [{'value': 'Tag'}, {'key': 'Key', 'value': 'Value'}]
+    out = get_launch_attributes(['Tag', 'Key:Value', ''])
+    assert expected_out == out

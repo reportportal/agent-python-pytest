@@ -40,6 +40,29 @@ def is_master(config):
     return not hasattr(config, 'slaveinput')
 
 
+def get_launch_attributes(rp_launch_attributes):
+    """Generate list of launch attributes for RP.
+
+    :param list rp_launch_attributes: rp_launch_attributes option value
+    :return list:                     List of dictionaries to be passed to the
+                                      RP Python client
+    """
+    launch_attrs = []
+    for rp_attr in rp_launch_attributes:
+        try:
+            key, value = rp_attr.split(':')
+            attr_dict = {'key': key, 'value': value}
+        except ValueError:
+            attr_dict = {'value': rp_attr}
+
+        if all(value for value in attr_dict.values()):
+            launch_attrs.append(attr_dict)
+            continue
+        log.debug('Failed to process "{0}" attribute, attribute value'
+                  ' should not be empty.'.format(rp_attr))
+    return launch_attrs
+
+
 @pytest.mark.optionalhook
 def pytest_configure_node(node):
     """
@@ -78,8 +101,8 @@ def pytest_sessionstart(session):
             retries=int(session.config.getini('retries')),
         )
 
-        attributes = [{'value': tag} for tag in
-                      session.config.getini('rp_launch_attributes')]
+        attributes = get_launch_attributes(
+            session.config.getini('rp_launch_attributes'))
         session.config.py_test_service.start_launch(
             session.config.option.rp_launch,
             attributes=attributes,
