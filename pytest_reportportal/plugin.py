@@ -11,6 +11,7 @@ import pytest
 import requests
 import time
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
+from reportportal_client.service import uri_join
 from .service import PyTestServiceClass
 from .listener import RPReportListener
 
@@ -78,6 +79,21 @@ def pytest_configure_node(node):
                                                       py_test_service)
 
 
+def is_portal_on_maintenance(session):
+    """
+    Checks if report portal on maintenance
+
+    :param session: Session
+    :return: True if response text have word Maintenance, else False
+    """
+    base_url_v1 = uri_join(session.config.getini('rp_endpoint'), "api/v1", session.config.getini('rp_project'))
+    url = uri_join(base_url_v1, "settings")
+    headers = {"Authorization": "bearer {0}".format(session.config.getini('rp_uuid'))}
+    r = requests.get(url=url, json={}, verify=True, headers=headers)
+
+    return True if "Maintenance" in r.text else False
+
+
 def pytest_sessionstart(session):
     """
     Start test session.
@@ -87,6 +103,10 @@ def pytest_sessionstart(session):
     """
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
+        return
+
+    if is_portal_on_maintenance(session):
+        log.debug("Report portal on maintenance, reporting is disabled")
         return
 
     if is_master(session.config):

@@ -10,7 +10,8 @@ from requests.exceptions import RequestException
 from pytest_reportportal.plugin import (
     get_launch_attributes,
     pytest_configure,
-    pytest_sessionstart
+    pytest_sessionstart,
+    is_portal_on_maintenance
 )
 
 
@@ -81,3 +82,25 @@ def test_get_launch_attributes():
     expected_out = [{'value': 'Tag'}, {'key': 'Key', 'value': 'Value'}]
     out = get_launch_attributes(['Tag', 'Key:Value', ''])
     assert expected_out == out
+
+
+@mock.patch('pytest_reportportal.plugin.requests.get')
+def test_portal_on_maintenance(mocked_get, mocked_session):
+    """Test if portal on maintenance"""
+    mock_response = mock.Mock()
+    mock_response.text = "<title>Report Portal - Maintenance</title>"
+    mocked_get.return_value = mock_response
+    mocked_session.config.getini = mock.Mock()
+
+    assert is_portal_on_maintenance(mocked_session)
+
+
+@mock.patch('pytest_reportportal.plugin.requests.get')
+def test_portal_not_on_maintenance(mocked_get, mocked_session):
+    """Test if portal not on maintenance"""
+    mock_response = mock.Mock()
+    mock_response.text = "{'project':2,'subTypes':'foobar'}"
+    mocked_get.return_value = mock_response
+    mocked_session.config.getini = mock.Mock()
+
+    assert not is_portal_on_maintenance(mocked_session)
