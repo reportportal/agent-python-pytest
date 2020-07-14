@@ -81,14 +81,16 @@ def pytest_configure_node(node):
 
 def is_portal_on_maintenance(session):
     """
-    Checks if report portal on maintenance
+    Check if report portal on maintenance.
 
     :param session: Session
     :return: True if response text have word Maintenance, else False
     """
-    base_url_v1 = uri_join(session.config.getini('rp_endpoint'), "api/v1", session.config.getini('rp_project'))
+    base_url_v1 = uri_join(session.config.getini('rp_endpoint'), "api/v1",
+                           session.config.getini('rp_project'))
     url = uri_join(base_url_v1, "settings")
-    headers = {"Authorization": "bearer {0}".format(session.config.getini('rp_uuid'))}
+    headers = {"Authorization": "bearer {0}".format(
+        session.config.getini('rp_uuid'))}
     r = requests.get(url=url, json={}, verify=True, headers=headers)
 
     return True if "Maintenance" in r.text else False
@@ -215,7 +217,7 @@ def pytest_configure(config):
     if not config.option.rp_launch:
         config.option.rp_launch = config.getini('rp_launch')
     if not config.option.rp_launch_description:
-        config.option.rp_launch_description = config.\
+        config.option.rp_launch_description = config. \
             getini('rp_launch_description')
 
     if is_master(config):

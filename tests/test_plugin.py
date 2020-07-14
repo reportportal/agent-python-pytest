@@ -65,7 +65,8 @@ def test_logger_handle_no_attachment(mock_handler, logger, log_level):
 @mock.patch.dict(os.environ, {'RP_UUID': 'foobar'})
 def test_uuid_env_var_override(mocked_session):
     """
-    Test setting RP_UUID env variable overrides the rp_uuid config value
+    Test setting RP_UUID env variable overrides the rp_uuid config value.
+
     :param mocked_session: pytest fixture
     """
     mocked_session.config.py_test_service = mock.Mock()
@@ -86,7 +87,7 @@ def test_get_launch_attributes():
 
 @mock.patch('pytest_reportportal.plugin.requests.get')
 def test_portal_on_maintenance(mocked_get, mocked_session):
-    """Test if portal on maintenance"""
+    """Test if portal on maintenance."""
     mock_response = mock.Mock()
     mock_response.text = "<title>Report Portal - Maintenance</title>"
     mocked_get.return_value = mock_response
@@ -97,7 +98,7 @@ def test_portal_on_maintenance(mocked_get, mocked_session):
 
 @mock.patch('pytest_reportportal.plugin.requests.get')
 def test_portal_not_on_maintenance(mocked_get, mocked_session):
-    """Test if portal not on maintenance"""
+    """Test if portal not on maintenance."""
     mock_response = mock.Mock()
     mock_response.text = "{'project':2,'subTypes':'foobar'}"
     mocked_get.return_value = mock_response
