@@ -63,7 +63,9 @@ def test_logger_handle_no_attachment(mock_handler, logger, log_level):
 
 
 @mock.patch.dict(os.environ, {'RP_UUID': 'foobar'})
-def test_uuid_env_var_override(mocked_session):
+@mock.patch('pytest_reportportal.plugin.is_portal_on_maintenance',
+            return_value=False)
+def test_uuid_env_var_override(mocked_maintenance_check, mocked_session):
     """
     Test setting RP_UUID env variable overrides the rp_uuid config value.
 
