@@ -5,7 +5,6 @@ from six.moves import mock
 from delayed_assert import expect, assert_expectations
 import pytest
 from pytest_reportportal.service import PyTestServiceClass
-from _pytest.python import Module
 
 
 def test_item_attributes(mocked_item, rp_service):
