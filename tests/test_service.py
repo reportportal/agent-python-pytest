@@ -5,6 +5,7 @@ from six.moves import mock
 from delayed_assert import expect, assert_expectations
 import pytest
 from pytest_reportportal.service import PyTestServiceClass
+from _pytest.python import Module
 
 
 def test_item_attributes(mocked_item, rp_service):
@@ -93,6 +94,11 @@ def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
 
 @pytest.mark.parametrize('os_type', ('windows', 'unix'))
 def test_adding_item_to_hierarchy(mocked_item, os_type):
+    """ Test adding path of module to hierarchy on both OS
+
+    :param mocked_item:       a mocked test item
+    :param os_type:           type of operation system
+    """
     parent_path = mocked_item.parent.fspath
     if os_type == 'windows':
         parent_path = parent_path.new(dirname='C:/path/to/item')
