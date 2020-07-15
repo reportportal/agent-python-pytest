@@ -4,8 +4,6 @@ from six.moves import mock
 
 from delayed_assert import expect, assert_expectations
 import pytest
-from pytest_reportportal.service import PyTestServiceClass
-from _pytest.python import Module
 
 
 def test_item_attributes(mocked_item, rp_service):
@@ -58,8 +56,8 @@ def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
     ini = {
         'rp_hierarchy_parametrize': False,
         'rp_hierarchy_dirs': False,
-        'rp_hierarchy_module': True,
-        'rp_hierarchy_class': True,
+        'rp_hierarchy_module': False,
+        'rp_hierarchy_class': False,
         'rp_display_suite_test_file': True,
         'rp_hierarchy_dirs_level': 0,
         'rp_tests_attributes': [],
@@ -86,25 +84,7 @@ def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
     rp_service.collect_tests(mocked_session)
     rp_service.start_pytest_item(mocked_item)
 
-    expect(mocked_item_start.call_count == 2, 'Two HTTP POST sent')
+    expect(mocked_item_start.call_count == 1, 'One HTTP POST sent')
     code_ref = mocked_item_start.call_args[1]['code_ref']
     expect(code_ref == '/path/to/test - test_item')
-    assert_expectations()
-
-
-@pytest.mark.parametrize('os_type', ('windows', 'unix'))
-def test_adding_item_to_hierarchy(mocked_item, os_type):
-    parent_path = mocked_item.parent.fspath
-    if os_type == 'windows':
-        parent_path = parent_path.new(dirname='C:/path/to/item')
-    else:
-        parent_path = parent_path.new(dirname='/path/to/item')
-    rp_name = PyTestServiceClass._add_item_hier_parts_other(item_parts=
-                                                            PyTestServiceClass._get_item_parts(mocked_item),
-                                                            item=mocked_item,
-                                                            item_type=Module,
-                                                            hier_flag=False,
-                                                            report_parts=[],
-                                                            rp_name="")
-    expect(rp_name == 'module.py')
     assert_expectations()

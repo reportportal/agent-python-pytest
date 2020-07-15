@@ -5,6 +5,7 @@ from six.moves import mock
 import py
 from _pytest.config import Config
 from _pytest.main import Session
+from _pytest.python import Module
 from pytest import fixture
 from pluggy._tracing import TagTracer
 
@@ -33,8 +34,9 @@ def mocked_item(mocked_session, mocked_module):
 @fixture()
 def mocked_module(mocked_session):
     """Mock Pytest Module for testing."""
-    mocked_module = mock.Mock()
+    mocked_module = mock.create_autospec(Module)
     mocked_module.parent = mocked_session
+    mocked_module.fspath = py.path.local('/path/to/module.py')
     return mocked_module
 
 
