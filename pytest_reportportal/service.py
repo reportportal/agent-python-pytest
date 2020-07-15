@@ -637,7 +637,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             and k not in self.ignored_attributes
         ]
 
-        raw_attributes.extend([tag for tag in item.session.config.getini('rp_tests_attributes')])
+        raw_attributes.extend([
+            tag for tag in item.session.config.getini('rp_tests_attributes')
+        ])
 
         attributes = []
         for attr in raw_attributes:

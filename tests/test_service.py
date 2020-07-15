@@ -17,7 +17,8 @@ def test_item_attributes(mocked_item, rp_service):
     def get_closest_marker(name):
         return {'test_marker': pytest.mark.test_marker,
                 'test_decorator_key':
-                    pytest.mark.test_decorator_key('test_decorator_value')}.get(name)
+                    pytest.mark.test_decorator_key('test_decorator_value')
+                }.get(name)
 
     class NodeKeywords(object):
         _keywords = ['pytestmark',
