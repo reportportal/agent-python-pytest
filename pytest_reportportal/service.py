@@ -630,21 +630,30 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             get_marker = getattr(item, "get_closest_marker")
         except AttributeError:
             get_marker = getattr(item, "get_marker")
-        raw_attributes = [get_marker_value(item, k)
-                      for k in item.keywords if get_marker(k) is not None
-                      and k not in self.ignored_attributes]
+        raw_attributes = [
+            get_marker_value(item, k)
+            for k in item.keywords
+            if get_marker(k) is not None
+            and k not in self.ignored_attributes
+        ]
 
         raw_attributes.extend([tag for tag in item.session.config.getini('rp_tests_attributes')])
 
         attributes = []
         for attr in raw_attributes:
-            try:
-                key, value = attr.split(':')
-                attr_dict = {'key': key, 'value': value}
-            except ValueError:
-                attr_dict = {'value': attr}
+            attr_dict = self._get_attr_dict(attr)
             attributes.extend([attr_dict])
         return attributes
+
+    @staticmethod
+    def _get_attr_dict(attr):
+        try:
+            key, value = attr.split(':')
+            attr_dict = {'key': key, 'value': value}
+        except ValueError:
+            attr_dict = {'value': attr}
+
+        return attr_dict
 
     def _get_parameters(self, item):
         """

@@ -49,12 +49,7 @@ def get_launch_attributes(rp_launch_attributes):
     """
     launch_attrs = []
     for rp_attr in rp_launch_attributes:
-        try:
-            key, value = rp_attr.split(':')
-            attr_dict = {'key': key, 'value': value}
-        except ValueError:
-            attr_dict = {'value': rp_attr}
-
+        attr_dict = PyTestServiceClass._get_attr_dict(rp_attr)
         if all(value for value in attr_dict.values()):
             launch_attrs.append(attr_dict)
             continue
