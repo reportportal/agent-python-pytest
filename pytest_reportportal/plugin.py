@@ -11,7 +11,7 @@ import pytest
 import requests
 import time
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
-from reportportal_client.service import uri_join
+from reportportal_client.errors import ResponseError
 from .service import PyTestServiceClass
 from .listener import RPReportListener
 
@@ -79,23 +79,6 @@ def pytest_configure_node(node):
                                                       py_test_service)
 
 
-def is_portal_on_maintenance(session):
-    """
-    Check if report portal on maintenance.
-
-    :param session: Session
-    :return: True if response text have word Maintenance, else False
-    """
-    base_url_v1 = uri_join(session.config.getini('rp_endpoint'), "api/v1",
-                           session.config.getini('rp_project'))
-    url = uri_join(base_url_v1, "settings")
-    headers = {"Authorization": "bearer {0}".format(
-        session.config.getini('rp_uuid'))}
-    r = requests.get(url=url, json={}, verify=True, headers=headers)
-
-    return True if "Maintenance" in r.text else False
-
-
 def pytest_sessionstart(session):
     """
     Start test session.
@@ -107,21 +90,29 @@ def pytest_sessionstart(session):
         # Stop now if the plugin is not properly configured
         return
 
-    if is_portal_on_maintenance(session):
-        log.debug("Report portal on maintenance, reporting is disabled")
-        return
-
     if is_master(session.config):
-        session.config.py_test_service.init_service(
-            project=session.config.getini('rp_project'),
-            endpoint=session.config.getini('rp_endpoint'),
-            uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
-            log_batch_size=int(session.config.getini('rp_log_batch_size')),
-            ignore_errors=bool(session.config.getini('rp_ignore_errors')),
-            ignored_attributes=session.config.getini('rp_ignore_attributes'),
-            verify_ssl=session.config.getini('rp_verify_ssl'),
-            retries=int(session.config.getini('retries')),
-        )
+        try:
+            session.config.py_test_service.init_service(
+                project=session.config.getini('rp_project'),
+                endpoint=session.config.getini('rp_endpoint'),
+                uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
+                log_batch_size=int(session.config.getini('rp_log_batch_size')),
+                ignore_errors=bool(session.config.getini('rp_ignore_errors')),
+                ignored_attributes=session.config.getini(
+                    'rp_ignore_attributes'),
+                verify_ssl=session.config.getini('rp_verify_ssl'),
+                retries=int(session.config.getini('retries')),
+            )
+        except ResponseError as response_error:
+            msg = str(response_error)
+            if "maintenance" in msg.lower():
+                log.debug("Report portal on maintenance")
+            else:
+                log.debug(msg)
+            log.debug("Reporting is disabled")
+
+            session.config.py_test_service.rp = None
+            return
 
         attributes = get_launch_attributes(
             session.config.getini('rp_launch_attributes'))
@@ -217,7 +208,7 @@ def pytest_configure(config):
     if not config.option.rp_launch:
         config.option.rp_launch = config.getini('rp_launch')
     if not config.option.rp_launch_description:
-        config.option.rp_launch_description = config. \
+        config.option.rp_launch_description = config.\
             getini('rp_launch_description')
 
     if is_master(config):

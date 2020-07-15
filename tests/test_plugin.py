@@ -7,11 +7,11 @@ from delayed_assert import expect, assert_expectations
 import pytest
 from requests.exceptions import RequestException
 
+from reportportal_client.errors import ResponseError
 from pytest_reportportal.plugin import (
     get_launch_attributes,
     pytest_configure,
-    pytest_sessionstart,
-    is_portal_on_maintenance
+    pytest_sessionstart
 )
 
 
@@ -63,9 +63,7 @@ def test_logger_handle_no_attachment(mock_handler, logger, log_level):
 
 
 @mock.patch.dict(os.environ, {'RP_UUID': 'foobar'})
-@mock.patch('pytest_reportportal.plugin.is_portal_on_maintenance',
-            return_value=False)
-def test_uuid_env_var_override(mocked_maintenance_check, mocked_session):
+def test_uuid_env_var_override(mocked_session):
     """
     Test setting RP_UUID env variable overrides the rp_uuid config value.
 
@@ -87,23 +85,16 @@ def test_get_launch_attributes():
     assert expected_out == out
 
 
-@mock.patch('pytest_reportportal.plugin.requests.get')
-def test_portal_on_maintenance(mocked_get, mocked_session):
-    """Test if portal on maintenance."""
-    mock_response = mock.Mock()
-    mock_response.text = "<title>Report Portal - Maintenance</title>"
-    mocked_get.return_value = mock_response
-    mocked_session.config.getini = mock.Mock()
+def test_portal_on_maintenance(mocked_session):
+    """
+    Test if portal on maintenance.
 
-    assert is_portal_on_maintenance(mocked_session)
+    :param mocked_session: pytest fixture
+    """
+    mocked_session.config.py_test_service = mock.Mock()
+    mocked_session.config.py_test_service.init_service.side_effect = \
+        ResponseError("<title>Report Portal - Maintenance</title>")
 
+    pytest_sessionstart(mocked_session)
 
-@mock.patch('pytest_reportportal.plugin.requests.get')
-def test_portal_not_on_maintenance(mocked_get, mocked_session):
-    """Test if portal not on maintenance."""
-    mock_response = mock.Mock()
-    mock_response.text = "{'project':2,'subTypes':'foobar'}"
-    mocked_get.return_value = mock_response
-    mocked_session.config.getini = mock.Mock()
-
-    assert not is_portal_on_maintenance(mocked_session)
+    assert mocked_session.config.py_test_service.rp is None
