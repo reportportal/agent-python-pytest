@@ -104,13 +104,9 @@ def pytest_sessionstart(session):
                 retries=int(session.config.getini('retries')),
             )
         except ResponseError as response_error:
-            msg = str(response_error)
-            if "maintenance" in msg.lower():
-                log.debug("Report portal on maintenance")
-            else:
-                log.debug(msg)
-            log.debug("Reporting is disabled")
-
+            log.warning('Failed to initialize reportportal-client service. '
+                        'Reporting is disabled.')
+            log.debug(str(response_error))
             session.config.py_test_service.rp = None
             return
 
