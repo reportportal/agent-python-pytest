@@ -536,7 +536,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                         item.fspath.new(dirname=rp_name,
                                         basename=part.fspath.basename,
                                         drive=""))
-                    stripped_module_path = module_path[3:] if module_path.startswith(':\\', 1) else module_path[1:]
+                    if module_path.startswith(':\\', 1):
+                        stripped_module_path = module_path[3:]
+                    else:
+                        stripped_module_path = module_path[1:]
                     rp_name = module_path if rp_name else stripped_module_path
                 elif item_type in (Class, Function, UnitTestCase,
                                    TestCaseFunction):

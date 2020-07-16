@@ -104,12 +104,12 @@ def test_adding_item_to_hierarchy(mocked_item, os_type):
         parent_path = parent_path.new(dirname='C:/path/to/item')
     else:
         parent_path = parent_path.new(dirname='/path/to/item')
-    rp_name = PyTestServiceClass._add_item_hier_parts_other(item_parts=
-                                                            PyTestServiceClass._get_item_parts(mocked_item),
-                                                            item=mocked_item,
-                                                            item_type=Module,
-                                                            hier_flag=False,
-                                                            report_parts=[],
-                                                            rp_name="")
+    rp_name = PyTestServiceClass._add_item_hier_parts_other(
+        item_parts=PyTestServiceClass._get_item_parts(mocked_item),
+        item=mocked_item,
+        item_type=Module,
+        hier_flag=False,
+        report_parts=[],
+        rp_name="")
     expect(rp_name == 'module.py')
     assert_expectations()
