@@ -92,7 +92,8 @@ def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
     assert_expectations()
 
 
-@pytest.mark.parametrize('path_to_module', ('C:/path/to/item', '/path/to/item'))
+@pytest.mark.parametrize('path_to_module',
+                         ('C:/path/to/item', '/path/to/item'))
 def test_adding_item_to_hierarchy(mocked_item_for_hier, path_to_module):
     """ Test adding path of module to hierarchy on both OS
 
