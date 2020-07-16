@@ -626,21 +626,26 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             return "{}:{}".format(keyword, marker.args[0]) \
                 if marker and marker.args else keyword
 
+        # Get launch and test attributes and converting them to key:value form
+        def get_raw_attr(get_marker):
+            raw_attr = [
+                get_marker_value(item, k)
+                for k in item.keywords
+                if get_marker(k) is not None
+                   and k not in self.ignored_attributes
+            ]
+
+            raw_attr.extend([
+                tag for tag in item.session.config.getini('rp_tests_attributes')
+            ])
+            return raw_attr
+
         try:
             get_marker = getattr(item, "get_closest_marker")
         except AttributeError:
             get_marker = getattr(item, "get_marker")
-        raw_attributes = [
-            get_marker_value(item, k)
-            for k in item.keywords
-            if get_marker(k) is not None
-            and k not in self.ignored_attributes
-        ]
 
-        raw_attributes.extend([
-            tag for tag in item.session.config.getini('rp_tests_attributes')
-        ])
-
+        raw_attributes = get_raw_attr(get_marker)
         attributes = []
         for attr in raw_attributes:
             attr_dict = self._get_attr_dict(attr)
