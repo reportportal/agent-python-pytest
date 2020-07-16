@@ -632,11 +632,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 get_marker_value(item, k)
                 for k in item.keywords
                 if get_marker(k) is not None
-                   and k not in self.ignored_attributes
+                and k not in self.ignored_attributes
             ]
 
             raw_attr.extend([
-                tag for tag in item.session.config.getini('rp_tests_attributes')
+                tag
+                for tag in item.session.config.getini('rp_tests_attributes')
             ])
             return raw_attr
 
