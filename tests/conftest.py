@@ -32,8 +32,26 @@ def mocked_item(mocked_session, mocked_module):
 
 
 @fixture()
+def mocked_item_for_hier(mocked_module_for_hier):
+    """Mock Pytest item for testing hierarchy"""
+    test_item = mock.Mock()
+    test_item.fspath = py.path.local('/path/to/test')
+    test_item.name = 'test_item'
+    test_item.parent = mocked_module_for_hier
+    return test_item
+
+
+@fixture()
 def mocked_module(mocked_session):
     """Mock Pytest Module for testing."""
+    mocked_module = mock.Mock()
+    mocked_module.parent = mocked_session
+    return mocked_module
+
+
+@fixture()
+def mocked_module_for_hier(mocked_session):
+    """Mock Pytest Module for testing hierarchy."""
     mocked_module = mock.create_autospec(Module)
     mocked_module.parent = mocked_session
     mocked_module.fspath = py.path.local('/path/to/module.py')
