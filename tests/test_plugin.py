@@ -7,6 +7,7 @@ from delayed_assert import expect, assert_expectations
 import pytest
 from requests.exceptions import RequestException
 
+from reportportal_client.errors import ResponseError
 from pytest_reportportal.plugin import (
     get_launch_attributes,
     pytest_configure,
@@ -64,7 +65,8 @@ def test_logger_handle_no_attachment(mock_handler, logger, log_level):
 @mock.patch.dict(os.environ, {'RP_UUID': 'foobar'})
 def test_uuid_env_var_override(mocked_session):
     """
-    Test setting RP_UUID env variable overrides the rp_uuid config value
+    Test setting RP_UUID env variable overrides the rp_uuid config value.
+
     :param mocked_session: pytest fixture
     """
     mocked_session.config.py_test_service = mock.Mock()
@@ -81,3 +83,18 @@ def test_get_launch_attributes():
     expected_out = [{'value': 'Tag'}, {'key': 'Key', 'value': 'Value'}]
     out = get_launch_attributes(['Tag', 'Key:Value', ''])
     assert expected_out == out
+
+
+def test_portal_on_maintenance(mocked_session):
+    """
+    Test if portal on maintenance.
+
+    :param mocked_session: pytest fixture
+    """
+    mocked_session.config.py_test_service = mock.Mock()
+    mocked_session.config.py_test_service.init_service.side_effect = \
+        ResponseError("<title>Report Portal - Maintenance</title>")
+
+    pytest_sessionstart(mocked_session)
+
+    assert mocked_session.config.py_test_service.rp is None

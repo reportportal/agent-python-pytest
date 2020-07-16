@@ -11,6 +11,7 @@ import pytest
 import requests
 import time
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
+from reportportal_client.errors import ResponseError
 from .service import PyTestServiceClass
 from .listener import RPReportListener
 
@@ -90,16 +91,24 @@ def pytest_sessionstart(session):
         return
 
     if is_master(session.config):
-        session.config.py_test_service.init_service(
-            project=session.config.getini('rp_project'),
-            endpoint=session.config.getini('rp_endpoint'),
-            uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
-            log_batch_size=int(session.config.getini('rp_log_batch_size')),
-            ignore_errors=bool(session.config.getini('rp_ignore_errors')),
-            ignored_attributes=session.config.getini('rp_ignore_attributes'),
-            verify_ssl=session.config.getini('rp_verify_ssl'),
-            retries=int(session.config.getini('retries')),
-        )
+        try:
+            session.config.py_test_service.init_service(
+                project=session.config.getini('rp_project'),
+                endpoint=session.config.getini('rp_endpoint'),
+                uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
+                log_batch_size=int(session.config.getini('rp_log_batch_size')),
+                ignore_errors=bool(session.config.getini('rp_ignore_errors')),
+                ignored_attributes=session.config.getini(
+                    'rp_ignore_attributes'),
+                verify_ssl=session.config.getini('rp_verify_ssl'),
+                retries=int(session.config.getini('retries')),
+            )
+        except ResponseError as response_error:
+            log.warning('Failed to initialize reportportal-client service. '
+                        'Reporting is disabled.')
+            log.debug(str(response_error))
+            session.config.py_test_service.rp = None
+            return
 
         attributes = get_launch_attributes(
             session.config.getini('rp_launch_attributes'))
