@@ -33,7 +33,7 @@ def mocked_item(mocked_session, mocked_module):
 
 @fixture()
 def mocked_item_for_hier(mocked_module_for_hier):
-    """Mock Pytest item for testing hierarchy"""
+    """Mock Pytest item for testing hierarchy."""
     test_item = mock.Mock()
     test_item.fspath = py.path.local('/path/to/test')
     test_item.name = 'test_item'
