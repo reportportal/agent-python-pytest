@@ -532,15 +532,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             if isinstance(part, item_type):
 
                 if item_type is Module:
-                    module_path = str(
-                        item.fspath.new(dirname=rp_name,
-                                        basename=part.fspath.basename,
-                                        drive=""))
-                    if module_path.startswith(':\\', 1):
-                        stripped_module_path = module_path[3:]
-                    else:
-                        stripped_module_path = module_path[1:]
-                    rp_name = module_path if rp_name else stripped_module_path
+                    rp_name = rp_name or part.fspath.basename
                 elif item_type in (Class, Function, UnitTestCase,
                                    TestCaseFunction):
                     rp_name += ("::" if rp_name else "") + part.name

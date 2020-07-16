@@ -92,18 +92,16 @@ def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
     assert_expectations()
 
 
-@pytest.mark.parametrize('os_type', ('windows', 'unix'))
-def test_adding_item_to_hierarchy(mocked_item, os_type):
+@pytest.mark.parametrize('path_to_module', ('C:/path/to/item', '/path/to/item'))
+def test_adding_item_to_hierarchy(mocked_item, path_to_module):
     """ Test adding path of module to hierarchy on both OS
 
     :param mocked_item:       a mocked test item
-    :param os_type:           type of operation system
+    :param path_to_module:    fake path to mocked module
     """
-    parent_path = mocked_item.parent.fspath
-    if os_type == 'windows':
-        parent_path = parent_path.new(dirname='C:/path/to/item')
-    else:
-        parent_path = parent_path.new(dirname='/path/to/item')
+    mocked_item.parent.fspath = mocked_item.parent.fspath.new(
+        dirname=path_to_module)
+
     rp_name = PyTestServiceClass._add_item_hier_parts_other(
         item_parts=PyTestServiceClass._get_item_parts(mocked_item),
         item=mocked_item,
@@ -111,5 +109,4 @@ def test_adding_item_to_hierarchy(mocked_item, os_type):
         hier_flag=False,
         report_parts=[],
         rp_name="")
-    expect(rp_name == 'module.py')
-    assert_expectations()
+    assert rp_name == 'module.py'
