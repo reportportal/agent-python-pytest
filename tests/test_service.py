@@ -12,13 +12,20 @@ def test_item_attributes(mocked_item, rp_service):
 
     def getini(option):
         if option == 'rp_tests_attributes':
-            return ['ini_marker']
+            return ['ini_marker', 'test_ini_key:test_ini_value']
 
     def get_closest_marker(name):
-        return {'test_marker': pytest.mark.test_marker}.get(name)
+        return {'test_marker': pytest.mark.test_marker,
+                'test_decorator_key':
+                    pytest.mark.test_decorator_key('test_decorator_value')
+                }.get(name)
 
     class NodeKeywords(object):
-        _keywords = ['pytestmark', 'ini_marker', 'test_marker']
+        _keywords = ['pytestmark',
+                     'ini_marker',
+                     'test_marker',
+                     'test_decorator_key',
+                     'test_ini_key']
 
         def __iter__(self):
             return iter(self._keywords)
@@ -27,7 +34,12 @@ def test_item_attributes(mocked_item, rp_service):
     mocked_item.keywords = NodeKeywords()
     mocked_item.get_closest_marker = get_closest_marker
     markers = rp_service._get_item_markers(mocked_item)
-    assert markers == [{'value': 'test_marker'}, {'value': 'ini_marker'}]
+    assert markers == [{'value': 'test_marker'},
+                       {'key': 'test_decorator_key',
+                        'value': 'test_decorator_value'},
+                       {'value': 'ini_marker'},
+                       {'key': 'test_ini_key',
+                        'value': 'test_ini_value'}]
 
 
 def test_get_item_parameters(mocked_item, rp_service):
@@ -46,7 +58,6 @@ def test_get_item_parameters(mocked_item, rp_service):
 def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
                          rp_service):
     """ Test that a test code reference constructed and bypassed to a client
-
     :param mocked_item_start: mocked start_test_item method reference
     :param mocked_item:       a mocked test item
     :param mocked_session:    a mocked test session

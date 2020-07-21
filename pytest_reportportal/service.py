@@ -31,6 +31,8 @@ from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
 from six.moves import queue
 
+from .helpers import get_attributes
+
 log = logging.getLogger(__name__)
 
 
@@ -626,16 +628,28 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             return "{}:{}".format(keyword, marker.args[0]) \
                 if marker and marker.args else keyword
 
+        # Get launch and test attributes and converting them to key:value form
+        def get_raw_attr(get_marker):
+            raw_attr = [
+                get_marker_value(item, k)
+                for k in item.keywords
+                if get_marker(k) is not None
+                and k not in self.ignored_attributes
+            ]
+
+            raw_attr.extend([
+                tag
+                for tag in item.session.config.getini('rp_tests_attributes')
+            ])
+            return raw_attr
+
         try:
             get_marker = getattr(item, "get_closest_marker")
         except AttributeError:
             get_marker = getattr(item, "get_marker")
-        attributes = [{"value": get_marker_value(item, k)}
-                      for k in item.keywords if get_marker(k) is not None
-                      and k not in self.ignored_attributes]
 
-        attributes.extend([{"value": tag} for tag in
-                           item.session.config.getini('rp_tests_attributes')])
+        raw_attributes = get_raw_attr(get_marker)
+        attributes = get_attributes(raw_attributes)
         return attributes
 
     def _get_parameters(self, item):

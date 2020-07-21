@@ -14,6 +14,7 @@ from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from reportportal_client.errors import ResponseError
 from .service import PyTestServiceClass
 from .listener import RPReportListener
+from .helpers import get_attributes
 
 try:
     # This try/except can go away once we support pytest >= 3.3
@@ -48,19 +49,7 @@ def get_launch_attributes(rp_launch_attributes):
     :return list:                     List of dictionaries to be passed to the
                                       RP Python client
     """
-    launch_attrs = []
-    for rp_attr in rp_launch_attributes:
-        try:
-            key, value = rp_attr.split(':')
-            attr_dict = {'key': key, 'value': value}
-        except ValueError:
-            attr_dict = {'value': rp_attr}
-
-        if all(value for value in attr_dict.values()):
-            launch_attrs.append(attr_dict)
-            continue
-        log.debug('Failed to process "{0}" attribute, attribute value'
-                  ' should not be empty.'.format(rp_attr))
+    launch_attrs = get_attributes(rp_launch_attributes)
     return launch_attrs
 
 
