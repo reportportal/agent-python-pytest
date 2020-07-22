@@ -57,7 +57,8 @@ def test_get_item_parameters(mocked_item, rp_service):
 @mock.patch('reportportal_client.service.ReportPortalService.start_test_item')
 def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
                          rp_service):
-    """ Test that a test code reference constructed and bypassed to a client
+    """ Test that a test code reference constructed and bypassed to a client.
+
     :param mocked_item_start: mocked start_test_item method reference
     :param mocked_item:       a mocked test item
     :param mocked_session:    a mocked test session
