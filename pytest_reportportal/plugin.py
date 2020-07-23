@@ -42,17 +42,6 @@ def is_master(config):
     return not hasattr(config, 'slaveinput')
 
 
-def get_launch_attributes(rp_launch_attributes):
-    """Generate list of launch attributes for RP.
-
-    :param list rp_launch_attributes: rp_launch_attributes option value
-    :return list:                     List of dictionaries to be passed to the
-                                      RP Python client
-    """
-    launch_attrs = get_attributes(rp_launch_attributes)
-    return launch_attrs
-
-
 @pytest.mark.optionalhook
 def pytest_configure_node(node):
     """
@@ -99,7 +88,7 @@ def pytest_sessionstart(session):
             session.config.py_test_service.rp = None
             return
 
-        attributes = get_launch_attributes(
+        attributes = get_attributes(
             session.config.getini('rp_launch_attributes'))
         session.config.py_test_service.start_launch(
             session.config.option.rp_launch,

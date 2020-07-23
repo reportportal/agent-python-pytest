@@ -637,8 +637,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      for k in item.keywords if get_marker(k) is not None
                      and k not in self.ignored_attributes]
         raw_attrs.extend(item.session.config.getini('rp_tests_attributes'))
-        attributes = get_attributes(raw_attrs)
-        return attributes
+        return get_attributes(raw_attrs)
 
     def _get_parameters(self, item):
         """
