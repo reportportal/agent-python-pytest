@@ -630,13 +630,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
         # Get launch and test attributes and converting them to key:value form
         def get_raw_attr(get_marker):
-            raw_attr = [
-                get_marker_value(item, k)
-                for k in item.keywords
-                if get_marker(k) is not None
-                and k not in self.ignored_attributes
-            ]
-
+            raw_attr = [get_marker_value(item, k)
+                        for k in item.keywords if get_marker(k) is not None
+                        and k not in self.ignored_attributes]
             raw_attr.extend(item.session.config.getini('rp_tests_attributes'))
             return raw_attr
 
