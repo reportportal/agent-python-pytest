@@ -9,7 +9,6 @@ from requests.exceptions import RequestException
 
 from reportportal_client.errors import ResponseError
 from pytest_reportportal.plugin import (
-    get_launch_attributes,
     pytest_configure,
     pytest_sessionstart
 )
@@ -76,13 +75,6 @@ def test_uuid_env_var_override(mocked_session):
     pytest_sessionstart(mocked_session)
     args, kwargs = mocked_session.config.py_test_service.init_service.call_args
     assert kwargs.get('uuid') == 'foobar'
-
-
-def test_get_launch_attributes():
-    """Test get_launch_attributes functionality."""
-    expected_out = [{'value': 'Tag'}, {'key': 'Key', 'value': 'Value'}]
-    out = get_launch_attributes(['Tag', 'Key:Value', ''])
-    assert expected_out == out
 
 
 def test_portal_on_maintenance(mocked_session):
