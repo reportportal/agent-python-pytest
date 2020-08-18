@@ -56,7 +56,7 @@ def pytest_configure_node(node):
     node.slaveinput['py_test_service'] = pickle.dumps(node.config.
                                                       py_test_service)
 
-
+@pytest.hookimpl(trylast=True)
 def pytest_sessionstart(session):
     """
     Start test session.
