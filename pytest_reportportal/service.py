@@ -454,9 +454,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                     item_dir = dirs_parts[path]
                     rp_name = ""
                 else:
-                    item_dir = File(dir_path, nodeid=dir_name,
-                                    session=item.session,
-                                    config=item.session.config)
+                    if hasattr(Item, "from_parent"):
+                        item_dir = File.from_parent(parent=item,
+                                                    fspath=dir_path,
+                                                    nodeid=dir_name)
+                    else:
+                        item_dir = File(dir_path, nodeid=dir_name,
+                                        session=item.session,
+                                        config=item.session.config)
                     rp_name += dir_name
                     item_dir._rp_name = rp_name
                     dirs_parts[path] = item_dir
@@ -496,9 +501,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 if test_fullname in tests_parts:
                     item_test = tests_parts[test_fullname]
                 else:
-                    item_test = Item(test_fullname, nodeid=test_fullname,
-                                     session=item.session,
-                                     config=item.session.config)
+                    if hasattr(Item, "from_parent"):
+                        item_test = Item.from_parent(parent=item,
+                                                     name=test_fullname,
+                                                     nodeid=test_fullname)
+                    else:
+                        item_test = Item(test_fullname, nodeid=test_fullname,
+                                         session=item.session,
+                                         config=item.session.config)
                     item_test._rp_name = rp_name
                     item_test.obj = item.obj
                     item_test.keywords = item.keywords
