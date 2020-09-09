@@ -293,7 +293,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 'start_time': timestamp(),
                 'item_type': 'SUITE',
                 'parent_item_id': self.parent_item_id,
-                'code_ref': test_item.fspath
+                'code_ref': str(test_item.fspath)
             }
             log.debug('ReportPortal - Start Suite: request_body=%s', payload)
             item_id = self.rp.start_test_item(**payload)
