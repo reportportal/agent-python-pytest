@@ -148,6 +148,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 endpoint=endpoint,
                 project=project,
                 token=uuid,
+                log_batch_size=log_batch_size,
                 retries=retries,
                 verify_ssl=verify_ssl
             )
