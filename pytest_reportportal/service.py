@@ -142,6 +142,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             if self.rp_supports_parameters:
                 self.ignored_attributes = list(
                     set(ignored_attributes).union({'parametrize'}))
+            self.log_batch_size = log_batch_size
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', endpoint, project, uuid)
             self.rp = ReportPortalService(
