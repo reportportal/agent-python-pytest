@@ -10,11 +10,13 @@ import pkg_resources
 import pytest
 import requests
 import time
+
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from reportportal_client.errors import ResponseError
+from reportportal_client.helpers import gen_attributes
+
 from .service import PyTestServiceClass
 from .listener import RPReportListener
-from .helpers import get_attributes
 
 try:
     # This try/except can go away once we support pytest >= 3.3
@@ -88,7 +90,7 @@ def pytest_sessionstart(session):
             session.config.py_test_service.rp = None
             return
 
-        attributes = get_attributes(
+        attributes = gen_attributes(
             session.config.getini('rp_launch_attributes'))
         session.config.py_test_service.start_launch(
             session.config.option.rp_launch,

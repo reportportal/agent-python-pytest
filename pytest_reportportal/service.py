@@ -1,6 +1,7 @@
 """This module includes Service functions for work with pytest agent."""
 
 import logging
+from os import getenv
 import sys
 import traceback
 from time import time
@@ -27,11 +28,16 @@ from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
 
 from reportportal_client import ReportPortalService
+from reportportal_client.external.google_analytics import send_event
+from reportportal_client.helpers import (
+    gen_attributes,
+    get_launch_sys_attrs,
+    get_package_version
+)
 from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
 from six.moves import queue
 
-from .helpers import get_attributes
 
 log = logging.getLogger(__name__)
 
@@ -95,12 +101,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def __init__(self):
         """Initialize instance attributes."""
-        self._agent_name = 'pytest-reportportal'
         self._errors = queue.Queue()
         self._hier_parts = {}
         self._issue_types = {}
         self._item_parts = {}
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
+        self._skip_analytics = getenv('ALLURE_NO_ANALYTICS')
+        self.agent_name = 'pytest-reportportal'
+        self.agent_version = get_package_version(self.agent_name)
         self.ignore_errors = True
         self.ignored_attributes = []
         self.log_batch_size = 20
@@ -189,6 +197,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
         item_id = self.rp.start_launch(**sl_pt)
         log.debug('ReportPortal - Launch started: id=%s', item_id)
+        if not self._skip_analytics:
+            send_event(self.agent_name, self.agent_version)
         return item_id
 
     def collect_tests(self, session):
@@ -604,12 +614,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param list ini_attrs: List for attributes from the pytest.ini file
         """
         attributes = ini_attrs or []
-
-        system_info = self.rp.get_system_information(self._agent_name)
-        system_info['system'] = True
-        system_attributes = _dict_to_payload(system_info)
-
-        return attributes + system_attributes
+        system_attributes = get_launch_sys_attrs()
+        system_attributes['agent'] = (
+            '{}-{}'.format(self.agent_name, self.agent_version))
+        return attributes + _dict_to_payload(system_attributes)
 
     def _get_item_markers(self, item):
         """
@@ -639,7 +647,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      for k in item.keywords if get_marker(k) is not None
                      and k not in self.ignored_attributes]
         raw_attrs.extend(item.session.config.getini('rp_tests_attributes'))
-        return get_attributes(raw_attrs)
+        return gen_attributes(raw_attrs)
 
     def _get_parameters(self, item):
         """
