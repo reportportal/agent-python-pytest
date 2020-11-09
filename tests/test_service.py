@@ -17,7 +17,10 @@ def test_item_attributes(mocked_item, rp_service):
     def get_closest_marker(name):
         return {'test_marker': pytest.mark.test_marker,
                 'test_decorator_key':
-                    pytest.mark.test_decorator_key('test_decorator_value')
+                    pytest.mark.test_decorator_key('test_decorator_value'),
+                'test_decorator_key_with_multi_value':
+                    pytest.mark.test_decorator_key_with_multi_value(
+                        'test_value1', 'test_value2')
                 }.get(name)
 
     class NodeKeywords(object):
@@ -25,6 +28,7 @@ def test_item_attributes(mocked_item, rp_service):
                      'ini_marker',
                      'test_marker',
                      'test_decorator_key',
+                     'test_decorator_key_with_multi_value',
                      'test_ini_key']
 
         def __iter__(self):
@@ -37,6 +41,10 @@ def test_item_attributes(mocked_item, rp_service):
     assert markers == [{'value': 'test_marker'},
                        {'key': 'test_decorator_key',
                         'value': 'test_decorator_value'},
+                       {'key': 'test_decorator_key_with_multi_value',
+                        'value': 'test_value1'},
+                       {'key': 'test_decorator_key_with_multi_value',
+                        'value': 'test_value2'},
                        {'value': 'ini_marker'},
                        {'key': 'test_ini_key',
                         'value': 'test_ini_value'}]

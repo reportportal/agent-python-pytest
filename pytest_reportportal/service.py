@@ -635,17 +635,24 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 # pytest < 3.6
                 marker = item.keywords.get(keyword)
 
-            return "{}:{}".format(keyword, marker.args[0]) \
-                if marker and marker.args else keyword
+            marker_values = []
+            if marker and marker.args:
+                for arg in marker.args:
+                    marker_values.append("{}:{}".format(keyword, arg))
+            else:
+                marker_values.append(keyword)
+            # returns a list of strings to accommodate multiple values
+            return marker_values
 
         try:
             get_marker = getattr(item, "get_closest_marker")
         except AttributeError:
             get_marker = getattr(item, "get_marker")
 
-        raw_attrs = [get_marker_value(item, k)
-                     for k in item.keywords if get_marker(k) is not None
-                     and k not in self.ignored_attributes]
+        raw_attrs = []
+        for k in item.keywords:
+            if get_marker(k) is not None and k not in self.ignored_attributes:
+                raw_attrs.extend(get_marker_value(item, k))
         raw_attrs.extend(item.session.config.getini('rp_tests_attributes'))
         return gen_attributes(raw_attrs)
 
