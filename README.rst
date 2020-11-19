@@ -81,6 +81,7 @@ The following parameters are optional:
 
 - :code:`rp_launch = AnyLaunchName` - launch name (could be overridden
   by pytest --rp-launch option, default value is 'Pytest Launch')
+- :code:`rp_launch_id = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` - id of the existing launch (the session will not handle the lifecycle of the given launch)
 - :code:`rp_launch_attributes = 'PyTest' 'Smoke' 'Env:Python3'` - list of attributes for launch
 - :code:`rp_tests_attributes = 'PyTest' 'Smoke'` - list of attributes that will be added for each item in the launch
 - :code:`rp_launch_description = 'Smoke test'` - launch description (could be overridden
