@@ -69,7 +69,6 @@ def pytest_sessionstart(session):
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
-
     if is_master(session.config):
         try:
             session.config.py_test_service.init_service(
@@ -78,6 +77,7 @@ def pytest_sessionstart(session):
                 uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
                 log_batch_size=int(session.config.getini('rp_log_batch_size')),
                 ignore_errors=bool(session.config.getini('rp_ignore_errors')),
+                custom_launch=session.config.getini('rp_launch_id') or None,
                 ignored_attributes=session.config.getini(
                     'rp_ignore_attributes'),
                 verify_ssl=session.config.getini('rp_verify_ssl'),
@@ -92,13 +92,14 @@ def pytest_sessionstart(session):
 
         attributes = gen_attributes(
             session.config.getini('rp_launch_attributes'))
-        session.config.py_test_service.start_launch(
-            session.config.option.rp_launch,
-            attributes=attributes,
-            description=session.config.option.rp_launch_description
-        )
-        if session.config.pluginmanager.hasplugin('xdist'):
-            wait_launch(session.config.py_test_service.rp)
+        if not session.config.getini('rp_launch_id'):
+            session.config.py_test_service.start_launch(
+                session.config.option.rp_launch,
+                attributes=attributes,
+                description=session.config.option.rp_launch_description
+            )
+            if session.config.pluginmanager.hasplugin('xdist'):
+                wait_launch(session.config.py_test_service.rp)
 
 
 def pytest_collection_finish(session):
@@ -141,7 +142,8 @@ def pytest_sessionfinish(session):
         return
 
     if is_master(session.config):
-        session.config.py_test_service.finish_launch()
+        if not session.config.getini('rp_launch_id'):
+            session.config.py_test_service.finish_launch()
 
 
 def pytest_configure(config):
@@ -242,6 +244,12 @@ def pytest_addoption(parser):
         dest='rp_launch',
         help='Launch name (overrides rp_launch config option)')
     group.addoption(
+        '--rp-launch-id',
+        action='store',
+        dest='rp_launch_id',
+        help='Use already existing launch-id. The plugin won\'t control the '
+             'Launch status (overrides rp_launch_id config option)')
+    group.addoption(
         '--rp-launch-description',
         action='store',
         dest='rp_launch_description',
@@ -285,6 +293,12 @@ def pytest_addoption(parser):
         'rp_launch',
         default='Pytest Launch',
         help='Launch name')
+
+    parser.addini(
+        'rp_launch_id',
+        default=None,
+        help='Use already existing launch-id. The plugin won\'t control '
+             'the Launch status')
 
     parser.addini(
         'rp_launch_attributes',

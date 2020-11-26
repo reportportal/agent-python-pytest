@@ -141,6 +141,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      ignore_errors,
                      ignored_attributes,
                      verify_ssl=True,
+                     custom_launch=None,
                      retries=0):
         """Update self.rp with the instance of the ReportPortalService."""
         self._errors = queue.Queue()
@@ -159,7 +160,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 token=uuid,
                 log_batch_size=log_batch_size,
                 retries=retries,
-                verify_ssl=verify_ssl
+                verify_ssl=verify_ssl,
+                launch_id=custom_launch
             )
             self.project_settings = None
             if self.rp and hasattr(self.rp, "get_project_settings"):
