@@ -36,12 +36,12 @@ log = logging.getLogger(__name__)
 
 def is_master(config):
     """
-    Validate slaveinput attribute.
+    Validate workerinput attribute.
 
     True if the code running the given pytest.config object
     is running in a xdist master node or not running xdist at all.
     """
-    return not hasattr(config, 'slaveinput')
+    return not hasattr(config, 'workerinput')
 
 
 @pytest.mark.optionalhook
@@ -55,8 +55,8 @@ def pytest_configure_node(node):
     if node.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
-    node.slaveinput['py_test_service'] = pickle.dumps(node.config.
-                                                      py_test_service)
+    node.workerinput['py_test_service'] = pickle.dumps(
+            node.config.py_test_service)
 
 
 def pytest_sessionstart(session):
@@ -132,7 +132,7 @@ def wait_launch(rp_client):
 
 def pytest_sessionfinish(session):
     """
-    Finish session if has attr  'slaveinput'.
+    Finish session if has attr  'workerinput'.
 
     :param session: pytest.Session
     :return: None
@@ -193,7 +193,7 @@ def pytest_configure(config):
         config.py_test_service = PyTestServiceClass()
     else:
         config.py_test_service = pickle.loads(config.
-                                              slaveinput['py_test_service'])
+                                              workerinput['py_test_service'])
 
     # set Pytest_Reporter and configure it
     if PYTEST_HAS_LOGGING_PLUGIN:

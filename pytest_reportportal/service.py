@@ -220,7 +220,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         hier_param = False
         display_suite_file_name = True
 
-        if not hasattr(session.config, 'slaveinput'):
+        if not hasattr(session.config, 'workerinput'):
             hier_dirs = session.config.getini('rp_hierarchy_dirs')
             hier_module = session.config.getini('rp_hierarchy_module')
             hier_class = session.config.getini('rp_hierarchy_class')
