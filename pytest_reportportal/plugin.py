@@ -55,8 +55,8 @@ def pytest_configure_node(node):
     if node.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
-    node.workerinput['py_test_service'] = pickle.dumps(
-            node.config.py_test_service)
+    node.workerinput['py_test_service'] = pickle.dumps(node.config.
+                                                      py_test_service)
 
 
 def pytest_sessionstart(session):
