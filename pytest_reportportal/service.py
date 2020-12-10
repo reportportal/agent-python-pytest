@@ -142,12 +142,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      ignored_attributes,
                      verify_ssl=True,
                      custom_launch=None,
+                     parent_item_id=None,
                      retries=0):
         """Update self.rp with the instance of the ReportPortalService."""
         self._errors = queue.Queue()
         if self.rp is None:
             self.ignore_errors = ignore_errors
             self.ignored_attributes = ignored_attributes
+            self.parent_item_id = parent_item_id
             if self.rp_supports_parameters:
                 self.ignored_attributes = list(
                     set(ignored_attributes).union({'parametrize'}))
@@ -298,7 +300,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if self.rp is None:
             return
 
-        self.parent_item_id = None
         for part in self._item_parts[test_item]:
             if self._hier_parts[part]["start_flag"]:
                 self.parent_item_id = self._hier_parts[part]["item_id"]
