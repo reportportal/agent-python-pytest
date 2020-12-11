@@ -83,6 +83,7 @@ def test_portal_on_maintenance(mocked_session):
 
     :param mocked_session: pytest fixture
     """
+    mocked_session.config.option = mock.Mock()
     mocked_session.config.py_test_service = mock.Mock()
     mocked_session.config.py_test_service.init_service.side_effect = \
         ResponseError("<title>Report Portal - Maintenance</title>")
