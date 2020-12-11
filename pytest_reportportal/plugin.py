@@ -205,6 +205,8 @@ def pytest_configure(config):
 
     if not config.option.rp_parent_item_id:
         config.option.rp_parent_item_id = config.getini('rp_parent_item_id')
+    if not config.option.rp_launch_id:
+        config.option.rp_launch_id = config.getini('rp_launch_id')
 
     if is_master(config):
         config.py_test_service = PyTestServiceClass()
@@ -273,7 +275,6 @@ def pytest_addoption(parser):
         help='Launch description (overrides '
              'rp_launch_description config option)')
     group.addoption(
-<<<<<<< HEAD
         '--rp-rerun',
         action='store_true',
         dest='rp_rerun',
@@ -284,14 +285,13 @@ def pytest_addoption(parser):
         dest='rp_rerun_of',
         help='ID of the launch to be marked as a rerun '
              '(use only with rp_rerun=True)')
-=======
+    group.addoption(
         '--rp-parent-item-id',
         action='store',
         dest='rp_parent_item_id',
         help="Create all test item as child items of the given "
              "(already existing) item.")
 
->>>>>>> implement using of custom parent_item for the pytest session
     group.addoption(
         '--reportportal',
         action='store_true',
