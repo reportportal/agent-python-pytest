@@ -77,7 +77,7 @@ def pytest_sessionstart(session):
                 uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
                 log_batch_size=int(session.config.getini('rp_log_batch_size')),
                 ignore_errors=bool(session.config.getini('rp_ignore_errors')),
-                custom_launch=session.config.getini('rp_launch_id') or None,
+                custom_launch=session.config.option.rp_launch_id or None,
                 ignored_attributes=session.config.getini(
                     'rp_ignore_attributes'),
                 verify_ssl=session.config.getini('rp_verify_ssl'),
@@ -92,7 +92,7 @@ def pytest_sessionstart(session):
 
         attributes = gen_attributes(
             session.config.getini('rp_launch_attributes'))
-        if not session.config.getini('rp_launch_id'):
+        if not session.config.option.rp_launch_id:
             session.config.py_test_service.start_launch(
                 session.config.option.rp_launch,
                 attributes=attributes,
@@ -144,7 +144,7 @@ def pytest_sessionfinish(session):
         return
 
     if is_master(session.config):
-        if not session.config.getini('rp_launch_id'):
+        if not session.config.option.rp_launch_id:
             session.config.py_test_service.finish_launch()
 
 
@@ -191,6 +191,8 @@ def pytest_configure(config):
     if not config.option.rp_launch_description:
         config.option.rp_launch_description = config.\
             getini('rp_launch_description')
+    if not config.option.rp_launch_id:
+        config.option.rp_launch_id = config.getini('rp_launch_id')
 
     if not config.option.rp_rerun_of:
         config.option.rp_rerun_of = config.getini('rp_rerun_of')
