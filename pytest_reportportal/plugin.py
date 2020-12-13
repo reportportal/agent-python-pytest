@@ -96,7 +96,9 @@ def pytest_sessionstart(session):
             session.config.py_test_service.start_launch(
                 session.config.option.rp_launch,
                 attributes=attributes,
-                description=session.config.option.rp_launch_description
+                description=session.config.option.rp_launch_description,
+                rerun=session.config.option.rp_rerun,
+                rerun_of=session.config.option.rp_rerun_of
             )
             if session.config.pluginmanager.hasplugin('xdist'):
                 wait_launch(session.config.py_test_service.rp)
@@ -185,11 +187,20 @@ def pytest_configure(config):
 
     if not config.option.rp_launch:
         config.option.rp_launch = config.getini('rp_launch')
+
     if not config.option.rp_launch_description:
         config.option.rp_launch_description = config.\
             getini('rp_launch_description')
     if not config.option.rp_launch_id:
         config.option.rp_launch_id = config.getini('rp_launch_id')
+
+    if not config.option.rp_rerun_of:
+        config.option.rp_rerun_of = config.getini('rp_rerun_of')
+    if config.option.rp_rerun_of:
+        config.option.rp_rerun = True
+    else:
+        if not config.option.rp_rerun:
+            config.option.rp_rerun = config.getini('rp_rerun')
 
     if is_master(config):
         config.py_test_service = PyTestServiceClass()
@@ -257,7 +268,17 @@ def pytest_addoption(parser):
         dest='rp_launch_description',
         help='Launch description (overrides '
              'rp_launch_description config option)')
-
+    group.addoption(
+        '--rp-rerun',
+        action='store_true',
+        dest='rp_rerun',
+        help='Marks the launch as the rerun')
+    group.addoption(
+        '--rp-rerun-of',
+        action='store',
+        dest='rp_rerun_of',
+        help='ID of the launch to be marked as a rerun '
+             '(use only with rp_rerun=True)')
     group.addoption(
         '--reportportal',
         action='store_true',
@@ -401,3 +422,14 @@ def pytest_addoption(parser):
         'retries',
         default='0',
         help='Amount of retries for performing REST calls to RP server')
+
+    parser.addini(
+        'rp_rerun',
+        default=False,
+        help='Marks the launch as the rerun')
+
+    parser.addini(
+        'rp_rerun_of',
+        default='',
+        help='ID of the launch to be marked as a rerun '
+             '(use only with rp_rerun=True)')

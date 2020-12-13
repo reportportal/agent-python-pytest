@@ -161,7 +161,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 log_batch_size=log_batch_size,
                 retries=retries,
                 verify_ssl=verify_ssl,
-                launch_id=custom_launch
+                launch_id=custom_launch,
             )
             self.project_settings = None
             if self.rp and hasattr(self.rp, "get_project_settings"):
@@ -175,6 +175,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      mode=None,
                      description=None,
                      attributes=None,
+                     rerun=False,
+                     rerun_of=None,
                      **kwargs):
         """
         Launch test items.
@@ -195,6 +197,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'start_time': timestamp(),
             'description': description,
             'mode': mode,
+            'rerun': rerun,
+            'rerunOf': rerun_of
         }
         log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
         item_id = self.rp.start_launch(**sl_pt)
@@ -300,7 +304,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 self.parent_item_id = self._hier_parts[part]["item_id"]
                 continue
             self._hier_parts[part]["start_flag"] = True
-
             payload = {
                 'name': self._get_item_name(part),
                 'description': self._get_item_description(part),
