@@ -82,6 +82,7 @@ def pytest_sessionstart(session):
                     'rp_ignore_attributes'),
                 verify_ssl=session.config.getini('rp_verify_ssl'),
                 retries=int(session.config.getini('retries')),
+                parent_item_id=session.config.option.rp_parent_item_id or None,
             )
         except ResponseError as response_error:
             log.warning('Failed to initialize reportportal-client service. '
@@ -202,6 +203,11 @@ def pytest_configure(config):
         if not config.option.rp_rerun:
             config.option.rp_rerun = config.getini('rp_rerun')
 
+    if not config.option.rp_parent_item_id:
+        config.option.rp_parent_item_id = config.getini('rp_parent_item_id')
+    if not config.option.rp_launch_id:
+        config.option.rp_launch_id = config.getini('rp_launch_id')
+
     if is_master(config):
         config.py_test_service = PyTestServiceClass()
     else:
@@ -279,6 +285,13 @@ def pytest_addoption(parser):
         dest='rp_rerun_of',
         help='ID of the launch to be marked as a rerun '
              '(use only with rp_rerun=True)')
+    group.addoption(
+        '--rp-parent-item-id',
+        action='store',
+        dest='rp_parent_item_id',
+        help="Create all test item as child items of the given "
+             "(already existing) item.")
+
     group.addoption(
         '--reportportal',
         action='store_true',
@@ -417,6 +430,12 @@ def pytest_addoption(parser):
         type='bool',
         default=True,
         help='Adding tag with issue id to the test')
+
+    parser.addini(
+        'rp_parent_item_id',
+        default=None,
+        help="Create all test item as child items of the given "
+             "(already existing) item.")
 
     parser.addini(
         'retries',
