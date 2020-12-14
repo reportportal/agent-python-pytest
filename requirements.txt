@@ -1,0 +1,4 @@
+dill>=0.2.7.1
+pytest>=3.0.7
+reportportal-client>=5.0.6
+six>=1.15.0

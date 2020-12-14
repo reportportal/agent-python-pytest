@@ -1,6 +1,7 @@
 """This module includes Service functions for work with pytest agent."""
 
 import logging
+from os import getenv
 import sys
 import traceback
 from time import time
@@ -27,11 +28,16 @@ from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
 
 from reportportal_client import ReportPortalService
+from reportportal_client.external.google_analytics import send_event
+from reportportal_client.helpers import (
+    gen_attributes,
+    get_launch_sys_attrs,
+    get_package_version
+)
 from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
 from six.moves import queue
 
-from .helpers import get_attributes
 
 log = logging.getLogger(__name__)
 
@@ -95,12 +101,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def __init__(self):
         """Initialize instance attributes."""
-        self._agent_name = 'pytest-reportportal'
         self._errors = queue.Queue()
         self._hier_parts = {}
         self._issue_types = {}
         self._item_parts = {}
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
+        self._skip_analytics = getenv('ALLURE_NO_ANALYTICS')
+        self.agent_name = 'pytest-reportportal'
+        self.agent_version = get_package_version(self.agent_name)
         self.ignore_errors = True
         self.ignored_attributes = []
         self.log_batch_size = 20
@@ -133,23 +141,29 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      ignore_errors,
                      ignored_attributes,
                      verify_ssl=True,
+                     custom_launch=None,
+                     parent_item_id=None,
                      retries=0):
         """Update self.rp with the instance of the ReportPortalService."""
         self._errors = queue.Queue()
         if self.rp is None:
             self.ignore_errors = ignore_errors
             self.ignored_attributes = ignored_attributes
+            self.parent_item_id = parent_item_id
             if self.rp_supports_parameters:
                 self.ignored_attributes = list(
                     set(ignored_attributes).union({'parametrize'}))
+            self.log_batch_size = log_batch_size
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', endpoint, project, uuid)
             self.rp = ReportPortalService(
                 endpoint=endpoint,
                 project=project,
                 token=uuid,
+                log_batch_size=log_batch_size,
                 retries=retries,
-                verify_ssl=verify_ssl
+                verify_ssl=verify_ssl,
+                launch_id=custom_launch,
             )
             self.project_settings = None
             if self.rp and hasattr(self.rp, "get_project_settings"):
@@ -163,6 +177,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      mode=None,
                      description=None,
                      attributes=None,
+                     rerun=False,
+                     rerun_of=None,
                      **kwargs):
         """
         Launch test items.
@@ -183,10 +199,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'start_time': timestamp(),
             'description': description,
             'mode': mode,
+            'rerun': rerun,
+            'rerunOf': rerun_of
         }
         log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
         item_id = self.rp.start_launch(**sl_pt)
         log.debug('ReportPortal - Launch started: id=%s', item_id)
+        if not self._skip_analytics:
+            send_event(self.agent_name, self.agent_version)
         return item_id
 
     def collect_tests(self, session):
@@ -206,7 +226,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         hier_param = False
         display_suite_file_name = True
 
-        if not hasattr(session.config, 'slaveinput'):
+        if not hasattr(session.config, 'workerinput'):
             hier_dirs = session.config.getini('rp_hierarchy_dirs')
             hier_module = session.config.getini('rp_hierarchy_module')
             hier_class = session.config.getini('rp_hierarchy_class')
@@ -280,13 +300,11 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if self.rp is None:
             return
 
-        self.parent_item_id = None
         for part in self._item_parts[test_item]:
             if self._hier_parts[part]["start_flag"]:
                 self.parent_item_id = self._hier_parts[part]["item_id"]
                 continue
             self._hier_parts[part]["start_flag"] = True
-
             payload = {
                 'name': self._get_item_name(part),
                 'description': self._get_item_description(part),
@@ -311,7 +329,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'start_time': timestamp(),
             'item_type': 'STEP',
             'parent_item_id': self.parent_item_id,
-            'code_ref': '{0} - {1}'.format(test_item.fspath, test_item.name)
+            'code_ref': '{0}:{1}'.format(test_item.fspath, test_item.name)
         }
         if self.rp_supports_parameters:
             start_rq['parameters'] = self._get_parameters(test_item)
@@ -612,12 +630,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param list ini_attrs: List for attributes from the pytest.ini file
         """
         attributes = ini_attrs or []
-
-        system_info = self.rp.get_system_information(self._agent_name)
-        system_info['system'] = True
-        system_attributes = _dict_to_payload(system_info)
-
-        return attributes + system_attributes
+        system_attributes = get_launch_sys_attrs()
+        system_attributes['agent'] = (
+            '{}-{}'.format(self.agent_name, self.agent_version))
+        return attributes + _dict_to_payload(system_attributes)
 
     def _get_item_markers(self, item):
         """
@@ -635,19 +651,26 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 # pytest < 3.6
                 marker = item.keywords.get(keyword)
 
-            return "{}:{}".format(keyword, marker.args[0]) \
-                if marker and marker.args else keyword
+            marker_values = []
+            if marker and marker.args:
+                for arg in marker.args:
+                    marker_values.append("{}:{}".format(keyword, arg))
+            else:
+                marker_values.append(keyword)
+            # returns a list of strings to accommodate multiple values
+            return marker_values
 
         try:
             get_marker = getattr(item, "get_closest_marker")
         except AttributeError:
             get_marker = getattr(item, "get_marker")
 
-        raw_attrs = [get_marker_value(item, k)
-                     for k in item.keywords if get_marker(k) is not None
-                     and k not in self.ignored_attributes]
+        raw_attrs = []
+        for k in item.keywords:
+            if get_marker(k) is not None and k not in self.ignored_attributes:
+                raw_attrs.extend(get_marker_value(item, k))
         raw_attrs.extend(item.session.config.getini('rp_tests_attributes'))
-        return get_attributes(raw_attrs)
+        return gen_attributes(raw_attrs)
 
     def _get_parameters(self, item):
         """

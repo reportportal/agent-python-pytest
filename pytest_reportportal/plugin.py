@@ -10,11 +10,13 @@ import pkg_resources
 import pytest
 import requests
 import time
+
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from reportportal_client.errors import ResponseError
+from reportportal_client.helpers import gen_attributes
+
 from .service import PyTestServiceClass
 from .listener import RPReportListener
-from .helpers import get_attributes
 
 try:
     # This try/except can go away once we support pytest >= 3.3
@@ -34,12 +36,12 @@ log = logging.getLogger(__name__)
 
 def is_master(config):
     """
-    Validate slaveinput attribute.
+    Validate workerinput attribute.
 
     True if the code running the given pytest.config object
     is running in a xdist master node or not running xdist at all.
     """
-    return not hasattr(config, 'slaveinput')
+    return not hasattr(config, 'workerinput')
 
 
 @pytest.mark.optionalhook
@@ -53,8 +55,8 @@ def pytest_configure_node(node):
     if node.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
-    node.slaveinput['py_test_service'] = pickle.dumps(node.config.
-                                                      py_test_service)
+    node.workerinput['py_test_service'] = pickle.dumps(
+            node.config.py_test_service)
 
 
 def pytest_sessionstart(session):
@@ -67,7 +69,6 @@ def pytest_sessionstart(session):
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
-
     if is_master(session.config):
         try:
             session.config.py_test_service.init_service(
@@ -76,10 +77,12 @@ def pytest_sessionstart(session):
                 uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
                 log_batch_size=int(session.config.getini('rp_log_batch_size')),
                 ignore_errors=bool(session.config.getini('rp_ignore_errors')),
+                custom_launch=session.config.option.rp_launch_id or None,
                 ignored_attributes=session.config.getini(
                     'rp_ignore_attributes'),
                 verify_ssl=session.config.getini('rp_verify_ssl'),
                 retries=int(session.config.getini('retries')),
+                parent_item_id=session.config.option.rp_parent_item_id or None,
             )
         except ResponseError as response_error:
             log.warning('Failed to initialize reportportal-client service. '
@@ -88,15 +91,18 @@ def pytest_sessionstart(session):
             session.config.py_test_service.rp = None
             return
 
-        attributes = get_attributes(
+        attributes = gen_attributes(
             session.config.getini('rp_launch_attributes'))
-        session.config.py_test_service.start_launch(
-            session.config.option.rp_launch,
-            attributes=attributes,
-            description=session.config.option.rp_launch_description
-        )
-        if session.config.pluginmanager.hasplugin('xdist'):
-            wait_launch(session.config.py_test_service.rp)
+        if not session.config.option.rp_launch_id:
+            session.config.py_test_service.start_launch(
+                session.config.option.rp_launch,
+                attributes=attributes,
+                description=session.config.option.rp_launch_description,
+                rerun=session.config.option.rp_rerun,
+                rerun_of=session.config.option.rp_rerun_of
+            )
+            if session.config.pluginmanager.hasplugin('xdist'):
+                wait_launch(session.config.py_test_service.rp)
 
 
 def pytest_collection_finish(session):
@@ -129,7 +135,7 @@ def wait_launch(rp_client):
 
 def pytest_sessionfinish(session):
     """
-    Finish session if has attr  'slaveinput'.
+    Finish session if has attr  'workerinput'.
 
     :param session: pytest.Session
     :return: None
@@ -139,7 +145,8 @@ def pytest_sessionfinish(session):
         return
 
     if is_master(session.config):
-        session.config.py_test_service.finish_launch()
+        if not session.config.option.rp_launch_id:
+            session.config.py_test_service.finish_launch()
 
 
 def pytest_configure(config):
@@ -181,15 +188,31 @@ def pytest_configure(config):
 
     if not config.option.rp_launch:
         config.option.rp_launch = config.getini('rp_launch')
+
     if not config.option.rp_launch_description:
         config.option.rp_launch_description = config.\
             getini('rp_launch_description')
+    if not config.option.rp_launch_id:
+        config.option.rp_launch_id = config.getini('rp_launch_id')
+
+    if not config.option.rp_rerun_of:
+        config.option.rp_rerun_of = config.getini('rp_rerun_of')
+    if config.option.rp_rerun_of:
+        config.option.rp_rerun = True
+    else:
+        if not config.option.rp_rerun:
+            config.option.rp_rerun = config.getini('rp_rerun')
+
+    if not config.option.rp_parent_item_id:
+        config.option.rp_parent_item_id = config.getini('rp_parent_item_id')
+    if not config.option.rp_launch_id:
+        config.option.rp_launch_id = config.getini('rp_launch_id')
 
     if is_master(config):
         config.py_test_service = PyTestServiceClass()
     else:
         config.py_test_service = pickle.loads(config.
-                                              slaveinput['py_test_service'])
+                                              workerinput['py_test_service'])
 
     # set Pytest_Reporter and configure it
     if PYTEST_HAS_LOGGING_PLUGIN:
@@ -240,11 +263,34 @@ def pytest_addoption(parser):
         dest='rp_launch',
         help='Launch name (overrides rp_launch config option)')
     group.addoption(
+        '--rp-launch-id',
+        action='store',
+        dest='rp_launch_id',
+        help='Use already existing launch-id. The plugin won\'t control the '
+             'Launch status (overrides rp_launch_id config option)')
+    group.addoption(
         '--rp-launch-description',
         action='store',
         dest='rp_launch_description',
         help='Launch description (overrides '
              'rp_launch_description config option)')
+    group.addoption(
+        '--rp-rerun',
+        action='store_true',
+        dest='rp_rerun',
+        help='Marks the launch as the rerun')
+    group.addoption(
+        '--rp-rerun-of',
+        action='store',
+        dest='rp_rerun_of',
+        help='ID of the launch to be marked as a rerun '
+             '(use only with rp_rerun=True)')
+    group.addoption(
+        '--rp-parent-item-id',
+        action='store',
+        dest='rp_parent_item_id',
+        help="Create all test item as child items of the given "
+             "(already existing) item.")
 
     group.addoption(
         '--reportportal',
@@ -283,6 +329,12 @@ def pytest_addoption(parser):
         'rp_launch',
         default='Pytest Launch',
         help='Launch name')
+
+    parser.addini(
+        'rp_launch_id',
+        default=None,
+        help='Use already existing launch-id. The plugin won\'t control '
+             'the Launch status')
 
     parser.addini(
         'rp_launch_attributes',
@@ -380,6 +432,23 @@ def pytest_addoption(parser):
         help='Adding tag with issue id to the test')
 
     parser.addini(
+        'rp_parent_item_id',
+        default=None,
+        help="Create all test item as child items of the given "
+             "(already existing) item.")
+
+    parser.addini(
         'retries',
         default='0',
         help='Amount of retries for performing REST calls to RP server')
+
+    parser.addini(
+        'rp_rerun',
+        default=False,
+        help='Marks the launch as the rerun')
+
+    parser.addini(
+        'rp_rerun_of',
+        default='',
+        help='ID of the launch to be marked as a rerun '
+             '(use only with rp_rerun=True)')
