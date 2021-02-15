@@ -116,7 +116,7 @@ class RPLogHandler(logging.Handler):
         if record.name == 'urllib3.connectionpool':
             # Filter the reportportal_client requests instance
             # urllib3 usage
-            if self.endpoint in self.format(record):
+            if self.endpoint.rstrip('/') in self.format(record):
                 return False
         return True
 
