@@ -72,7 +72,7 @@ def pytest_sessionstart(session):
     if is_master(session.config):
         try:
             session.config.py_test_service.init_service(
-                project=session.config.getini('rp_project')
+                project=config.option.rp_project
                 if session.config.getini('rp_project')
                 else session.config.option.rp_project,
                 endpoint=session.config.getini('rp_endpoint'),
