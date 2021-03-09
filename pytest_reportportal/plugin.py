@@ -56,7 +56,7 @@ def pytest_configure_node(node):
         # Stop now if the plugin is not properly configured
         return
     node.workerinput['py_test_service'] = pickle.dumps(
-            node.config.py_test_service)
+        node.config.py_test_service)
 
 
 def pytest_sessionstart(session):
@@ -73,8 +73,8 @@ def pytest_sessionstart(session):
         try:
             session.config.py_test_service.init_service(
                 project=session.config.getini('rp_project')
-                if session.config.getini('rp_project') else
-                session.config.option.rp_project,
+                if session.config.getini('rp_project')
+                else session.config.option.rp_project,
                 endpoint=session.config.getini('rp_endpoint'),
                 uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
                 log_batch_size=int(session.config.getini('rp_log_batch_size')),
@@ -164,8 +164,8 @@ def pytest_configure(config):
         config._reportportal_configured = False
         return
 
-    project = config.getini('rp_project') 
-    if config.getini('rp_project') else config.option.rp_project
+    project = config.getini('rp_project') if config.getini('rp_project') \
+        else config.option.rp_project
     endpoint = config.getini('rp_endpoint')
     uuid = getenv('RP_UUID') or config.getini('rp_uuid')
     ignore_errors = config.getini('rp_ignore_errors')
@@ -193,7 +193,7 @@ def pytest_configure(config):
         config.option.rp_launch = config.getini('rp_launch')
 
     if not config.option.rp_launch_description:
-        config.option.rp_launch_description = config.\
+        config.option.rp_launch_description = config. \
             getini('rp_launch_description')
     if not config.option.rp_launch_id:
         config.option.rp_launch_id = config.getini('rp_launch_id')
