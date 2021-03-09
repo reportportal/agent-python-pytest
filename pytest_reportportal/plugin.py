@@ -72,9 +72,9 @@ def pytest_sessionstart(session):
     if is_master(session.config):
         try:
             session.config.py_test_service.init_service(
-                project=config.option.rp_project
-                if session.config.getini('rp_project')
-                else session.config.option.rp_project,
+                project=session.config.option.rp_project
+                if session.config.option.rp_project
+                else session.config.getini('rp_project'),
                 endpoint=session.config.getini('rp_endpoint'),
                 uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
                 log_batch_size=int(session.config.getini('rp_log_batch_size')),
@@ -164,8 +164,9 @@ def pytest_configure(config):
         config._reportportal_configured = False
         return
 
-    project = config.getini('rp_project') if config.getini('rp_project') \
-        else config.option.rp_project
+    project = config.option.rp_project
+    if not project:
+        project = config.getini('rp_project')
     endpoint = config.getini('rp_endpoint')
     uuid = getenv('RP_UUID') or config.getini('rp_uuid')
     ignore_errors = config.getini('rp_ignore_errors')
