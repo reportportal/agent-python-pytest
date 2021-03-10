@@ -337,6 +337,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
         item_id = self.rp.start_test_item(**start_rq)
         self.log_item_id = item_id
+        self.parent_item_id = None
         return item_id
 
     def finish_pytest_item(self, test_item, item_id, status, issue=None):
