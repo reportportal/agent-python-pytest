@@ -166,7 +166,7 @@ def pytest_configure(config):
 
     project = config.option.rp_project
     if not project:
-        project = config.getini('rp_project')
+        config.option.rp_project = project = config.getini('rp_project')
     endpoint = config.getini('rp_endpoint')
     uuid = getenv('RP_UUID') or config.getini('rp_uuid')
     ignore_errors = config.getini('rp_ignore_errors')
