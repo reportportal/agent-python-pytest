@@ -296,7 +296,7 @@ def pytest_addoption(parser):
         help="Create all test item as child items of the given "
              "(already existing) item.")
     group.addoption(
-        '--rp_project',
+        '--rp-project',
         action='store',
         dest='rp_project',
         help='Sets rp_project from command line'
