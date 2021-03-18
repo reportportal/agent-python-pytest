@@ -163,7 +163,7 @@ def pytest_configure(config):
         return
 
     project = config.option.rp_project or config.getini('rp_project')
-        config.option.rp_project = project
+    config.option.rp_project = project
     endpoint = config.getini('rp_endpoint')
     uuid = getenv('RP_UUID') or config.getini('rp_uuid')
     ignore_errors = config.getini('rp_ignore_errors')
