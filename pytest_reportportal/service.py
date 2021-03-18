@@ -106,7 +106,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self._issue_types = {}
         self._item_parts = {}
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
-        self._skip_analytics = getenv('ALLURE_NO_ANALYTICS')
+        self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.agent_name = 'pytest-reportportal'
         self.agent_version = get_package_version(self.agent_name)
         self.ignore_errors = True
