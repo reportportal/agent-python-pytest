@@ -56,7 +56,7 @@ def pytest_configure_node(node):
         # Stop now if the plugin is not properly configured
         return
     node.workerinput['py_test_service'] = pickle.dumps(
-            node.config.py_test_service)
+        node.config.py_test_service)
 
 
 def pytest_sessionstart(session):
@@ -72,7 +72,7 @@ def pytest_sessionstart(session):
     if is_master(session.config):
         try:
             session.config.py_test_service.init_service(
-                project=session.config.getini('rp_project'),
+                project=session.config.option.rp_project,
                 endpoint=session.config.getini('rp_endpoint'),
                 uuid=getenv('RP_UUID') or session.config.getini('rp_uuid'),
                 log_batch_size=int(session.config.getini('rp_log_batch_size')),
@@ -162,7 +162,8 @@ def pytest_configure(config):
         config._reportportal_configured = False
         return
 
-    project = config.getini('rp_project')
+    project = config.option.rp_project or config.getini('rp_project')
+    config.option.rp_project = project
     endpoint = config.getini('rp_endpoint')
     uuid = getenv('RP_UUID') or config.getini('rp_uuid')
     ignore_errors = config.getini('rp_ignore_errors')
@@ -190,7 +191,7 @@ def pytest_configure(config):
         config.option.rp_launch = config.getini('rp_launch')
 
     if not config.option.rp_launch_description:
-        config.option.rp_launch_description = config.\
+        config.option.rp_launch_description = config. \
             getini('rp_launch_description')
     if not config.option.rp_launch_id:
         config.option.rp_launch_id = config.getini('rp_launch_id')
@@ -291,6 +292,12 @@ def pytest_addoption(parser):
         dest='rp_parent_item_id',
         help="Create all test item as child items of the given "
              "(already existing) item.")
+    group.addoption(
+        '--rp-project',
+        action='store',
+        dest='rp_project',
+        help='Sets rp_project from command line'
+    )
 
     group.addoption(
         '--reportportal',
