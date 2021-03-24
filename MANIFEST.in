@@ -1,2 +1,2 @@
 include MANIFEST.in
-include README.rst CONTRIBUTING.rst
+include README.rst CONTRIBUTING.rst requirements.txt
