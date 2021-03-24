@@ -1,90 +1,146 @@
 ============
-Contributing
+Contribution
 ============
 
-Contributions are welcome, and they are greatly appreciated! Every
-little bit helps, and credit will always be given.
+Contributions are highly welcomed and appreciated.
 
-You can contribute in many ways:
+.. contents::
+   :depth: 2
+   :backlinks: none
 
-Types of Contributions
-----------------------
+Feature requests
+----------------
 
-Report Bugs
-~~~~~~~~~~~
+We'd also like to hear about your thoughts and suggestions.  Feel free to
+`submit them as issues <hhttps://github.com/reportportal/agent-python-pytest/issues>`_ and:
 
-Report bugs at https://github.com/reportportal/agent-python-pytest/issues.
+* Explain in detail how they should work.
+* Keep the scope as narrow as possible. It will make it easier to implement.
 
-If you are reporting a bug, please include:
+Bug reports
+-----------
+
+Report bugs for the agent in the `issue tracker <https://github.com/reportportal/agent-python-pytest/issues>`_.
+
+If you are reporting a new bug, please include:
 
 * Your operating system name and version.
-* Any details about your local setup that might be helpful in troubleshooting.
+* Python interpreter version, installed libraries, reportportal-client, and agent-python-pytest
+  version.
 * Detailed steps to reproduce the bug.
 
-Fix Bugs
-~~~~~~~~
+Bug fixes
+---------
 
-Look through the GitHub issues for bugs. Anything tagged with "bug"
-and "help wanted" is open to whoever wants to implement it.
+Look through the `GitHub issues for bugs <https://github.com/reportportal/agent-python-pytest/labels/bug>`_.
 
-Implement Features
-~~~~~~~~~~~~~~~~~~
+If you are gonna fix any of existing bugs, assign that bug to yourself and specify preliminary milestones.
+Talk to `contributors <https://github.com/reportportal/agent-python-pytest/graphs/contributors>`_ in case you need a
+consultancy regarding implementation.
 
-Look through the GitHub issues for features. Anything tagged with "enhancement"
-and "help wanted" is open to whoever wants to implement it.
+Implement features
+------------------
 
-Write Documentation
-~~~~~~~~~~~~~~~~~~~
+Look through the `GitHub issues for enhancements <https://github.com/reportportal/agent-python-pytest/labels/enhancement>`_.
 
-agent-python-pytest could always use more documentation, whether as part of the
-official agent-python-pytest docs, in docstrings, or even on the web in blog posts,
-articles, and such.
+Talk to `contributors <https://github.com/reportportal/agent-python-pytest/graphs/contributors>`_ in case you need a
+consultancy regarding implementation.
 
-Submit Feedback
-~~~~~~~~~~~~~~~
+Preparing Pull Requests
+-----------------------
 
-The best way to send feedback is to file an issue at https://github.com/reportportal/agent-python-pytest/issues.
+What is a "pull request"?  It informs the project's core developers about the
+changes you want to review and merge.  Pull requests are stored on
+`GitHub servers <https://github.com/reportportal/agent-python-pytest/pulls>`_.
+Once you send a pull request, we can discuss its potential modifications and
+even add more commits to it later on. There's an excellent tutorial on how Pull
+Requests work in the
+`GitHub Help Center <https://help.github.com/articles/using-pull-requests/>`_.
 
-If you are proposing a feature:
+Here is a simple overview below:
 
-* Explain in detail how it would work.
-* Keep the scope as narrow as possible, to make it easier to implement.
-* Remember that this is a volunteer-driven project, and that contributions
-  are welcome :)
+#. Fork the
+   `agent-python-pytest GitHub repository <https://github.com/reportportal/agent-python-pytest>`_.
 
-Get Started!
-------------
+#. Clone your fork locally using `git <https://git-scm.com/>`_ and create a branch::
 
-Ready to contribute? Here's how to set up `agent-python-pytest` for local development.
+    $ git clone git@github.com:YOUR_GITHUB_USERNAME/agent-python-pytest.git
+    $ cd agent-python-pytest
+    # now, create your own branch off the "master":
 
-1. Fork the `agent-python-pytest` repo on GitHub.
-2. Clone your fork locally::
+        $ git checkout -b your-bugfix-branch-name
 
-    $ git clone git@github.com:your_name_here/agent-python-pytest
+   If you need some help with Git, follow this quick start
+   guide: https://git.wiki.kernel.org/index.php/QuickStart
 
-3. Install your local copy into a virtualenv. Assuming you have virtualenvwrapper installed, this is how you set up your fork for local development::
+#. Install `pre-commit <https://pre-commit.com>`_ and its hook on the agent-python-pytest repo:
 
-    $ mkvirtualenv agent_python_pytest
-    $ cd agent_python_pytest/
-    $ python setup.py develop
+   **Note: pre-commit must be installed as admin, as it will not function otherwise**::
 
-4. Create a branch for local development::
 
-    $ git checkout -b name-of-your-bugfix-or-feature
+     $ pip install --user pre-commit
+     $ pre-commit install
 
-   Now you can make your changes locally.
+   Afterwards ``pre-commit`` will run whenever you commit.
 
-5. When you're done making changes, check that your changes pass flake8 and the tests, including testing other Python versions with tox::
+   https://pre-commit.com/ is a framework for managing and maintaining multi-language pre-commit hooks
+   to ensure code-style and code formatting is consistent.
 
-    $ flake8 agent_python_pytest tests
-    $ tox
+#. Install tox
 
-   To get flake8 and tox, just pip install them into your virtualenv.
+   Tox is used to run all the tests and will automatically setup virtualenvs
+   to run the tests in.
+   (will implicitly use http://www.virtualenv.org/en/latest/)::
 
-6. Commit your changes and push your branch to GitHub::
+    $ pip install tox
 
-    $ git add .
-    $ git commit -m "Your detailed description of your changes."
-    $ git push origin name-of-your-bugfix-or-feature
+#. Run all the tests
 
-7. Submit a pull request through the GitHub website.
+   You need to have Python 3.6 available in your system.  Now
+   running tests is as simple as issuing this command::
+
+    $ tox -e pep,py36
+
+   This command will run tests via the "tox" tool against Python 3.6
+   and also perform code style checks.
+
+#. You can now edit your local working copy and run the tests again as necessary. Please follow PEP-8 recommendations.
+
+   You can pass different options to ``tox``. For example, to run tests on Python 3.6 and pass options to pytest
+   (e.g. enter pdb on failure) to pytest you can do::
+
+    $ tox -e py36 -- --pdb
+
+   Or to only run tests in a particular test module on Python 3.6::
+
+    $ tox -e py36 -- tests/test_service.py
+
+
+   When committing, ``pre-commit`` will re-format the files if necessary.
+
+#. If instead of using ``tox`` you prefer to run the tests directly, then we suggest to create a virtual environment and use
+   an editable install with the ``testing`` extra::
+
+       $ python3 -m venv .venv
+       $ source .venv/bin/activate  # Linux
+       $ .venv/Scripts/activate.bat  # Windows
+       $ pip install -e ".[testing]"
+
+   Afterwards, you can edit the files and run pytest normally::
+
+       $ pytest tests/test_service.py
+
+
+#. Commit and push once your tests pass and you are happy with your change(s)::
+
+    $ git commit -m "<commit message>"
+    $ git push -u
+
+
+#. Finally, submit a pull request through the GitHub website using this data::
+
+    head-fork: YOUR_GITHUB_USERNAME/agent-python-pytest
+    compare: your-branch-name
+
+    base-fork: reportportal/agent-python-pytest
+    base: master

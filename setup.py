@@ -9,11 +9,10 @@ __version__ = '5.0.9'
 
 
 def read_file(fname):
-    """
-    Read file.
+    """Read the given file.
 
-    :param fname: string of filename
-    :return: File descriptor
+    :param fname: Filename to be read
+    :return:      File content
     """
     with open(os.path.join(os.path.dirname(__file__), fname)) as f:
         return f.read()
@@ -43,10 +42,5 @@ setup(
         'pytest11': [
             'pytest_reportportal = pytest_reportportal.plugin',
         ]
-    },
-    setup_requires=['pytest-runner'],
-    tests_require=[
-        'pytest',
-        'delayed-assert'
-    ]
+    }
 )
