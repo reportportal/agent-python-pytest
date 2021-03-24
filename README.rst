@@ -205,7 +205,7 @@ To run test with Report Portal you must provide '--reportportal' flag:
 
 
 Test issue info
-~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 Some pytest marks could be used to specify information about skipped or failed test result.
 List of this marks should be specified in pytest ini file (see :code:`rp_issue_marks`).
@@ -226,14 +226,14 @@ Example:
 
 
 Send attachement (screenshots)
-----------------
+------------------------------
 
 https://github.com/reportportal/client-Python#send-attachement-screenshots
 
 
 
 Troubleshooting
-~~~~~~~~~
+~~~~~~~~~~~~~~~
 
 In case you have connectivity issues (or similar problems) with Report Portal,
 it's possible to ignore exceptions raised by :code:`pytest_reportportal` plugin.
@@ -275,4 +275,3 @@ Copyright Notice
 Licensed under the `Apache 2.0`_ license (see the LICENSE file).
 
 .. _Apache 2.0:  https://www.apache.org/licenses/LICENSE-2.0
-

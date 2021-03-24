@@ -88,4 +88,3 @@ Ready to contribute? Here's how to set up `agent-python-pytest` for local develo
     $ git push origin name-of-your-bugfix-or-feature
 
 7. Submit a pull request through the GitHub website.
-
