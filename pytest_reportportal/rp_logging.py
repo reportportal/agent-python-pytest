@@ -4,7 +4,9 @@ import sys
 import logging
 from contextlib import contextmanager
 from functools import wraps
+
 from six import PY2
+from six.moves.urllib.parse import urlparse
 
 
 class RPLogger(logging.getLoggerClass()):
@@ -102,21 +104,21 @@ class RPLogHandler(logging.Handler):
         self.endpoint = endpoint
 
     def filter(self, record):
-        """
-        Filter the reportportal_client messages.
+        """Filter specific records to avoid sending those to RP.
 
-        :param record: a log record to filter
-        :return: bool - False if it is an agent or client log and
-        'filter_client_logs' attribute is True, other way always True
+        :param record: A log record to be filtered
+        :return:       False if the given record does no fit for sending
+                       to RP, otherwise True.
         """
         if not self.filter_client_logs:
             return True
         if record.name.startswith(self.ignored_record_names):
             return False
-        if record.name == 'urllib3.connectionpool':
+        if record.name.startswith('urllib3.connectionpool'):
             # Filter the reportportal_client requests instance
             # urllib3 usage
-            if self.endpoint.rstrip('/') in self.format(record):
+            hostname = urlparse(self.endpoint).hostname
+            if hostname in self.format(record):
                 return False
         return True
 
