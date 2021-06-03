@@ -19,8 +19,10 @@ class AgentConfig(object):
         self.pconfig = pytest_config
 
         self.rp_endpoint = self.pconfig.getini('rp_endpoint')
-        self.rp_ignore_errors = bool(self.pconfig.getini('rp_ignore_errors'))
+        self.rp_ignore_errors = self.pconfig.getini('rp_ignore_errors')
         self.rp_ignore_attributes = self.pconfig.getini('rp_ignore_attributes')
+        self.rp_is_skipped_an_issue = self.pconfig.getini(
+            'rp_is_skipped_an_issue')
         self.rp_launch = self.pconfig.option.rp_launch or self.pconfig.getini(
             'rp_launch')
         self.rp_launch_id = (self.pconfig.option.rp_launch_id or
