@@ -93,6 +93,8 @@ def pytest_sessionstart(session):
                 endpoint=config._reporter_config.rp_endpoint,
                 uuid=config._reporter_config.rp_uuid,
                 log_batch_size=config._reporter_config.rp_log_batch_size,
+                is_skipped_an_issue=config._reporter_config.
+                rp_is_skipped_an_issue,
                 ignore_errors=config._reporter_config.rp_ignore_errors,
                 custom_launch=config._reporter_config.rp_launch_id,
                 ignored_attributes=config._reporter_config.
@@ -314,6 +316,11 @@ def pytest_addoption(parser):
         'rp_ignore_attributes',
         type='args',
         help='Ignore specified pytest markers, i.e parametrize')
+    parser.addini(
+        'rp_is_skipped_an_issue',
+        default=True,
+        type='bool',
+        help='Treat skipped tests as required investigation')
     parser.addini(
         'rp_hierarchy_dirs_level',
         default=0,

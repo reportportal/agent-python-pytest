@@ -103,6 +103,7 @@ The following parameters are optional:
 - :code:`rp_log_batch_size = 20` - size of batch log request
 - :code:`rp_ignore_errors = True` - Ignore Report Portal errors (exit otherwise)
 - :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers
+- :code:`rp_is_skipped_an_issue = False` - Treat skipped tests as required investigation. Default is True.
 - :code:`rp_hierarchy_dirs = True` - Enables hierarchy for tests directories, default `False`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_module = True` - Enables hierarchy for module, default `True`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_class = True` - Enables hierarchy for class, default `True`. Doesn't support 'xdist' plugin.

@@ -128,8 +128,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      log_batch_size,
                      ignore_errors,
                      ignored_attributes,
-                     verify_ssl=True,
                      custom_launch=None,
+                     is_skipped_an_issue=True,
+                     verify_ssl=True,
                      parent_item_id=None,
                      retries=0):
         """Update self.rp with the instance of the ReportPortalService."""
@@ -148,6 +149,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 endpoint=endpoint,
                 project=project,
                 token=uuid,
+                is_skipped_an_issue=is_skipped_an_issue,
                 log_batch_size=log_batch_size,
                 retries=retries,
                 verify_ssl=verify_ssl,
