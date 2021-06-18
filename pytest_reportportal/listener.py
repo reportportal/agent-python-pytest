@@ -32,7 +32,7 @@ class RPReportListener(object):
         :param endpoint:        Report Portal API endpoint
         """
         # Test Item result
-        self.PyTestService = py_test_service
+        self.py_test_service = py_test_service
         self.result = None
         self.issue = {}
         self._log_level = log_level
@@ -52,7 +52,7 @@ class RPReportListener(object):
         :return: generator object
         """
         self._add_issue_id_marks(item)
-        item_id = self.PyTestService.start_pytest_item(item)
+        item_id = self.py_test_service.start_pytest_item(item)
         if PYTEST_HAS_LOGGING_PLUGIN:
             # This check can go away once we support pytest >= 3.3
             with patching_logger_class():
@@ -62,7 +62,7 @@ class RPReportListener(object):
         else:
             yield
         # Finishing item in RP
-        self.PyTestService.finish_pytest_item(
+        self.py_test_service.finish_pytest_item(
             item, item_id, self.result or 'SKIPPED', self.issue or None)
 
     @pytest.hookimpl(hookwrapper=True)
@@ -76,10 +76,9 @@ class RPReportListener(object):
         report = (yield).get_result()
 
         if report.longrepr:
-            self.PyTestService.post_log(
+            self.py_test_service.post_log(
                 escape(report.longreprtext, False),
-                loglevel='ERROR',
-            )
+                loglevel='ERROR')
 
         # Defining test result
         if report.when == 'setup':
@@ -88,17 +87,18 @@ class RPReportListener(object):
 
         if report.failed:
             self.result = 'FAILED'
+            self._add_issue_info(item, report)
         elif report.skipped:
             if self.result in (None, 'PASSED'):
                 self.result = 'SKIPPED'
+                if self.py_test_service.rp.is_skipped_an_issue:
+                    self._add_issue_info(item, report)
         else:
             if self.result is None:
                 self.result = 'PASSED'
 
-        # Adding test comment and issue type
-        self._add_issue_info(item, report)
-
-    def _add_issue_id_marks(self, item):
+    @staticmethod
+    def _add_issue_id_marks(item):
         """Add marks with issue id.
 
         :param item: pytest test item
@@ -124,6 +124,7 @@ class RPReportListener(object):
     def _add_issue_info(self, item, report):
         """Add issues description and issue_type to the test item.
 
+        ToDo: THIS NEEDS TO BE REWRITTEN. LOOKS UGLY.
         :param item: pytest test item
         :param report: pytest report instance
         """
@@ -166,12 +167,12 @@ class RPReportListener(object):
         # default value
         issue_type = "TI" if issue_type is None else issue_type
 
-        if issue_type and \
-                (issue_type in getattr(self.PyTestService, 'issue_types', ())):
+        if issue_type and issue_type in getattr(
+                self.py_test_service, 'issue_types', ()):
             if comment:
                 self.issue['comment'] = comment
             self.issue['issueType'] = \
-                self.PyTestService.issue_types[issue_type]
+                self.py_test_service.issue_types[issue_type]
             # self.issue['ignoreAnalyzer'] = True ???
         elif (report.when == 'setup') and report.skipped:
             self.issue['issueType'] = 'NOT_ISSUE'
