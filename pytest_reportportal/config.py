@@ -18,7 +18,8 @@ class AgentConfig(object):
         self._rp_rerun = None
         self.pconfig = pytest_config
 
-        self.rp_endpoint = self.pconfig.getini('rp_endpoint')
+        self.rp_endpoint = (getenv('RP_ENDPOINT') or
+                            self.pconfig.getini('rp_endpoint'))
         self.rp_ignore_errors = self.pconfig.getini('rp_ignore_errors')
         self.rp_ignore_attributes = self.pconfig.getini('rp_ignore_attributes')
         self.rp_is_skipped_an_issue = self.pconfig.getini(
