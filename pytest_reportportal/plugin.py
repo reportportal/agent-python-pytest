@@ -214,46 +214,33 @@ def pytest_addoption(parser):
     :param parser: Object of the Parser class
     """
     group = parser.getgroup('reporting')
-    group.addoption(
-        '--rp-launch',
-        action='store',
-        dest='rp_launch',
-        help='Launch name (overrides rp_launch config option)')
-    group.addoption(
-        '--rp-launch-id',
-        action='store',
-        dest='rp_launch_id',
-        help='Use already existing launch-id. The plugin won\'t control the '
-             'Launch status (overrides rp_launch_id config option)')
-    group.addoption(
-        '--rp-launch-description',
-        action='store',
-        dest='rp_launch_description',
-        help='Launch description (overrides '
-             'rp_launch_description config option)')
-    group.addoption(
-        '--rp-rerun',
-        action='store_true',
-        dest='rp_rerun',
-        help='Marks the launch as the rerun')
-    group.addoption(
-        '--rp-rerun-of',
-        action='store',
-        dest='rp_rerun_of',
-        help='ID of the launch to be marked as a rerun '
-             '(use only with rp_rerun=True)')
-    group.addoption(
-        '--rp-parent-item-id',
-        action='store',
-        dest='rp_parent_item_id',
-        help='Create all test item as child items of the given '
-             '(already existing) item.')
-    group.addoption(
-        '--rp-project',
-        action='store',
-        dest='rp_project',
-        help='Sets rp_project from command line'
-    )
+
+    def add_shared_option(name, help, default=None, action='store'):
+        """
+        Add an option to both the command line and the .ini file.
+
+        This function modifies `parser` and `group` from the outer scope.
+
+        :param name:     name of the option
+        :param help:     help message
+        :param default:  default value
+        :param action:   `group.addoption` action
+        """
+        parser.addini(
+            name=name,
+            default=default,
+            help=help,
+        )
+        group.addoption(
+            '--{0}'.format(name.replace('_', '-')),
+            action=action,
+            dest=name,
+            help='{help} (overrides {name} config option)'.format(
+                help=help,
+                name=name,
+            ),
+        )
+
     group.addoption(
         '--reportportal',
         action='store_true',
@@ -261,17 +248,42 @@ def pytest_addoption(parser):
         default=False,
         help='Enable ReportPortal plugin'
     )
-    group.addoption(
-        '--rp-log-level',
-        dest='rp_log_level',
-        default=None,
-        help='Logging level for automated log records reporting'
+    add_shared_option(
+        name='rp_launch',
+        help='Launch name',
+        default='Pytest Launch',
     )
-
-    parser.addini(
-        'rp_log_level',
-        default=None,
-        help='Logging level for automated log records reporting'
+    add_shared_option(
+        name='rp_launch_id',
+        help='Use already existing launch-id. The plugin won\'t control the '
+             'Launch status',
+    )
+    add_shared_option(
+        name='rp_launch_description',
+        help='Launch description',
+        default='',
+    )
+    add_shared_option(name='rp_project', help='Project name')
+    add_shared_option(
+        name='rp_log_level',
+        help='Logging level for automated log records reporting',
+    )
+    add_shared_option(
+        name='rp_rerun',
+        help='Marks the launch as a rerun',
+        default=False,
+        action='store_true',
+    )
+    add_shared_option(
+        name='rp_rerun_of',
+        help='ID of the launch to be marked as a rerun (use only with '
+             'rp_rerun=True)',
+        default='',
+    )
+    add_shared_option(
+        name='rp_parent_item_id',
+        help='Create all test item as child items of the given (already '
+             'existing) item.',
     )
     parser.addini(
         'rp_uuid',
@@ -280,18 +292,6 @@ def pytest_addoption(parser):
         'rp_endpoint',
         help='Server endpoint')
     parser.addini(
-        'rp_project',
-        help='Project name')
-    parser.addini(
-        'rp_launch',
-        default='Pytest Launch',
-        help='Launch name')
-    parser.addini(
-        'rp_launch_id',
-        default=None,
-        help='Use already existing launch-id. The plugin won\'t control '
-             'the Launch status')
-    parser.addini(
         'rp_launch_attributes',
         type='args',
         help='Launch attributes, i.e Performance Regression')
@@ -299,10 +299,6 @@ def pytest_addoption(parser):
         'rp_tests_attributes',
         type='args',
         help='Attributes for all tests items, e.g. Smoke')
-    parser.addini(
-        'rp_launch_description',
-        default='',
-        help='Launch description')
     parser.addini(
         'rp_log_batch_size',
         default='20',
@@ -376,20 +372,6 @@ def pytest_addoption(parser):
         default=True,
         help='Adding tag with issue id to the test')
     parser.addini(
-        'rp_parent_item_id',
-        default=None,
-        help="Create all test item as child items of the given "
-             "(already existing) item.")
-    parser.addini(
         'retries',
         default='0',
         help='Amount of retries for performing REST calls to RP server')
-    parser.addini(
-        'rp_rerun',
-        default=False,
-        help='Marks the launch as the rerun')
-    parser.addini(
-        'rp_rerun_of',
-        default='',
-        help='ID of the launch to be marked as a rerun '
-             '(use only with rp_rerun=True)')

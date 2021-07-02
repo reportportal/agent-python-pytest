@@ -11,6 +11,7 @@ from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.listener import RPReportListener
 from pytest_reportportal.plugin import (
     is_master,
+    log,
     pytest_addoption,
     pytest_configure,
     pytest_collection_finish,
@@ -63,7 +64,6 @@ def test_portal_on_maintenance(mocked_session):
 
     :param mocked_session: pytest fixture
     """
-    mocked_session.config.option = mock.Mock()
     mocked_session.config._reporter_config = mock.Mock()
     mocked_session.config.py_test_service = mock.Mock()
     mocked_session.config.py_test_service.init_service.side_effect = \
@@ -72,8 +72,6 @@ def test_portal_on_maintenance(mocked_session):
     assert mocked_session.config.py_test_service.rp is None
 
 
-@mock.patch('pytest_reportportal.config.get_actual_log_level',
-            mock.Mock(return_value=0))
 @mock.patch('pytest_reportportal.plugin.requests.get', mock.Mock())
 def test_pytest_configure(mocked_config):
     """Test plugin successful configuration.
@@ -81,8 +79,6 @@ def test_pytest_configure(mocked_config):
     :param mocked_get:    Instance of the MagicMock
     :param mocked_config: Pytest fixture
     """
-    mocked_config.getoption.side_effect = (False, False)
-    mocked_config.option = mock.Mock()
     mocked_config.option.rp_enabled = True
     mocked_config.option.rp_project = None
     pytest_configure(mocked_config)
@@ -92,6 +88,12 @@ def test_pytest_configure(mocked_config):
     expect(
         lambda: isinstance(mocked_config._reporter, RPReportListener))
     assert_expectations()
+    mocked_config.getoption.assert_has_calls(
+        [
+            mock.call('--collect-only', default=False),
+            mock.call('--setup-plan', default=False)
+        ]
+    )
 
 
 @mock.patch('pytest_reportportal.plugin.requests.get')
@@ -103,24 +105,101 @@ def test_pytest_configure_dry_run(mocked_config):
 
 
 @mock.patch('pytest_reportportal.plugin.requests.get', mock.Mock())
-@mock.patch('pytest_reportportal.config.get_actual_log_level', mock.Mock())
-def test_pytest_configure_misssing_major_rp_options(mocked_config):
-    """Test plugin configuration in case of missing required input options.
+@mock.patch('pytest_reportportal.plugin.log', wraps=log)
+def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
+    """Test plugin configuration in case of missing rp_endpoint.
 
     The value of the _reportportal_configured attribute of the pytest Config
-    object should be changed to False, stopping plugin configuration, if any of
-    the following options were not set: rp_endpoint, rp_project, rp_uuid.
+    object should be changed to False, stopping plugin configuration, if
+    rp_endpoint is not set.
+
     :param mocked_config: Pytest fixture
     """
-    mocked_config.getoption.side_effect = (False, False)
-    mocked_config.option = mock.Mock()
     mocked_config.option.rp_enabled = True
+    mocked_config.option.rp_endpoint = None
     mocked_config.getini.return_value = 0
     pytest_configure(mocked_config)
     assert mocked_config._reportportal_configured is False
+    mocked_log.debug.assert_has_calls(
+        [
+            mock.call(
+                'One of the following parameters is unset: '
+                'rp_project:{rp_project}, '
+                'rp_endpoint:{rp_endpoint}, '
+                'rp_uuid:{rp_uuid}!'.format(
+                    rp_project=mocked_config.option.rp_project,
+                    rp_endpoint=None,
+                    rp_uuid=mocked_config.option.rp_uuid,
+                )),
+            mock.call('Disabling reporting to RP.'),
+        ]
+    )
 
 
-@mock.patch('pytest_reportportal.config.get_actual_log_level', mock.Mock())
+@mock.patch('pytest_reportportal.plugin.requests.get', mock.Mock())
+@mock.patch('pytest_reportportal.plugin.log', wraps=log)
+def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
+    """Test plugin configuration in case of missing rp_project.
+
+    The value of the _reportportal_configured attribute of the pytest Config
+    object should be changed to False, stopping plugin configuration, if
+    rp_project is not set.
+
+    :param mocked_config: Pytest fixture
+    """
+    mocked_config.option.rp_enabled = True
+    mocked_config.option.rp_project = None
+    mocked_config.getini.return_value = 0
+    pytest_configure(mocked_config)
+    assert mocked_config._reportportal_configured is False
+    mocked_log.debug.assert_has_calls(
+        [
+            mock.call(
+                'One of the following parameters is unset: '
+                'rp_project:{rp_project}, '
+                'rp_endpoint:{rp_endpoint}, '
+                'rp_uuid:{rp_uuid}!'.format(
+                    rp_project=None,
+                    rp_endpoint=mocked_config.option.rp_endpoint,
+                    rp_uuid=mocked_config.option.rp_uuid,
+                )),
+            mock.call('Disabling reporting to RP.'),
+        ]
+    )
+
+
+@mock.patch('pytest_reportportal.plugin.requests.get', mock.Mock())
+@mock.patch('pytest_reportportal.plugin.log', wraps=log)
+def test_pytest_configure_misssing_rp_uuid(mocked_log, mocked_config):
+    """Test plugin configuration in case of missing rp_uuid.
+
+    The value of the _reportportal_configured attribute of the pytest Config
+    object should be changed to False, stopping plugin configuration, if
+    rp_uuid is not set.
+
+    :param mocked_config: Pytest fixture
+    """
+    mocked_config.option.rp_enabled = True
+    mocked_config.option.rp_uuid = None
+    mocked_config.getini.return_value = 0
+    pytest_configure(mocked_config)
+    assert mocked_config._reportportal_configured is False
+    mocked_log.debug.assert_has_calls(
+        [
+            mock.call(
+                'One of the following parameters is unset: '
+                'rp_project:{rp_project}, '
+                'rp_endpoint:{rp_endpoint}, '
+                'rp_uuid:{rp_uuid}!'.format(
+                    rp_project=mocked_config.option.rp_project,
+                    rp_endpoint=mocked_config.option.rp_endpoint,
+                    rp_uuid=None,
+                )),
+            mock.call('Disabling reporting to RP.'),
+        ]
+    )
+
+
 @mock.patch('pytest_reportportal.plugin.requests.get')
 def test_pytest_configure_on_conn_error(mocked_get, mocked_config):
     """Test plugin configuration in case of HTTP error.
@@ -134,8 +213,6 @@ def test_pytest_configure_on_conn_error(mocked_get, mocked_config):
     mock_response = mock.Mock()
     mock_response.raise_for_status.side_effect = RequestException()
     mocked_get.return_value = mock_response
-    mocked_config.getoption.side_effect = (False, False)
-    mocked_config.option = mock.Mock()
     mocked_config.option.rp_enabled = True
     pytest_configure(mocked_config)
     assert mocked_config._reportportal_configured is False
@@ -164,7 +241,6 @@ def test_pytest_collection_finish(mocked_session):
         assert_called_with(mocked_session)
 
 
-@mock.patch('pytest_reportportal.config.get_actual_log_level', mock.Mock())
 @mock.patch('pytest_reportportal.plugin.is_master', mock.Mock())
 @mock.patch('pytest_reportportal.plugin.wait_launch')
 def test_pytest_sessionstart(mocked_wait, mocked_session):
@@ -174,7 +250,6 @@ def test_pytest_sessionstart(mocked_wait, mocked_session):
     :param mocked_session: pytest fixture
     """
     mocked_session.config.pluginmanager.hasplugin.return_value = True
-    mocked_session.config.option = mock.Mock()
     mocked_session.config._reporter_config = mock.Mock(
         spec=AgentConfig(mocked_session.config))
     mocked_session.config._reporter_config.rp_launch_attributes = []
@@ -188,16 +263,14 @@ def test_pytest_sessionstart(mocked_wait, mocked_session):
     assert_expectations()
 
 
-@mock.patch('pytest_reportportal.config.get_actual_log_level', mock.Mock())
 @mock.patch('pytest_reportportal.plugin.is_master', mock.Mock())
-@mock.patch('pytest_reportportal.plugin.wait_launch')
+@mock.patch('pytest_reportportal.plugin.wait_launch', mock.Mock())
 def test_pytest_sessionstart_with_launch_id(mocked_session):
     """Test session configuration if RP launch ID is set via command-line.
 
     :param mocked_session: pytest fixture
     """
     mocked_session.config.pluginmanager.hasplugin.return_value = True
-    mocked_session.config.option = mock.Mock()
     mocked_session.config._reporter_config = mock.Mock(
         spec=AgentConfig(mocked_session.config))
     mocked_session.config._reporter_config.rp_launch_attributes = []
@@ -215,7 +288,6 @@ def test_pytest_sessionfinish(mocked_session):
 
     :param mocked_session: pytest fixture
     """
-    mocked_session.config.option = mock.Mock()
     mocked_session.config.py_test_service = mock.Mock()
     mocked_session.config.option.rp_launch_id = None
     pytest_sessionfinish(mocked_session)
@@ -236,15 +308,18 @@ def test_pytest_unconfigure(mocked_config):
 def test_pytest_addoption_adds_correct_ini_file_arguments():
     """Test the correct list of options are available in the .ini file."""
     expected_argument_names = (
-        'rp_log_level',
-        'rp_uuid',
-        'rp_endpoint',
-        'rp_project',
         'rp_launch',
         'rp_launch_id',
+        'rp_launch_description',
+        'rp_project',
+        'rp_log_level',
+        'rp_rerun',
+        'rp_rerun_of',
+        'rp_parent_item_id',
+        'rp_uuid',
+        'rp_endpoint',
         'rp_launch_attributes',
         'rp_tests_attributes',
-        'rp_launch_description',
         'rp_log_batch_size',
         'rp_ignore_errors',
         'rp_ignore_attributes',
@@ -259,10 +334,7 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_verify_ssl',
         'rp_display_suite_test_file',
         'rp_issue_id_marks',
-        'rp_parent_item_id',
-        'retries',
-        'rp_rerun',
-        'rp_rerun_of'
+        'retries'
     )
     mock_parser = mock.MagicMock(spec=Parser)
 
@@ -277,15 +349,15 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
 def test_pytest_addoption_adds_correct_command_line_arguments():
     """Test the correct list of options are available in the command line."""
     expected_argument_names = (
+        '--reportportal',
         '--rp-launch',
         '--rp-launch-id',
         '--rp-launch-description',
+        '--rp-project',
+        '--rp-log-level',
         '--rp-rerun',
         '--rp-rerun-of',
-        '--rp-parent-item-id',
-        '--rp-project',
-        '--reportportal',
-        '--rp-log-level'
+        '--rp-parent-item-id'
     )
     mock_parser = mock.MagicMock(spec=Parser)
     mock_reporting_group = mock_parser.getgroup.return_value
