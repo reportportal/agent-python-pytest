@@ -1,16 +1,17 @@
 """This modules includes unit tests for the plugin."""
 
-from six.moves import mock
-
-from delayed_assert import expect, assert_expectations
+from _pytest.config.argparsing import Parser
 import pytest
+from delayed_assert import expect, assert_expectations
 from requests.exceptions import RequestException
+from six.moves import mock
 
 from reportportal_client.errors import ResponseError
 from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.listener import RPReportListener
 from pytest_reportportal.plugin import (
     is_master,
+    pytest_addoption,
     pytest_configure,
     pytest_collection_finish,
     pytest_sessionstart,
@@ -230,3 +231,69 @@ def test_pytest_unconfigure(mocked_config):
     mocked_config.pluginmanager.unregister = mock.Mock()
     pytest_unconfigure(mocked_config)
     assert not hasattr(mocked_config, '_reporter')
+
+
+def test_pytest_addoption_adds_correct_ini_file_arguments():
+    """Test the correct list of options are available in the .ini file."""
+    expected_argument_names = (
+        'rp_log_level',
+        'rp_uuid',
+        'rp_endpoint',
+        'rp_project',
+        'rp_launch',
+        'rp_launch_id',
+        'rp_launch_attributes',
+        'rp_tests_attributes',
+        'rp_launch_description',
+        'rp_log_batch_size',
+        'rp_ignore_errors',
+        'rp_ignore_attributes',
+        'rp_is_skipped_an_issue',
+        'rp_hierarchy_dirs_level',
+        'rp_hierarchy_dirs',
+        'rp_hierarchy_module',
+        'rp_hierarchy_class',
+        'rp_hierarchy_parametrize',
+        'rp_issue_marks',
+        'rp_issue_system_url',
+        'rp_verify_ssl',
+        'rp_display_suite_test_file',
+        'rp_issue_id_marks',
+        'rp_parent_item_id',
+        'retries',
+        'rp_rerun',
+        'rp_rerun_of'
+    )
+    mock_parser = mock.MagicMock(spec=Parser)
+
+    pytest_addoption(mock_parser)
+
+    added_argument_names = []
+    for args, kwargs in mock_parser.addini.call_args_list:
+        added_argument_names.append(args[0] if args else kwargs.get("name"))
+    assert tuple(added_argument_names) == expected_argument_names
+
+
+def test_pytest_addoption_adds_correct_command_line_arguments():
+    """Test the correct list of options are available in the command line."""
+    expected_argument_names = (
+        '--rp-launch',
+        '--rp-launch-id',
+        '--rp-launch-description',
+        '--rp-rerun',
+        '--rp-rerun-of',
+        '--rp-parent-item-id',
+        '--rp-project',
+        '--reportportal',
+        '--rp-log-level'
+    )
+    mock_parser = mock.MagicMock(spec=Parser)
+    mock_reporting_group = mock_parser.getgroup.return_value
+
+    pytest_addoption(mock_parser)
+
+    mock_parser.getgroup.assert_called_once_with("reporting")
+    added_argument_names = []
+    for args, kwargs in mock_reporting_group.addoption.call_args_list:
+        added_argument_names.append(args[0] if args else kwargs.get("name"))
+    assert tuple(added_argument_names) == expected_argument_names
