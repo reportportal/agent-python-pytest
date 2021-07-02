@@ -357,7 +357,9 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         '--rp-log-level',
         '--rp-rerun',
         '--rp-rerun-of',
-        '--rp-parent-item-id'
+        '--rp-parent-item-id',
+        '--rp-uuid',
+        '--rp-endpoint'
     )
     mock_parser = mock.MagicMock(spec=Parser)
     mock_reporting_group = mock_parser.getgroup.return_value

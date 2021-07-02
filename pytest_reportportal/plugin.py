@@ -285,12 +285,9 @@ def pytest_addoption(parser):
         help='Create all test item as child items of the given (already '
              'existing) item.',
     )
-    parser.addini(
-        'rp_uuid',
-        help='UUID')
-    parser.addini(
-        'rp_endpoint',
-        help='Server endpoint')
+    add_shared_option(name='rp_uuid', help='UUID')
+    add_shared_option(name='rp_endpoint', help='Server endpoint')
+
     parser.addini(
         'rp_launch_attributes',
         type='args',
