@@ -18,31 +18,24 @@ class AgentConfig(object):
         self._rp_rerun = None
         self.pconfig = pytest_config
 
-        self.rp_endpoint = self.pconfig.getini('rp_endpoint')
-        self.rp_ignore_errors = self.pconfig.getini('rp_ignore_errors')
-        self.rp_ignore_attributes = self.pconfig.getini('rp_ignore_attributes')
-        self.rp_is_skipped_an_issue = self.pconfig.getini(
-            'rp_is_skipped_an_issue')
-        self.rp_launch = self.pconfig.option.rp_launch or self.pconfig.getini(
-            'rp_launch')
-        self.rp_launch_id = (self.pconfig.option.rp_launch_id or
-                             self.pconfig.getini('rp_launch_id'))
-        self.rp_launch_attributes = self.pconfig.getini('rp_launch_attributes')
-        self.rp_launch_description = (
-                self.pconfig.option.rp_launch_description or
-                self.pconfig.getini('rp_launch_description')
+        self.rp_endpoint = self.find_option('rp_endpoint')
+        self.rp_ignore_errors = self.find_option('rp_ignore_errors')
+        self.rp_ignore_attributes = self.find_option('rp_ignore_attributes')
+        self.rp_is_skipped_an_issue = self.find_option(
+            'rp_is_skipped_an_issue'
         )
-        self.rp_log_batch_size = int(self.pconfig.getini('rp_log_batch_size'))
+        self.rp_launch = self.find_option('rp_launch')
+        self.rp_launch_id = self.find_option('rp_launch_id')
+        self.rp_launch_attributes = self.find_option('rp_launch_attributes')
+        self.rp_launch_description = self.find_option('rp_launch_description')
+        self.rp_log_batch_size = int(self.find_option('rp_log_batch_size'))
         self.rp_log_level = get_actual_log_level(self.pconfig, 'rp_log_level')
-        self.rp_parent_item_id = (self.pconfig.option.rp_parent_item_id or
-                                  self.pconfig.getini('rp_parent_item_id'))
-        self.rp_project = (self.pconfig.option.rp_project or
-                           self.pconfig.getini('rp_project'))
-        self.rp_rerun_of = (self.pconfig.option.rp_rerun_of or
-                            self.pconfig.getini('rp_rerun_of'))
-        self.rp_retries = int(self.pconfig.getini('retries'))
-        self.rp_uuid = getenv('RP_UUID') or self.pconfig.getini('rp_uuid')
-        self.rp_verify_ssl = self.pconfig.getini('rp_verify_ssl')
+        self.rp_parent_item_id = self.find_option('rp_parent_item_id')
+        self.rp_project = self.find_option('rp_project')
+        self.rp_rerun_of = self.find_option('rp_rerun_of')
+        self.rp_retries = int(self.find_option('retries'))
+        self.rp_uuid = getenv('RP_UUID') or self.find_option('rp_uuid')
+        self.rp_verify_ssl = self.find_option('rp_verify_ssl')
 
     @property
     def rp_rerun(self):
@@ -54,3 +47,22 @@ class AgentConfig(object):
                 self._rp_rerun = (self.pconfig.option.rp_rerun or
                                   self.pconfig.getini('rp_rerun'))
         return self._rp_rerun
+
+    def find_option(self, option_name, default=None):
+        """
+        Find a single configuration setting from multiple places.
+
+        The value is retrieved in the following places in priority order:
+
+        1. From `self.pconfig.option.[option_name]`.
+        2. From `self.pconfig.getini(option_name)`.
+
+        :param option_name: name of the option
+        :param default:     value to be returned if not found
+        :return: option value
+        """
+        value = (
+            getattr(self.pconfig.option, option_name) or
+            self.pconfig.getini(option_name)
+        )
+        return value if value else default
