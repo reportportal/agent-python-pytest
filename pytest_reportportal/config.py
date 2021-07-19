@@ -62,7 +62,7 @@ class AgentConfig(object):
         :return: option value
         """
         value = (
-            getattr(self.pconfig.option, option_name) or
+            getattr(self.pconfig.option, option_name, None) or
             self.pconfig.getini(option_name)
         )
         return value if value else default
