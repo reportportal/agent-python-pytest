@@ -59,7 +59,10 @@ def mocked_config():
     mocked_config.rootdir = py.path.local('/path/to')
     mocked_config.trace = TagTracer().get('root')
     mocked_config.pluginmanager = mock.Mock()
-    mocked_config.option = mock.Mock()
+    mocked_config.option = mock.create_autospec(Config)
+    mocked_config.option.rp_project = mock.sentinel.rp_project
+    mocked_config.option.rp_endpoint = mock.sentinel.rp_endpoint
+    mocked_config.option.rp_uuid = mock.sentinel.rp_uuid
     mocked_config.option.rp_log_batch_size = -1
     mocked_config.option.retries = -1
     return mocked_config
