@@ -700,8 +700,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :return string description
         """
         if isinstance(test_item, (Class, Function, Module, Item)):
-            doc = test_item.obj.__doc__
-            if doc is not None:
-                return trim_docstring(doc)
+            if hasattr(test_item, "obj"):
+                doc = test_item.obj.__doc__
+                if doc is not None:
+                    return trim_docstring(doc)
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
