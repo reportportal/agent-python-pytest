@@ -390,6 +390,10 @@ def pytest_addoption(parser):
         default=False,
         help='Marks the launch as the rerun')
     parser.addini(
+        'rp_mode',
+        default="DEFAULT",
+        help='Define if it is DEFAULT or DEBUG run')
+    parser.addini(
         'rp_rerun_of',
         default='',
         help='ID of the launch to be marked as a rerun '
