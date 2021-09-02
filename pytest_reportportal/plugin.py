@@ -102,6 +102,7 @@ def pytest_sessionstart(session):
                 verify_ssl=config._reporter_config.rp_verify_ssl,
                 retries=config._reporter_config.rp_retries,
                 parent_item_id=config._reporter_config.rp_parent_item_id,
+                mode=config._reporter_config.rp_mode
             )
         except ResponseError as response_error:
             log.warning('Failed to initialize reportportal-client service. '
