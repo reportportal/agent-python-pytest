@@ -45,8 +45,6 @@ class AgentConfig(object):
         self.rp_verify_ssl = self.pconfig.getini('rp_verify_ssl')
         self.rp_mode = self.pconfig.getini('rp_mode')
 
-        print("rp_endpoint : " + str(self.rp_endpoint))
-
     @property
     def rp_rerun(self):
         """Get value of the rp_rerun parameter."""
@@ -56,5 +54,4 @@ class AgentConfig(object):
             else:
                 self._rp_rerun = (self.pconfig.option.rp_rerun or
                                   self.pconfig.getini('rp_rerun'))
-        print("rp_endpoint : " + str(self.rp_endpoint))
         return self._rp_rerun
