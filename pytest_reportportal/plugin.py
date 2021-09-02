@@ -155,6 +155,7 @@ def pytest_configure(config):
 
     :param config: Object of the pytest Config class
     """
+    print(config.__dir__)
     skip = (config.getoption('--collect-only', default=False) or
             config.getoption('--setup-plan', default=False) or
             not config.option.rp_enabled)
