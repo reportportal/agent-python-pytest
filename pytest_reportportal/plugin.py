@@ -119,7 +119,7 @@ def pytest_sessionstart(session):
                 description=config._reporter_config.rp_launch_description,
                 rerun=config._reporter_config.rp_rerun,
                 rerun_of=config._reporter_config.rp_rerun_of,
-                mode="DEBUG"
+                mode=config._reporter_config.rp_mode
             )
             if config.pluginmanager.hasplugin('xdist'):
                 wait_launch(session.config.py_test_service.rp)
