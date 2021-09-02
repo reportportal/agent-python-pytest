@@ -43,8 +43,7 @@ class AgentConfig(object):
         self.rp_retries = int(self.pconfig.getini('retries'))
         self.rp_uuid = getenv('RP_UUID') or self.pconfig.getini('rp_uuid')
         self.rp_verify_ssl = self.pconfig.getini('rp_verify_ssl')
-        self.rp_mode = (self.pconfig.option.rp_mode or
-                             self.pconfig.getini('rp_mode'))
+        self.rp_mode = self.pconfig.getini('rp_mode')
 
         print("rp_endpoint : " + str(self.rp_endpoint))
 
