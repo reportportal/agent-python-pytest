@@ -1,12 +1,12 @@
 """RPReportListener implements Pytest hooks required for item reporting."""
 
-import pytest
 import logging
+import pytest
+
 try:
     from html import escape  # python3
 except ImportError:
     from cgi import escape  # python2
-
 
 try:
     # This try/except can go away once we support pytest >= 3.3
@@ -85,7 +85,7 @@ class RPReportListener(object):
             self.result = None
             self.issue = {}
 
-        if report.failed:
+        if report.failed or hasattr(report, "wasxfail"):
             self.result = 'FAILED'
             self._add_issue_info(item, report)
         elif report.skipped:
@@ -146,14 +146,11 @@ class RPReportListener(object):
 
                 if issue_ids:
                     mark_comment = mark.kwargs.get("reason", mark.name)
-                    mark_comment += ":"
+                    mark_comment += ":\n"
                     for issue_id in issue_ids:
-                        issue_url = mark_url.format(issue_id=issue_id) if \
-                            mark_url else None
-                        template = " [{issue_id}]({url})" if issue_url \
-                            else " {issue_id}"
-                        mark_comment += template.format(issue_id=issue_id,
-                                                        url=issue_url)
+                        issue_url = mark_url.format(issue_id=issue_id) if mark_url else None
+                        template = " [{issue_id}]({url})" if issue_url else " {issue_id}"
+                        mark_comment += template.format(issue_id=issue_id, url=issue_url)
                 elif "reason" in mark.kwargs:
                     mark_comment = mark.kwargs["reason"]
 
@@ -161,8 +158,8 @@ class RPReportListener(object):
                     comment += ("\n* " if comment else "* ") + mark_comment
 
                 # Set issue_type only for first issue mark
-                if "issue_type" in mark.kwargs and issue_type is None:
-                    issue_type = mark.kwargs["issue_type"]
+                if issue_type is None:
+                    issue_type = mark.kwargs.get("issue_type", "PB")  # Default issue_type should be PB and not TI
 
         # default value
         issue_type = "TI" if issue_type is None else issue_type
@@ -174,5 +171,5 @@ class RPReportListener(object):
             self.issue['issueType'] = \
                 self.py_test_service.issue_types[issue_type]
             # self.issue['ignoreAnalyzer'] = True ???
-        elif (report.when == 'setup') and report.skipped:
+        elif report.skipped:
             self.issue['issueType'] = 'NOT_ISSUE'
