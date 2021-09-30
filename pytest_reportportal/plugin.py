@@ -93,12 +93,10 @@ def pytest_sessionstart(session):
                 endpoint=config._reporter_config.rp_endpoint,
                 uuid=config._reporter_config.rp_uuid,
                 log_batch_size=config._reporter_config.rp_log_batch_size,
-                is_skipped_an_issue=config._reporter_config.
-                rp_is_skipped_an_issue,
+                is_skipped_an_issue=config._reporter_config.rp_is_skipped_an_issue,
                 ignore_errors=config._reporter_config.rp_ignore_errors,
                 custom_launch=config._reporter_config.rp_launch_id,
-                ignored_attributes=config._reporter_config.
-                rp_ignore_attributes,
+                ignored_attributes=config._reporter_config.rp_ignore_attributes,
                 verify_ssl=config._reporter_config.rp_verify_ssl,
                 retries=config._reporter_config.rp_retries,
                 parent_item_id=config._reporter_config.rp_parent_item_id,
