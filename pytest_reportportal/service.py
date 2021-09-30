@@ -296,6 +296,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 continue
             self._hier_parts[part]["start_flag"] = True
             payload = {
+                'attributes': self._get_item_markers(part),
                 'name': self._get_item_name(part),
                 'description': self._get_item_description(part),
                 'start_time': timestamp(),
@@ -643,9 +644,11 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 marker = item.keywords.get(keyword)
 
             marker_values = []
-            if marker and marker.args:
+            if marker and (marker.args or marker.kwargs):
                 for arg in marker.args:
                     marker_values.append("{}:{}".format(keyword, arg))
+                for key, val in marker.kwargs.items():
+                    marker_values.append("{}_{}:{}".format(keyword, key, val))
             else:
                 marker_values.append(keyword)
             # returns a list of strings to accommodate multiple values
@@ -656,8 +659,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except AttributeError:
             get_marker = getattr(item, "get_marker")
 
+        if isinstance(item, pytest.Class):
+            keywords = [mark.name for mark in getattr(item.cls, 'pytestmark', [])]
+        else:
+            keywords = [mark.name for mark in item.own_markers]
         raw_attrs = []
-        for k in item.keywords:
+        for k in keywords:
             if get_marker(k) is not None and k not in self.ignored_attributes:
                 raw_attrs.extend(get_marker_value(item, k))
         raw_attrs.extend(item.session.config.getini('rp_tests_attributes'))
