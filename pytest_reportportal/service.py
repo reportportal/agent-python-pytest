@@ -1,20 +1,17 @@
 """This module includes Service functions for work with pytest agent."""
 
 import logging
-from os import getenv
-import sys
-import traceback
-from time import time
-
 import pkg_resources
 import pytest
+import sys
+import traceback
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import File, Item
-from _pytest.warning_types import PytestWarning
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
-
+from _pytest.warning_types import PytestWarning
+from os import getenv
 from reportportal_client import ReportPortalService
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
@@ -25,7 +22,7 @@ from reportportal_client.helpers import (
 from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
 from six.moves import queue
-
+from time import time
 
 log = logging.getLogger(__name__)
 
@@ -279,6 +276,28 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 else:
                     self._hier_parts[part]["finish_counter"] += 1
 
+    def update_tests_collection(self, session, suite_name):
+        """
+        This method updates the modifications that may be done on the session.items list during Run-Time
+        :param session: pytest.Session
+        :param suite_name: The suite name which its should be be re-collected
+        :return:
+        """
+        part_to_item_id = {part: part_info.get('item_id') for part, part_info in self._hier_parts.items()}
+        self._hier_parts = {}
+        self._item_parts = {}
+        self.collect_tests(session)
+        for part in self._hier_parts:
+            part_item_id = part_to_item_id.get(part)
+            if part_item_id:
+                self._hier_parts[part]['item_id'] = part_item_id
+        pytest_service_keys = list(self._hier_parts.keys())
+        suite_key = next((_key for _key in pytest_service_keys if _key.name == suite_name), None)
+        if not suite_key:
+            raise RuntimeError(f"Could not find any suite with the name '{suite_name}' among the "
+                               f"collected suites under the report portal attributes")
+        self._hier_parts[suite_key]["start_flag"] = True
+
     def start_pytest_item(self, test_item=None):
         """
         Start pytest_item.
@@ -354,14 +373,25 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         }
 
         log.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
-
-        parts = self._item_parts[test_item]
         self.rp.finish_test_item(**fta_rq)
+
+        if test_item not in self._item_parts:
+            return
+
+        parts = self._item_parts.get(test_item, [])
+        if not parts:
+            parts = [next(hier_part for hier_part in self._hier_parts if hier_part.cls == test_item.cls)]
         while len(parts) > 0:
             part = parts.pop()
             if status == "FAILED":
                 part._rp_result = status
-            self._hier_parts[part]["finish_counter"] -= 1
+            if isinstance(part, pytest.Class):
+                suite_tests = [item for item in part.session.items if item.cls == test_item.cls]
+                if test_item in suite_tests:
+                    finish_counter = len(suite_tests) - (suite_tests.index(test_item) + 1)
+                    self._hier_parts[part]["finish_counter"] = finish_counter
+            else:
+                self._hier_parts[part]["finish_counter"] -= 1
             if self._hier_parts[part]["finish_counter"] > 0:
                 continue
             payload = {
@@ -634,6 +664,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param item: pytest.Item
         :return: list of tags
         """
+
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_attributes parameter
         def get_marker_value(item, keyword):
