@@ -102,6 +102,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.log_batch_size = 20
         self.log_item_id = None
         self.parent_item_id = None
+        self.project_settings = None
         self.rp = None
         self.rp_supports_parameters = True
         try:
@@ -155,7 +156,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 verify_ssl=verify_ssl,
                 launch_id=custom_launch,
             )
-            self.project_settings = None
             if self.rp and hasattr(self.rp, "get_project_settings"):
                 self.project_settings = self.rp.get_project_settings()
         else:
