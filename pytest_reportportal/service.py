@@ -4,13 +4,14 @@ import logging
 import pkg_resources
 import pytest
 import sys
+import threading
 import traceback
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import File, Item
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
-from _pytest.warning_types import PytestWarning
+from contextlib import contextmanager
 from os import getenv
 from reportportal_client import ReportPortalService
 from reportportal_client.external.google_analytics import send_event
@@ -23,6 +24,14 @@ from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
 from six.moves import queue
 from time import time
+
+try:
+    from html import escape  # python3
+except ImportError:
+    from cgi import escape  # python2
+
+from .errors import PytestWarning
+from .thread_nested_steps_classes import TestThreadsNestedSteps
 
 log = logging.getLogger(__name__)
 
@@ -91,7 +100,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self._issue_types = {}
         self._item_parts = {}
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
-        self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
+        self._skip_analytics = getenv('AGENT_NO_ANALYTICS', True)
         self.agent_name = 'pytest-reportportal'
         self.agent_version = get_package_version(self.agent_name)
         self.ignore_errors = True
@@ -102,6 +111,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.project_settings = None
         self.rp = None
         self.rp_supports_parameters = True
+        self.test_threads_nested_steps = TestThreadsNestedSteps()
         try:
             pkg_resources.get_distribution('reportportal_client >= 3.2.0')
         except pkg_resources.VersionConflict:
@@ -348,6 +358,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         item_id = self.rp.start_test_item(**start_rq)
         self.log_item_id = item_id
         self.parent_item_id = None
+        self.test_threads_nested_steps.set_current_test_item(self.log_item_id)
         return item_id
 
     def finish_pytest_item(self, test_item, item_id, status, issue=None):
@@ -424,6 +435,94 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         log.debug('ReportPortal - Finish launch: request_body=%s', fl_rq)
         self.rp.finish_launch(**fl_rq)
 
+    def start_nested_step(self, step_name):
+        """
+        Starts a new Nested-Step
+        :param step_name: The nested step name
+        :return: The new step id
+        """
+        if self.rp is None:
+            return
+
+        if self.rp._batch_logs:
+            self.rp._log_batch(None, force=True)
+
+        current_thread = threading.current_thread()
+
+        start_rq = {
+            'name': step_name,
+            'description': "",
+            'start_time': timestamp(),
+            'item_type': 'STEP',
+            'has_stats': False,
+            'parent_item_id': self.test_threads_nested_steps.get_new_item_parent_id(current_thread),
+        }
+        log.debug('ReportPortal - Start Test NestedStep: request_body=%s', start_rq)
+
+        step_id = self.rp.start_test_item(**start_rq)
+        if not self.test_threads_nested_steps.get(current_thread.ident):
+            self.test_threads_nested_steps.add_thread(current_thread)
+        thread_nested_steps = self.test_threads_nested_steps[current_thread.ident]
+        thread_nested_steps.add_nested_step(step_id, step_name)
+
+        return step_id
+
+    def finish_nested_step(self, step_id, status, exception=None):
+        """
+        Finishes a Nested Step
+        :param step_id: The id of the nested step - str
+        :param status: The status of the nested step (FAILED, PASSED)
+        :param exception: An exception object which raised under the Nested Step operations
+        """
+        if self.rp is None:
+            return
+
+        current_thread = threading.current_thread()
+        thread_nested_steps = self.test_threads_nested_steps[current_thread.ident]
+
+        payload = {
+            'end_time': timestamp(),
+            'item_id': step_id,
+            'status': status
+        }
+        log.debug('ReportPortal - Finish Test NestedStep: request_body=%s', payload)
+        self.rp.finish_test_item(**payload)
+
+        if self.rp._batch_logs:
+            self.rp._log_batch(None, force=True)
+
+        if exception and exception not in self.test_threads_nested_steps.nested_steps_exceptions:
+            # This if statement prevents writing the same error log for each paren nested step - this if ensures that
+            # the logger error will be written only once so only the nested which the exception is relevant to will have
+            # the error message
+            self.test_threads_nested_steps.nested_steps_exceptions.append(exception)
+            step_name = thread_nested_steps.nested_steps_info[step_id].name
+            stack_trace_str = ''.join(traceback.format_exception(etype=type(exception), value=exception,
+                                                                 tb=exception.__traceback__))
+            logger_msg = f"The step '{step_name}' failed due to the following error:\n{str(exception)}\n\n" \
+                         f"Exception Traceback:\n{'-'* 20}\n{stack_trace_str}"
+            self.post_log(escape(logger_msg, False), loglevel='ERROR')
+
+        thread_nested_steps.remove_nested_step(step_id)
+
+    @contextmanager
+    def start_stop_nested_step(self, step_name):
+        """
+        A contextmanager which starts and finishes a nested step
+        :param step_name: The name of the nested step
+        :return: The new nested step id
+        """
+        step_id = self.start_nested_step(step_name)
+        exception = None
+        try:
+            yield step_id
+        except Exception as e:
+            exception = e
+            raise
+        finally:
+            status = "FAILED" if exception else "PASSED"
+            self.finish_nested_step(step_id, status, exception)
+
     def post_log(self, message, loglevel='INFO', attachment=None):
         """
         Send a log message to the Report Portal.
@@ -443,14 +542,26 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                         'Available levels: %s.', loglevel, self._loglevels)
             loglevel = 'INFO'
 
+        item_id = self._get_log_item_id()
+
         sl_rq = {
-            'item_id': self.log_item_id,
+            'item_id': item_id,
             'time': timestamp(),
+            'thread_id': threading.current_thread().ident,
             'message': message,
             'level': loglevel,
             'attachment': attachment
         }
         self.rp.log(**sl_rq)
+
+    def _get_log_item_id(self):
+        """
+        This method returns the item id which the log entry should be written under
+        :return:
+        """
+        current_thread = threading.current_thread()
+        item_id = self.test_threads_nested_steps.get_new_item_parent_id(current_thread)
+        return item_id
 
     def _stop_if_necessary(self):
         """
