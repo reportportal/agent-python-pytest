@@ -5,21 +5,21 @@
 
 import dill as pickle
 import logging
-import time
-
 import pytest
 import requests
-
-from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
+import time
 from reportportal_client.errors import ResponseError
 from reportportal_client.helpers import gen_attributes
 
+from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from .config import AgentConfig
 from .listener import RPReportListener
 from .service import PyTestServiceClass
-
+from .thread_monkey_patch import set_new_thread_init_method, set_new_thread_run_method
 
 log = logging.getLogger(__name__)
+
+set_new_thread_init_method()
 
 
 def check_connection(aconf):
@@ -101,6 +101,7 @@ def pytest_sessionstart(session):
                 retries=config._reporter_config.rp_retries,
                 parent_item_id=config._reporter_config.rp_parent_item_id,
             )
+            set_new_thread_run_method(config.py_test_service.rp)
         except ResponseError as response_error:
             log.warning('Failed to initialize reportportal-client service. '
                         'Reporting is disabled.')
