@@ -1,4 +1,4 @@
 dill>=0.2.7.1
-pytest>=3.8.0
+pytest>=3.7.0
 reportportal-client>=5.0.12
 six>=1.15.0
