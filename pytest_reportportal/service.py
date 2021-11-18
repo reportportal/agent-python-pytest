@@ -660,13 +660,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         for k in item.keywords:
             if get_marker(k) is not None and k not in self.ignored_attributes:
                 raw_attrs.extend(get_marker_value(item, k))
-        # When we have custom markers with different values, append the raw_attrs with the markers
-        # which were missed initially.
+        # When we have custom markers with different values, append the
+        # raw_attrs with the markers which were missed initially.
         # Adds supports to have two attributes with same keys.
         for cust_marker in item.own_markers:
             for arg in cust_marker.args:
                 custom_arg = "{0}:{1}".format(cust_marker.name, arg)
-                if not (custom_arg in raw_attrs) and cust_marker.name not in self.ignored_attributes:
+                if not (custom_arg in raw_attrs) and \
+                        cust_marker.name not in self.ignored_attributes:
                     raw_attrs.append(custom_arg)
         raw_attrs.extend(item.session.config.getini('rp_tests_attributes'))
         return gen_attributes(raw_attrs)

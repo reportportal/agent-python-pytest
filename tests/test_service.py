@@ -31,7 +31,6 @@ def test_item_attributes(mocked_item, rp_service):
                      'test_decorator_key_with_multi_value',
                      'test_ini_key']
 
-
         def __iter__(self):
             return iter(self._keywords)
 
