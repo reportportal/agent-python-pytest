@@ -37,6 +37,10 @@ def test_item_attributes(mocked_item, rp_service):
     mocked_item.session.config.getini = getini
     mocked_item.keywords = NodeKeywords()
     mocked_item.get_closest_marker = get_closest_marker
+    mocked_item.own_markers = [
+            pytest.mark.test_decorator_key('test_decorator_value'),
+            pytest.mark.test_decorator_key('new_decorator_value'),
+        ]
     markers = rp_service._get_item_markers(mocked_item)
     assert markers == [{'value': 'test_marker'},
                        {'key': 'test_decorator_key',
@@ -45,6 +49,8 @@ def test_item_attributes(mocked_item, rp_service):
                         'value': 'test_value1'},
                        {'key': 'test_decorator_key_with_multi_value',
                         'value': 'test_value2'},
+                       {'key': 'test_decorator_key',
+                        'value': 'new_decorator_value'},
                        {'value': 'ini_marker'},
                        {'key': 'test_ini_key',
                         'value': 'test_ini_value'}]
@@ -102,6 +108,7 @@ def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
     mocked_session.items = [mocked_item]
 
     rp_service.collect_tests(mocked_session)
+    mocked_item.own_markers = []
     rp_service.start_pytest_item(mocked_item)
 
     expect(mocked_item_start.call_count == 1, 'One HTTP POST sent')
