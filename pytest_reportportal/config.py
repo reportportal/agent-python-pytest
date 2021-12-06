@@ -36,6 +36,7 @@ class AgentConfig(object):
         self.rp_retries = int(self.find_option('retries'))
         self.rp_uuid = getenv('RP_UUID') or self.find_option('rp_uuid')
         self.rp_verify_ssl = self.find_option('rp_verify_ssl')
+        self.rp_mode = self.find_option('rp_mode')
 
     @property
     def rp_rerun(self):

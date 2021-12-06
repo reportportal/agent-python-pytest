@@ -109,12 +109,13 @@ def pytest_sessionstart(session):
             log.debug(str(response_error))
             config.py_test_service.rp = None
             return
-
-        attributes = gen_attributes(
-            config._reporter_config.rp_launch_attributes)
+        rp_launch_attributes = config._reporter_config.rp_launch_attributes
+        attributes = gen_attributes(rp_launch_attributes) \
+            if rp_launch_attributes is not None else None
         if not config._reporter_config.rp_launch_id:
             config.py_test_service.start_launch(
                 config._reporter_config.rp_launch,
+                mode=config._reporter_config.rp_mode,
                 attributes=attributes,
                 description=config._reporter_config.rp_launch_description,
                 rerun=config._reporter_config.rp_rerun,
@@ -287,6 +288,11 @@ def pytest_addoption(parser):
     )
     add_shared_option(name='rp_uuid', help='UUID')
     add_shared_option(name='rp_endpoint', help='Server endpoint')
+    add_shared_option(
+        name='rp_mode',
+        help='Visibility of current launch [DEFAULT, DEBUG]',
+        default='DEFAULT'
+    )
 
     parser.addini(
         'rp_launch_attributes',
