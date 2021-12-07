@@ -391,6 +391,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         }
         log.debug('ReportPortal - Finish launch: request_body=%s', fl_rq)
         self.rp.finish_launch(**fl_rq)
+        self.rp = None
 
     def post_log(self, message, loglevel='INFO', attachment=None):
         """

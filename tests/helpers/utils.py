@@ -8,8 +8,7 @@ DEFAULT_VARIABLES = {
 }
 
 
-def run_pytest_tests(tests, listener='pytest_reportportal.plugin',
-                     variables=None):
+def run_pytest_tests(tests=None, variables=None):
     if variables is None:
         variables = DEFAULT_VARIABLES
 
@@ -19,7 +18,8 @@ def run_pytest_tests(tests, listener='pytest_reportportal.plugin',
         arguments.append('-o')
         arguments.append('{0}={1}'.format(k, str(v)))
 
-    for t in tests:
-        arguments.append(t)
+    if tests is not None:
+        for t in tests:
+            arguments.append(t)
 
     return pytest.main(arguments)

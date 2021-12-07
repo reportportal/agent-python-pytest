@@ -11,6 +11,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import pytest
 from six.moves import mock
 
 from tests import REPORT_PORTAL_SERVICE
@@ -18,11 +19,22 @@ from tests.helpers import utils
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_launch_mode(mock_client_init):
-    variables = {'RP_MODE': 'DEBUG'}
-    for k, v in utils.DEFAULT_VARIABLES.items():
-        variables[k] = v
-
+@pytest.mark.parametrize(['mode', 'expected_mode'], [('DEFAULT', 'DEFAULT'),
+                                                     ('DEBUG', 'DEBUG'),
+                                                     (None, 'DEFAULT')])
+def test_launch_mode(mock_client_init, mode, expected_mode):
+    variables = dict()
+    if mode is not None:
+        variables['rp_mode'] = mode
+    variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=['examples/test_simple.py'],
                                     variables=variables)
-    assert result.value == 0
+    assert result.value == 0, 'Exit code should be 0 (no errors)'
+
+    mock_client = mock_client_init.return_value
+    assert mock_client.start_launch.call_count == 1, \
+        '"start_launch" method was not called'
+
+    call_args = mock_client.start_launch.call_args_list
+    start_launch_kwargs = call_args[0][1]
+    assert start_launch_kwargs['mode'] == expected_mode

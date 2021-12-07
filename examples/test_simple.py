@@ -1,4 +1,3 @@
 
-def test_simple(rp_logger):
-    rp_logger.info("A simple test")
+def test_simple():
     assert True is True
