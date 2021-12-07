@@ -1,3 +1,5 @@
+"""This modules includes integration tests for the debug mode switch."""
+
 #  Copyright (c) 2021 http://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -23,6 +25,8 @@ from tests.helpers import utils
                                                      ('DEBUG', 'DEBUG'),
                                                      (None, 'DEFAULT')])
 def test_launch_mode(mock_client_init, mode, expected_mode):
+    """Verify different launch modes are passed to `start_launch` method of
+    ReportPortalService."""
     variables = dict()
     if mode is not None:
         variables['rp_mode'] = mode
