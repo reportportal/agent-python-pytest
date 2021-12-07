@@ -29,7 +29,7 @@ def test_launch_mode(mock_client_init, mode, expected_mode):
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=['examples/test_simple.py'],
                                     variables=variables)
-    assert result.value == 0, 'Exit code should be 0 (no errors)'
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
     mock_client = mock_client_init.return_value
     assert mock_client.start_launch.call_count == 1, \
