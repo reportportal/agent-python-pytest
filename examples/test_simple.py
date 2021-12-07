@@ -1,6 +1,6 @@
-"""Simple example test"""
+"""Simple example test."""
 
 
 def test_simple():
-    """Simple example test"""
+    """Simple example test."""
     assert True is True

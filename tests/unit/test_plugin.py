@@ -89,7 +89,6 @@ def test_portal_on_maintenance(mocked_session):
 def test_pytest_configure(mocked_config):
     """Test plugin successful configuration.
 
-    :param mocked_get:    Instance of the MagicMock
     :param mocked_config: Pytest fixture
     """
     mocked_config.option.rp_enabled = True
