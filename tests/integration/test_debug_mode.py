@@ -25,8 +25,7 @@ from tests.helpers import utils
                                                      ('DEBUG', 'DEBUG'),
                                                      (None, 'DEFAULT')])
 def test_launch_mode(mock_client_init, mode, expected_mode):
-    """Verify different launch modes are passed to `start_launch` method of
-    ReportPortalService.
+    """Verify different launch modes are passed to `start_launch` method.
 
     :param mock_client_init: Pytest fixture
     :param mode:             a variable to be passed to pytest

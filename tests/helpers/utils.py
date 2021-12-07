@@ -24,7 +24,7 @@ DEFAULT_VARIABLES = {
 
 
 def run_pytest_tests(tests=None, variables=None):
-    """Run specific pytest tests
+    """Run specific pytest tests.
 
     :param tests:     a list of tests to run
     :param variables: parameter  variables which will be passed to pytest
