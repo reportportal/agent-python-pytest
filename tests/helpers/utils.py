@@ -33,7 +33,7 @@ def run_pytest_tests(tests=None, variables=None):
     if variables is None:
         variables = DEFAULT_VARIABLES
 
-    arguments = list()
+    arguments = []
     arguments.append('--reportportal')
     for k, v in variables.items():
         arguments.append('-o')
