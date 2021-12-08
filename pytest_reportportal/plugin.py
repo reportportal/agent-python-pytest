@@ -111,7 +111,7 @@ def pytest_sessionstart(session):
             return
         rp_launch_attributes = config._reporter_config.rp_launch_attributes
         attributes = gen_attributes(rp_launch_attributes) \
-            if rp_launch_attributes is not None else None
+            if rp_launch_attributes else None
         if not config._reporter_config.rp_launch_id:
             config.py_test_service.start_launch(
                 config._reporter_config.rp_launch,
