@@ -1,9 +1,9 @@
 """This module includes Service functions for work with pytest agent."""
 
 import logging
-from os import getenv
 import sys
 import traceback
+from os import getenv
 from time import time
 
 import pkg_resources
@@ -11,10 +11,9 @@ import pytest
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import File, Item
-from _pytest.warning_types import PytestWarning
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
-
+from _pytest.warning_types import PytestWarning
 from reportportal_client import ReportPortalService
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
@@ -25,7 +24,6 @@ from reportportal_client.helpers import (
 from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
 from six.moves import queue
-
 
 log = logging.getLogger(__name__)
 
@@ -137,11 +135,11 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self._errors = queue.Queue()
         if self.rp is None:
             self.ignore_errors = ignore_errors
-            self.ignored_attributes = ignored_attributes
+            self.ignored_attributes = ignored_attributes or []
             self.parent_item_id = parent_item_id
             if self.rp_supports_parameters:
                 self.ignored_attributes = list(
-                    set(ignored_attributes).union({'parametrize'}))
+                    set(self.ignored_attributes).union({'parametrize'}))
             self.log_batch_size = log_batch_size
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', endpoint, project, uuid)
@@ -392,6 +390,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         }
         log.debug('ReportPortal - Finish launch: request_body=%s', fl_rq)
         self.rp.finish_launch(**fl_rq)
+        self.rp = None
 
     def post_log(self, message, loglevel='INFO', attachment=None):
         """

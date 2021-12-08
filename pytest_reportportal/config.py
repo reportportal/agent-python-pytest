@@ -30,6 +30,7 @@ class AgentConfig(object):
         self.rp_launch_description = self.find_option('rp_launch_description')
         self.rp_log_batch_size = int(self.find_option('rp_log_batch_size'))
         self.rp_log_level = get_actual_log_level(self.pconfig, 'rp_log_level')
+        self.rp_mode = self.find_option('rp_mode')
         self.rp_parent_item_id = self.find_option('rp_parent_item_id')
         self.rp_project = self.find_option('rp_project')
         self.rp_rerun_of = self.find_option('rp_rerun_of')
