@@ -135,8 +135,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self._errors = queue.Queue()
         if self.rp is None:
             self.ignore_errors = ignore_errors
-            self.ignored_attributes = ignored_attributes \
-                if ignored_attributes is not None else list()
+            self.ignored_attributes = ignored_attributes or []
             self.parent_item_id = parent_item_id
             if self.rp_supports_parameters:
                 self.ignored_attributes = list(
