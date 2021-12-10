@@ -146,3 +146,49 @@ def test_simple_test_in_class_in_class(mock_client_init):
     expect(test_start_kwargs['parent_item_id'].startswith(inner_child_name))
     expect(test_start_kwargs['item_type'] == 'STEP')
     assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_simple_tests_in_different_inner_folders(mock_client_init):
+    """Verify correct suite hierarchy for two tests in different folders.
+
+    :param mock_client_init: Pytest fixture
+    """
+    tests_to_run = ['examples/another_inner/test_another_inner_simple.py',
+                    'examples/inner/test_inner_simple.py']
+    first_suite_name = 'examples/another_inner/test_another_inner_simple.py'
+    second_suite_name = 'examples/inner/test_inner_simple.py'
+    test_name = 'test_simple'
+
+    mock_client = mock_client_init.return_value
+    mock_client.start_test_item.side_effect = item_id_gen
+
+    result = utils.run_pytest_tests(tests=tests_to_run)
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    assert mock_client.start_test_item.call_count == 4, \
+        '"start_test_item" method was called incorrect number of times'
+
+    call_args = mock_client.start_test_item.call_args_list
+    first_suite_kwargs = call_args[0][1]
+    first_test_kwargs = call_args[1][1]
+    second_suite_kwargs = call_args[2][1]
+    second_test_kwargs = call_args[3][1]
+
+    expect(first_suite_kwargs['name'] == first_suite_name)
+    expect(first_suite_kwargs['item_type'] == 'SUITE')
+    expect(first_suite_kwargs['parent_item_id'] is None)
+
+    expect(second_suite_kwargs['name'] == second_suite_name)
+    expect(second_suite_kwargs['item_type'] == 'SUITE')
+    expect(second_suite_kwargs['parent_item_id'] is None)
+
+    expect(first_test_kwargs['name'] == test_name)
+    expect(first_test_kwargs['parent_item_id'].startswith(first_suite_name))
+    expect(first_test_kwargs['item_type'] == 'STEP')
+
+    expect(second_test_kwargs['name'] == test_name)
+    expect(second_test_kwargs['parent_item_id'].startswith(second_suite_name))
+    expect(second_test_kwargs['item_type'] == 'STEP')
+
+    assert_expectations()
