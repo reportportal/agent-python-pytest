@@ -1,6 +1,7 @@
 """This module includes Service functions for work with pytest agent."""
 
 import logging
+import os.path
 import sys
 from os import getenv
 from time import time
@@ -419,13 +420,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :return: str rp_name
         """
         parts_dirs = PyTestServiceClass._get_item_dirs(item)
-        dir_path = item.fspath.new(dirname="", basename="", drive="")
+        root_path = item.session.config.rootdir
+        dir_path = root_path.new()
         rp_name_path = ""
         dirs_parts = {}
 
         for dir_name in parts_dirs[dirs_level:]:
             dir_path = dir_path.join(dir_name)
-            path = str(dir_path)
+            path = str(dir_path.relto(root_path))
 
             if hier_flag:
                 if path in dirs_parts:
@@ -444,7 +446,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
                 report_parts.append(item_dir)
             else:
-                rp_name_path = path[1:]
+                rp_name_path = path
 
         if not hier_flag:
             return rp_name_path
