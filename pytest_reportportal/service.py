@@ -197,7 +197,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         Collect all tests.
 
         :param session: pytest.Session
-        :return: None
         """
         if self.rp is None:
             return
