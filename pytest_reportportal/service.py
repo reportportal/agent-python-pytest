@@ -607,7 +607,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param item: pytest.Item
         :return: list of tags
         """
-
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_attributes parameter
         def get_marker_value(item, keyword):
