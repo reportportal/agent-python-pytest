@@ -411,7 +411,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     @staticmethod
     def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts,
-                                  dirs_parts, rp_name=""):
+                                  dirs_parts):
         """
         Add item to hierarchy of parents located in directory.
 
@@ -420,7 +420,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param dirs_level:   int value of level
         :param report_parts: ''
         :param dirs_parts:   ''
-        :param rp_name:      report name
         :return: str rp_name
         """
         parts_dirs = PyTestServiceClass._get_item_dirs(item)
@@ -434,7 +433,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             if hier_flag:
                 if path in dirs_parts:
                     item_dir = dirs_parts[path]
-                    rp_name = ""
                 else:
                     if hasattr(Item, "from_parent"):
                         item_dir = File.from_parent(parent=item,
@@ -444,19 +442,17 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                         item_dir = File(dir_path, nodeid=dir_name,
                                         session=item.session,
                                         config=item.session.config)
-                    rp_name += dir_name
-                    item_dir._rp_name = rp_name
+                    item_dir._rp_name = dir_name
                     dirs_parts[path] = item_dir
-                    rp_name = ""
 
                 report_parts.append(item_dir)
             else:
                 rp_name_path = path[1:]
 
         if not hier_flag:
-            rp_name += rp_name_path
+            return rp_name_path
 
-        return rp_name
+        return ""
 
     @staticmethod
     def _add_item_hier_parts_parametrize(item, report_parts, tests_parts,
@@ -552,17 +548,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         """
         parts = []
         parent = item.parent
-        if not isinstance(parent, Instance):
-            parts.append(parent)
-        while True:
+        while parent is not None and not isinstance(parent, Session):
+            if not isinstance(parent, Instance):
+                parts.append(parent)
             parent = parent.parent
-            if parent is None:
-                break
-            if isinstance(parent, Instance):
-                continue
-            if isinstance(parent, Session):
-                break
-            parts.append(parent)
 
         parts.reverse()
         return parts
