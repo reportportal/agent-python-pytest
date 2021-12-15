@@ -2,12 +2,10 @@
 
 import logging
 import sys
-import traceback
 from os import getenv
 from time import time
 
 import pkg_resources
-import pytest
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import File, Item
@@ -23,7 +21,6 @@ from reportportal_client.helpers import (
 )
 from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
-from six.moves import queue
 
 log = logging.getLogger(__name__)
 
@@ -87,7 +84,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def __init__(self):
         """Initialize instance attributes."""
-        self._errors = queue.Queue()
         self._hier_parts = {}
         self._issue_types = {}
         self._item_parts = {}
@@ -102,6 +98,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.parent_item_id = None
         self.rp = None
         self.rp_supports_parameters = True
+        self.project_settings = {}
         try:
             pkg_resources.get_distribution('reportportal_client >= 3.2.0')
         except pkg_resources.VersionConflict:
@@ -132,7 +129,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      parent_item_id=None,
                      retries=0):
         """Update self.rp with the instance of the ReportPortalService."""
-        self._errors = queue.Queue()
         if self.rp is None:
             self.ignore_errors = ignore_errors
             self.ignored_attributes = ignored_attributes or []
@@ -177,7 +173,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param kwargs:      additional params
         :return: item ID
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -204,7 +199,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param session: pytest.Session
         :return: None
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -284,7 +278,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param test_item: pytest.Item
         :return: item ID
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -339,7 +332,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param issue:     an external system issue reference
         :return: None
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -379,7 +371,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param kwargs: additional params
         :return: None
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -402,7 +393,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param attachment: attachment file
         :return: None
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -419,21 +409,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'attachment': attachment
         }
         self.rp.log(**sl_rq)
-
-    def _stop_if_necessary(self):
-        """
-        Stop tests if any error occurs.
-
-        :return: None
-        """
-        try:
-            exc, msg, tb = self._errors.get(False)
-            traceback.print_exception(exc, msg, tb)
-            sys.stderr.flush()
-            if not self.ignore_errors:
-                pytest.exit(msg)
-        except queue.Empty:
-            pass
 
     @staticmethod
     def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts,
@@ -632,6 +607,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param item: pytest.Item
         :return: list of tags
         """
+
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_attributes parameter
         def get_marker_value(item, keyword):
