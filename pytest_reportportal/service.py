@@ -221,7 +221,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except ValueError:
             hier_dirs_level = 0
 
-        dirs_parts = {}
         tests_parts = {}
 
         for item in session.items:
@@ -230,8 +229,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
             # Hierarchy for directories
             rp_name = self._add_item_hier_parts_dirs(item, hier_dirs,
-                                                     hier_dirs_level, parts,
-                                                     dirs_parts)
+                                                     hier_dirs_level, parts)
 
             # Hierarchy for Module and Class/UnitTestCase
             item_parts = self._get_item_parts(item)
@@ -410,8 +408,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.rp.log(**sl_rq)
 
     @staticmethod
-    def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts,
-                                  dirs_parts):
+    def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts):
         """
         Add item to hierarchy of parents located in directory.
 
@@ -419,12 +416,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param hier_flag:    flag
         :param dirs_level:   int value of level
         :param report_parts: ''
-        :param dirs_parts:   ''
         :return: str rp_name
         """
         parts_dirs = PyTestServiceClass._get_item_dirs(item)
         dir_path = item.fspath.new(dirname="", basename="", drive="")
         rp_name_path = ""
+        dirs_parts = {}
 
         for dir_name in parts_dirs[dirs_level:]:
             dir_path = dir_path.join(dir_name)
@@ -568,14 +565,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         dir_path = item.fspath.new(basename="")
         rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
                                drive="")
-
-        dir_list = []
-        for directory in rel_dir.parts(reverse=False):
-            dir_name = directory.basename
-            if dir_name:
-                dir_list.append(dir_name)
-
-        return dir_list
+        return [d.basename for d in rel_dir.parts(reverse=False) if d.basename]
 
     def _get_launch_attributes(self, ini_attrs):
         """Generate launch attributes in the format supported by the client.
