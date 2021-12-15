@@ -170,7 +170,9 @@ TEST_VARIABLES = \
      dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_module': False},
           **utils.DEFAULT_VARIABLES),
      dict({'rp_hierarchy_parametrize': True, 'rp_hierarchy_module': False},
-          **utils.DEFAULT_VARIABLES)
+          **utils.DEFAULT_VARIABLES),
+     dict({'rp_hierarchy_module': False, 'rp_display_suite_test_file': False},
+          **utils.DEFAULT_VARIABLES),
      ]
 
 TEST_EXPECTED_ITEMS = [
@@ -213,6 +215,13 @@ TEST_EXPECTED_ITEMS = [
          'parent_item_id': lambda x: x.startswith(
              'test_in_class_parameterized')}
     ],
+    [
+        {'name': 'Tests',
+         'item_type': 'SUITE',
+         'parent_item_id': lambda x: x is None},
+        {'name': 'test_in_class_parameterized[param]', 'item_type': 'STEP',
+         'parent_item_id': lambda x: x.startswith('Tests')}
+    ]
 ]
 
 TEST_PARAMETERS = [(v, TEST_EXPECTED_ITEMS[i]) for i, v in
