@@ -165,15 +165,18 @@ def test_simple_tests_in_different_inner_folders(mock_client_init):
 
 
 TEST_VARIABLES = \
-    [dict({'rp_hierarchy_dirs': True}, **utils.DEFAULT_VARIABLES),
-     dict({'rp_hierarchy_module': False}, **utils.DEFAULT_VARIABLES),
-     dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_module': False},
-          **utils.DEFAULT_VARIABLES),
-     dict({'rp_hierarchy_parametrize': True, 'rp_hierarchy_module': False},
-          **utils.DEFAULT_VARIABLES),
-     dict({'rp_hierarchy_module': False, 'rp_display_suite_test_file': False},
-          **utils.DEFAULT_VARIABLES),
-     ]
+    [
+        dict({'rp_hierarchy_dirs': True}, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_module': False}, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_module': False},
+             **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_parametrize': True, 'rp_hierarchy_module': False},
+             **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_module': False,
+              'rp_display_suite_test_file': False},
+             **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dirs_level': 1}, **utils.DEFAULT_VARIABLES)
+    ]
 
 TEST_EXPECTED_ITEMS = [
     [
@@ -219,6 +222,15 @@ TEST_EXPECTED_ITEMS = [
         {'name': 'Tests',
          'item_type': 'SUITE',
          'parent_item_id': lambda x: x is None},
+        {'name': 'test_in_class_parameterized[param]', 'item_type': 'STEP',
+         'parent_item_id': lambda x: x.startswith('Tests')}
+    ],
+    [
+        {'name': 'test_in_class_parameterized.py', 'item_type': 'SUITE',
+         'parent_item_id': lambda x: x is None},
+        {'name': 'Tests', 'item_type': 'SUITE',
+         'parent_item_id': lambda x: x.startswith(
+             'test_in_class_parameterized.py')},
         {'name': 'test_in_class_parameterized[param]', 'item_type': 'STEP',
          'parent_item_id': lambda x: x.startswith('Tests')}
     ]
