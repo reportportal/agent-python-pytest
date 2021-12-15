@@ -1,7 +1,6 @@
 """This module includes Service functions for work with pytest agent."""
 
 import logging
-import os.path
 import sys
 from os import getenv
 from time import time
@@ -222,6 +221,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except ValueError:
             hier_dirs_level = 0
 
+        dir_path_separator = \
+            session.config._reporter_config.rp_hierarchy_dir_path_separator
+
         tests_parts = {}
 
         for item in session.items:
@@ -236,13 +238,16 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             item_parts = self._get_item_parts(item)
             rp_name = self._add_item_hier_parts_other(item_parts, item, Module,
                                                       hier_module, parts,
-                                                      rp_name)
+                                                      rp_name,
+                                                      dir_path_separator)
             rp_name = self._add_item_hier_parts_other(item_parts, item, Class,
                                                       hier_class, parts,
-                                                      rp_name)
+                                                      rp_name,
+                                                      dir_path_separator)
             rp_name = self._add_item_hier_parts_other(item_parts, item,
                                                       UnitTestCase, hier_class,
-                                                      parts, rp_name)
+                                                      parts, rp_name,
+                                                      dir_path_separator)
 
             # Hierarchy for parametrized tests
             if hier_param:
@@ -502,7 +507,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     @staticmethod
     def _add_item_hier_parts_other(item_parts, item, item_type, hier_flag,
-                                   report_parts, rp_name=""):
+                                   report_parts, rp_name="", dir_separator=""):
         """
         Add item to hierarchy of parents.
 
@@ -517,15 +522,20 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :return: str rp_name
         """
         for part in item_parts:
-
             if type(part) is item_type:
 
                 if item_type is Module:
-                    module_path = str(
+                    module_path = \
                         item.fspath.new(dirname=rp_name,
                                         basename=part.fspath.basename,
-                                        drive=""))
-                    rp_name = module_path if rp_name else module_path[1:]
+                                        drive="")
+                    if dir_separator:
+                        module_path_str = dir_separator.join(
+                            [p.basename for p in module_path.parts(
+                                reverse=False) if p.basename])
+                    else:
+                        module_path_str = str(module_path)
+                    rp_name = module_path_str
                 elif item_type in (Class, Function, UnitTestCase,
                                    TestCaseFunction):
                     rp_name += ("::" if rp_name else "") + part.name

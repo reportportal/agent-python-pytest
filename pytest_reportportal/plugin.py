@@ -378,3 +378,8 @@ def pytest_addoption(parser):
         'retries',
         default='0',
         help='Amount of retries for performing REST calls to RP server')
+    parser.addini(
+        'rp_hierarchy_dir_path_separator',
+        type='string',
+        default='',
+        help='Path separator to display directories in test hierarchy')

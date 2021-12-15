@@ -19,7 +19,8 @@ DEFAULT_VARIABLES = {
     'rp_launch': 'Pytest',
     'rp_endpoint': "http://localhost:8080",
     'rp_project': "default_personal",
-    'rp_uuid': "test_uuid"
+    'rp_uuid': "test_uuid",
+    'rp_hierarchy_dir_path_separator': '/'
 }
 
 
