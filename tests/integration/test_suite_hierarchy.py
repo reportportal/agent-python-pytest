@@ -20,7 +20,7 @@ import pytest
 from delayed_assert import expect, assert_expectations
 from six.moves import mock
 
-from integration import HIERARCHY_TEST_PARAMETERS
+from tests.integration import HIERARCHY_TEST_PARAMETERS
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
