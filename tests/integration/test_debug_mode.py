@@ -31,7 +31,6 @@ def test_launch_mode(mock_client_init, mode, expected_mode):
     :param mode:             a variable to be passed to pytest
     :param expected_mode:    a value which should be passed to
     ReportPortalService
-    :return: exit code
     """
     variables = dict()
     if mode is not None:

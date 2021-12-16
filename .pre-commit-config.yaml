@@ -12,6 +12,11 @@ repos:
     rev: 6.0.0
     hooks:
     -   id: pydocstyle
+        exclude: |
+            (?x)^(
+                tests/.* |
+                examples/.*
+            )
 -   repo: https://github.com/Lucas-C/pre-commit-hooks-markup
     rev: v1.0.1
     hooks:

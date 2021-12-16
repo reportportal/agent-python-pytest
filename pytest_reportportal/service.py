@@ -2,12 +2,10 @@
 
 import logging
 import sys
-import traceback
 from os import getenv
 from time import time
 
 import pkg_resources
-import pytest
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import File, Item
@@ -23,7 +21,6 @@ from reportportal_client.helpers import (
 )
 from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
-from six.moves import queue
 
 log = logging.getLogger(__name__)
 
@@ -87,7 +84,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     def __init__(self):
         """Initialize instance attributes."""
-        self._errors = queue.Queue()
         self._hier_parts = {}
         self._issue_types = {}
         self._item_parts = {}
@@ -102,6 +98,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         self.parent_item_id = None
         self.rp = None
         self.rp_supports_parameters = True
+        self.project_settings = {}
         try:
             pkg_resources.get_distribution('reportportal_client >= 3.2.0')
         except pkg_resources.VersionConflict:
@@ -132,7 +129,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      parent_item_id=None,
                      retries=0):
         """Update self.rp with the instance of the ReportPortalService."""
-        self._errors = queue.Queue()
         if self.rp is None:
             self.ignore_errors = ignore_errors
             self.ignored_attributes = ignored_attributes or []
@@ -177,7 +173,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param kwargs:      additional params
         :return: item ID
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -202,9 +197,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         Collect all tests.
 
         :param session: pytest.Session
-        :return: None
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -228,7 +221,9 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         except ValueError:
             hier_dirs_level = 0
 
-        dirs_parts = {}
+        dir_path_separator = \
+            session.config._reporter_config.rp_hierarchy_dir_path_separator
+
         tests_parts = {}
 
         for item in session.items:
@@ -237,20 +232,22 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
             # Hierarchy for directories
             rp_name = self._add_item_hier_parts_dirs(item, hier_dirs,
-                                                     hier_dirs_level, parts,
-                                                     dirs_parts)
+                                                     hier_dirs_level, parts)
 
             # Hierarchy for Module and Class/UnitTestCase
             item_parts = self._get_item_parts(item)
             rp_name = self._add_item_hier_parts_other(item_parts, item, Module,
                                                       hier_module, parts,
-                                                      rp_name)
+                                                      rp_name,
+                                                      dir_path_separator)
             rp_name = self._add_item_hier_parts_other(item_parts, item, Class,
                                                       hier_class, parts,
-                                                      rp_name)
+                                                      rp_name,
+                                                      dir_path_separator)
             rp_name = self._add_item_hier_parts_other(item_parts, item,
                                                       UnitTestCase, hier_class,
-                                                      parts, rp_name)
+                                                      parts, rp_name,
+                                                      dir_path_separator)
 
             # Hierarchy for parametrized tests
             if hier_param:
@@ -284,7 +281,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param test_item: pytest.Item
         :return: item ID
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -339,7 +335,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param issue:     an external system issue reference
         :return: None
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -379,7 +374,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param kwargs: additional params
         :return: None
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -402,7 +396,6 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param attachment: attachment file
         :return: None
         """
-        self._stop_if_necessary()
         if self.rp is None:
             return
 
@@ -420,24 +413,8 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         }
         self.rp.log(**sl_rq)
 
-    def _stop_if_necessary(self):
-        """
-        Stop tests if any error occurs.
-
-        :return: None
-        """
-        try:
-            exc, msg, tb = self._errors.get(False)
-            traceback.print_exception(exc, msg, tb)
-            sys.stderr.flush()
-            if not self.ignore_errors:
-                pytest.exit(msg)
-        except queue.Empty:
-            pass
-
     @staticmethod
-    def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts,
-                                  dirs_parts, rp_name=""):
+    def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts):
         """
         Add item to hierarchy of parents located in directory.
 
@@ -445,22 +422,21 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :param hier_flag:    flag
         :param dirs_level:   int value of level
         :param report_parts: ''
-        :param dirs_parts:   ''
-        :param rp_name:      report name
         :return: str rp_name
         """
         parts_dirs = PyTestServiceClass._get_item_dirs(item)
-        dir_path = item.fspath.new(dirname="", basename="", drive="")
+        root_path = item.session.config.rootdir
+        dir_path = root_path.new()
         rp_name_path = ""
+        dirs_parts = {}
 
         for dir_name in parts_dirs[dirs_level:]:
             dir_path = dir_path.join(dir_name)
-            path = str(dir_path)
+            path = str(dir_path.relto(root_path))
 
             if hier_flag:
                 if path in dirs_parts:
                     item_dir = dirs_parts[path]
-                    rp_name = ""
                 else:
                     if hasattr(Item, "from_parent"):
                         item_dir = File.from_parent(parent=item,
@@ -470,19 +446,17 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                         item_dir = File(dir_path, nodeid=dir_name,
                                         session=item.session,
                                         config=item.session.config)
-                    rp_name += dir_name
-                    item_dir._rp_name = rp_name
+                    item_dir._rp_name = dir_name
                     dirs_parts[path] = item_dir
-                    rp_name = ""
 
                 report_parts.append(item_dir)
             else:
-                rp_name_path = path[1:]
+                rp_name_path = path
 
         if not hier_flag:
-            rp_name += rp_name_path
+            return rp_name_path
 
-        return rp_name
+        return ""
 
     @staticmethod
     def _add_item_hier_parts_parametrize(item, report_parts, tests_parts,
@@ -533,7 +507,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
 
     @staticmethod
     def _add_item_hier_parts_other(item_parts, item, item_type, hier_flag,
-                                   report_parts, rp_name=""):
+                                   report_parts, rp_name="", dir_separator=""):
         """
         Add item to hierarchy of parents.
 
@@ -548,15 +522,20 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         :return: str rp_name
         """
         for part in item_parts:
-
             if type(part) is item_type:
 
                 if item_type is Module:
-                    module_path = str(
+                    module_path = \
                         item.fspath.new(dirname=rp_name,
                                         basename=part.fspath.basename,
-                                        drive=""))
-                    rp_name = module_path if rp_name else module_path[1:]
+                                        drive="")
+                    if dir_separator:
+                        module_path_str = dir_separator.join(
+                            [p.basename for p in module_path.parts(
+                                reverse=False) if p.basename])
+                    else:
+                        module_path_str = str(module_path)
+                    rp_name = module_path_str
                 elif item_type in (Class, Function, UnitTestCase,
                                    TestCaseFunction):
                     rp_name += ("::" if rp_name else "") + part.name
@@ -578,17 +557,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         """
         parts = []
         parent = item.parent
-        if not isinstance(parent, Instance):
-            parts.append(parent)
-        while True:
+        while parent is not None and not isinstance(parent, Session):
+            if not isinstance(parent, Instance):
+                parts.append(parent)
             parent = parent.parent
-            if parent is None:
-                break
-            if isinstance(parent, Instance):
-                continue
-            if isinstance(parent, Session):
-                break
-            parts.append(parent)
 
         parts.reverse()
         return parts
@@ -605,14 +577,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         dir_path = item.fspath.new(basename="")
         rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
                                drive="")
-
-        dir_list = []
-        for directory in rel_dir.parts(reverse=False):
-            dir_name = directory.basename
-            if dir_name:
-                dir_list.append(dir_name)
-
-        return dir_list
+        return [d.basename for d in rel_dir.parts(reverse=False) if d.basename]
 
     def _get_launch_attributes(self, ini_attrs):
         """Generate launch attributes in the format supported by the client.
