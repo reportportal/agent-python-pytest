@@ -13,9 +13,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-import random
-import time
-
 import pytest
 from delayed_assert import expect, assert_expectations
 from six.moves import mock
@@ -23,11 +20,6 @@ from six.moves import mock
 from tests.integration import HIERARCHY_TEST_PARAMETERS
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
-
-
-def item_id_gen(**kwargs):
-    return "{}-{}-{}".format(kwargs['name'], str(round(time.time() * 1000)),
-                             random.randint(0, 9999))
 
 
 def verify_start_item_parameters(mock_client, expected_items):
@@ -54,7 +46,7 @@ def test_rp_hierarchy_parameters(mock_client_init, test, variables,
     :param mock_client_init: Pytest fixture
     """
     mock_client = mock_client_init.return_value
-    mock_client.start_test_item.side_effect = item_id_gen
+    mock_client.start_test_item.side_effect = utils.item_id_gen
 
     result = utils.run_pytest_tests(tests=test, variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'

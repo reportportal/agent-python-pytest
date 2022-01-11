@@ -13,6 +13,9 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License
 """
+import random
+import time
+
 import pytest
 
 DEFAULT_VARIABLES = {
@@ -44,3 +47,8 @@ def run_pytest_tests(tests=None, variables=None):
             arguments.append(t)
 
     return pytest.main(arguments)
+
+
+def item_id_gen(**kwargs):
+    return "{}-{}-{}".format(kwargs['name'], str(round(time.time() * 1000)),
+                             random.randint(0, 9999))
