@@ -27,17 +27,20 @@ DEFAULT_VARIABLES = {
 }
 
 
-def run_pytest_tests(tests=None, variables=None):
+def run_pytest_tests(tests, args=None, variables=None):
     """Run specific pytest tests.
 
     :param tests:     a list of tests to run
-    :param variables: parameter  variables which will be passed to pytest
+    :param args:      command line arguments which will be passed to pytest
+    :param variables: parameter variables which will be passed to pytest
     :return: exit code
     """
+    if args is None:
+        args = []
     if variables is None:
         variables = DEFAULT_VARIABLES
 
-    arguments = ['--reportportal']
+    arguments = ['--reportportal'] + args
     for k, v in variables.items():
         arguments.append('-o')
         arguments.append('{0}={1}'.format(k, str(v)))
