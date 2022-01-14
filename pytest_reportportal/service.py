@@ -12,7 +12,7 @@ from _pytest.nodes import File, Item
 from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
 from _pytest.warning_types import PytestWarning
-from reportportal_client import ReportPortalService
+from reportportal_client.client import RPClient
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
     gen_attributes,
@@ -20,7 +20,6 @@ from reportportal_client.helpers import (
     get_package_version
 )
 from reportportal_client.service import _dict_to_payload
-from six import with_metaclass
 
 log = logging.getLogger(__name__)
 
@@ -62,24 +61,7 @@ def trim_docstring(docstring):
     return '\n'.join(trimmed)
 
 
-class Singleton(type):
-    """Class Singleton pattern."""
-
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        """Redefine call method.
-
-        :param args:   list of additional params
-        :param kwargs: dict of additional params
-        """
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(
-                *args, **kwargs)
-        return cls._instances[cls]
-
-
-class PyTestServiceClass(with_metaclass(Singleton, object)):
+class PyTestServiceClass(object):
     """Pytest service class for reporting test results to the Report Portal."""
 
     def __init__(self):
@@ -139,7 +121,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self.log_batch_size = log_batch_size
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', endpoint, project, uuid)
-            self.rp = ReportPortalService(
+            self.rp = RPClient(
                 endpoint=endpoint,
                 project=project,
                 token=uuid,
@@ -152,6 +134,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             self.project_settings = None
             if self.rp and hasattr(self.rp, "get_project_settings"):
                 self.project_settings = self.rp.get_project_settings()
+            self.rp.start()
         else:
             log.debug('The pytest is already initialized')
         return self.rp
@@ -162,15 +145,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                      description=None,
                      attributes=None,
                      rerun=False,
-                     rerun_of=None,
-                     **kwargs):
+                     rerun_of=None):
         """
         Launch test items.
 
         :param launch_name: name of the launch
         :param mode:        mode
         :param description: description of launch test
-        :param kwargs:      additional params
         :return: item ID
         """
         if self.rp is None:
@@ -183,7 +164,7 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'description': description,
             'mode': mode,
             'rerun': rerun,
-            'rerunOf': rerun_of
+            'rerun_of': rerun_of
         }
         log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
         item_id = self.rp.start_launch(**sl_pt)
@@ -365,13 +346,12 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             log.debug('ReportPortal - End TestSuite: request_body=%s', payload)
             self.rp.finish_test_item(**payload)
 
-    def finish_launch(self, status=None, **kwargs):
+    def finish_launch(self, status=None):
         """
         Finish tests launch.
 
         :param status: an launch status (PASSED, FAILED, STOPPED, SKIPPED,
         INTERRUPTED, CANCELLED, INFO, WARN)
-        :param kwargs: additional params
         :return: None
         """
         if self.rp is None:
