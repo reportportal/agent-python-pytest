@@ -1,9 +1,10 @@
 """This modules includes unit tests for the service.py module."""
 
+import pytest
+from delayed_assert import expect, assert_expectations
 from six.moves import mock
 
-from delayed_assert import expect, assert_expectations
-import pytest
+from tests import REPORT_PORTAL_SERVICE
 
 
 def test_item_attributes(mocked_item, rp_service):
@@ -38,9 +39,9 @@ def test_item_attributes(mocked_item, rp_service):
     mocked_item.keywords = NodeKeywords()
     mocked_item.get_closest_marker = get_closest_marker
     mocked_item.own_markers = [
-            pytest.mark.test_decorator_key('test_decorator_value'),
-            pytest.mark.test_decorator_key('new_decorator_value'),
-        ]
+        pytest.mark.test_decorator_key('test_decorator_value'),
+        pytest.mark.test_decorator_key('new_decorator_value'),
+    ]
     markers = rp_service._get_item_markers(mocked_item)
     assert markers == [{'value': 'test_marker'},
                        {'key': 'test_decorator_key',
@@ -68,7 +69,7 @@ def test_get_item_parameters(mocked_item, rp_service):
     assert_expectations()
 
 
-@mock.patch('reportportal_client.service.ReportPortalService.start_test_item')
+@mock.patch(REPORT_PORTAL_SERVICE + '.start_test_item')
 def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
                          rp_service):
     """Test that a test code reference constructed and bypassed to a client.
