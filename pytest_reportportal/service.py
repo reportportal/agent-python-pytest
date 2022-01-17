@@ -73,7 +73,6 @@ class PyTestServiceClass(object):
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self.agent_name = 'pytest-reportportal'
         self.agent_version = get_package_version(self.agent_name)
-        self.ignore_errors = True
         self.ignored_attributes = []
         self.log_batch_size = 20
         self.log_item_id = None
@@ -103,7 +102,6 @@ class PyTestServiceClass(object):
                      project,
                      uuid,
                      log_batch_size,
-                     ignore_errors,
                      ignored_attributes,
                      custom_launch=None,
                      is_skipped_an_issue=True,
@@ -112,7 +110,6 @@ class PyTestServiceClass(object):
                      retries=0):
         """Update self.rp with the instance of the ReportPortalService."""
         if self.rp is None:
-            self.ignore_errors = ignore_errors
             self.ignored_attributes = ignored_attributes or []
             self.parent_item_id = parent_item_id
             if self.rp_supports_parameters:

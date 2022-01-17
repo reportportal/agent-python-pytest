@@ -29,8 +29,7 @@ def check_connection(aconf):
     attribute of the Config object to False.
     :param aconf: Instance of the AgentConfig class
     """
-    if aconf.pconfig._reportportal_configured and \
-            aconf.rp_ignore_errors:
+    if aconf.pconfig._reportportal_configured:
         url = '{0}/api/v1/project/{1}'.format(aconf.rp_endpoint,
                                               aconf.rp_project)
         headers = {'Authorization': 'bearer {0}'.format(aconf.rp_uuid)}
@@ -95,7 +94,6 @@ def pytest_sessionstart(session):
                 log_batch_size=config._reporter_config.rp_log_batch_size,
                 is_skipped_an_issue=config._reporter_config.
                 rp_is_skipped_an_issue,
-                ignore_errors=config._reporter_config.rp_ignore_errors,
                 custom_launch=config._reporter_config.rp_launch_id,
                 ignored_attributes=config._reporter_config.
                 rp_ignore_attributes,
@@ -306,11 +304,6 @@ def pytest_addoption(parser):
         'rp_log_batch_size',
         default='20',
         help='Size of batch log requests in async mode')
-    parser.addini(
-        'rp_ignore_errors',
-        default=False,
-        type='bool',
-        help='Ignore Report Portal errors (exit otherwise)')
     parser.addini(
         'rp_ignore_attributes',
         type='args',
