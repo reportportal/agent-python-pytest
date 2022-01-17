@@ -60,6 +60,7 @@ def mocked_config():
         '--collect-only': False,
         '--setup-plan': False,
         'rp_log_level': 'debug',
+        'rp_skip_connection_test': False
     }
 
     def getoption_side_effect(name, default=None):
