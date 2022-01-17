@@ -84,7 +84,6 @@ Example of :code:`pytest.ini`:
     rp_launch = AnyLaunchName
     rp_launch_attributes = 'PyTest' 'Smoke'
     rp_launch_description = 'Smoke test'
-    rp_ignore_errors = True
     rp_ignore_attributes = 'xfail' 'usefixture'
 
 - The :code:`rp_uuid` can also be set with the environment variable `RP_UUID`. This will override the value set for :code:`rp_uuid` in pytest.ini
@@ -101,7 +100,6 @@ The following parameters are optional:
   by pytest --rp-launch-description option, default value is '')
 
 - :code:`rp_log_batch_size = 20` - size of batch log request
-- :code:`rp_ignore_errors = True` - Ignore Report Portal errors (exit otherwise)
 - :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers
 - :code:`rp_is_skipped_an_issue = False` - Treat skipped tests as required investigation. Default is True.
 - :code:`rp_hierarchy_dirs = True` - Enables hierarchy for tests directories, default `False`. Doesn't support 'xdist' plugin.
@@ -249,20 +247,6 @@ https://github.com/reportportal/client-Python#send-attachement-screenshots
 
 Troubleshooting
 ~~~~~~~~~~~~~~~
-
-In case you have connectivity issues (or similar problems) with Report Portal,
-it's possible to ignore exceptions raised by :code:`pytest_reportportal` plugin.
-For this, please, add following option to :code:`pytest.ini` configuration file.
-
-.. code-block:: text
-
-    [pytest]
-    ...
-    rp_ignore_errors = True
-
-With option above all exceptions raised by Report Portal will be printed out to
-`stderr` without causing test failures.
-
 If you would like to temporary disable integrations with Report Portal just
 deactivate :code:`pytest_reportportal` plugin with command like:
 

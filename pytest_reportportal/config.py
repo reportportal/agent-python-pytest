@@ -21,7 +21,6 @@ class AgentConfig(object):
         self.rp_endpoint = self.find_option('rp_endpoint')
         self.rp_hierarchy_dir_path_separator = self.find_option(
             'rp_hierarchy_dir_path_separator')
-        self.rp_ignore_errors = self.find_option('rp_ignore_errors')
         self.rp_ignore_attributes = self.find_option('rp_ignore_attributes')
         self.rp_is_skipped_an_issue = self.find_option(
             'rp_is_skipped_an_issue'
