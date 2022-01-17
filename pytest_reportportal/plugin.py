@@ -29,7 +29,8 @@ def check_connection(aconf):
     attribute of the Config object to False.
     :param aconf: Instance of the AgentConfig class
     """
-    if aconf.pconfig._reportportal_configured:
+    if aconf.pconfig._reportportal_configured and \
+            not aconf.rp_skip_connection_test:
         url = '{0}/api/v1/project/{1}'.format(aconf.rp_endpoint,
                                               aconf.rp_project)
         headers = {'Authorization': 'bearer {0}'.format(aconf.rp_uuid)}
@@ -375,3 +376,8 @@ def pytest_addoption(parser):
         'rp_hierarchy_dir_path_separator',
         default='',
         help='Path separator to display directories in test hierarchy')
+    parser.addini(
+        'rp_skip_connection_test',
+        default=False,
+        type='bool',
+        help='Skip Report Portal connection test')

@@ -23,7 +23,8 @@ DEFAULT_VARIABLES = {
     'rp_endpoint': "http://localhost:8080",
     'rp_project': "default_personal",
     'rp_uuid': "test_uuid",
-    'rp_hierarchy_dir_path_separator': '/'
+    'rp_hierarchy_dir_path_separator': '/',
+    'rp_skip_connection_test' : True
 }
 
 

@@ -36,6 +36,8 @@ class AgentConfig(object):
         self.rp_project = self.find_option('rp_project')
         self.rp_rerun_of = self.find_option('rp_rerun_of')
         self.rp_retries = int(self.find_option('retries'))
+        self.rp_skip_connection_test = bool(
+            self.find_option('rp_skip_connection_test'))
         self.rp_uuid = getenv('RP_UUID') or self.find_option('rp_uuid')
         self.rp_verify_ssl = self.find_option('rp_verify_ssl')
 
