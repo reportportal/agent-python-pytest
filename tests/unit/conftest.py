@@ -13,17 +13,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from six.moves import mock
-
 import py
 from _pytest.config import Config
 from _pytest.main import Session
-from pytest import fixture
 from pluggy._tracing import TagTracer
+from pytest import fixture
+from six.moves import mock
 
 from pytest_reportportal import RPLogger
 from pytest_reportportal.listener import RPReportListener
 from pytest_reportportal.service import PyTestServiceClass
+from tests import REPORT_PORTAL_SERVICE
 
 
 @fixture
@@ -100,7 +100,6 @@ def rp_listener(rp_service):
 def rp_service():
     """Prepare instance of the PyTestServiceClass for testing."""
     service = PyTestServiceClass()
-    with mock.patch('reportportal_client.service.'
-                    'ReportPortalService.get_project_settings'):
+    with mock.patch(REPORT_PORTAL_SERVICE + '.get_project_settings'):
         service.init_service("endpoint", "project", "uuid", 20, False, [])
         return service
