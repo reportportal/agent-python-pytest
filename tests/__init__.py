@@ -18,4 +18,4 @@ from six import add_move, MovedModule
 add_move(MovedModule('mock', 'mock', 'unittest.mock'))
 
 REPORT_PORTAL_SERVICE = (
-    'pytest_reportportal.service.ReportPortalService')
+    'pytest_reportportal.service.RPClient')
