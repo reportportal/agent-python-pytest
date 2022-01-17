@@ -347,7 +347,8 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_display_suite_test_file',
         'rp_issue_id_marks',
         'retries',
-        'rp_hierarchy_dir_path_separator'
+        'rp_hierarchy_dir_path_separator',
+        'rp_skip_connection_test'
     )
     mock_parser = mock.MagicMock(spec=Parser)
 
