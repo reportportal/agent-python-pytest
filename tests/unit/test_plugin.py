@@ -226,7 +226,7 @@ def test_pytest_configure_on_conn_error(mocked_get, mocked_config):
     mock_response.raise_for_status.side_effect = RequestException()
     mocked_get.return_value = mock_response
     mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_skip_connection_test = False
+    mocked_config.option.rp_skip_connection_test = 'False'
     pytest_configure(mocked_config)
     assert mocked_config._reportportal_configured is False
 

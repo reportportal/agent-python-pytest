@@ -24,7 +24,7 @@ DEFAULT_VARIABLES = {
     'rp_project': "default_personal",
     'rp_uuid': "test_uuid",
     'rp_hierarchy_dir_path_separator': '/',
-    'rp_skip_connection_test': True
+    'rp_skip_connection_test': 'True'
 }
 
 
