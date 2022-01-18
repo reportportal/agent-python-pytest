@@ -65,8 +65,9 @@ class AgentConfig(object):
         :param default:     value to be returned if not found
         :return: option value
         """
-        value = (
-            getattr(self.pconfig.option, option_name, None) or
-            self.pconfig.getini(option_name)
-        )
-        return value if value else default
+        value = getattr(self.pconfig.option, option_name, None)
+        if value is None:
+            value = self.pconfig.getini(option_name)
+        if value is None:
+            return default
+        return value
