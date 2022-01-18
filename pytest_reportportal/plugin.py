@@ -315,30 +315,6 @@ def pytest_addoption(parser):
         type='bool',
         help='Treat skipped tests as required investigation')
     parser.addini(
-        'rp_hierarchy_dirs_level',
-        default=0,
-        help='Directory starting hierarchy level')
-    parser.addini(
-        'rp_hierarchy_dirs',
-        default=False,
-        type='bool',
-        help='Enables hierarchy for directories')
-    parser.addini(
-        'rp_hierarchy_module',
-        default=True,
-        type='bool',
-        help='Enables hierarchy for module')
-    parser.addini(
-        'rp_hierarchy_class',
-        default=True,
-        type='bool',
-        help='Enables hierarchy for class')
-    parser.addini(
-        'rp_hierarchy_parametrize',
-        default=False,
-        type='bool',
-        help='Enables hierarchy for parametrized tests')
-    parser.addini(
         'rp_issue_marks',
         type='args',
         default='',
@@ -354,16 +330,6 @@ def pytest_addoption(parser):
         type='bool',
         help='Verify HTTPS calls')
     parser.addini(
-        'rp_display_suite_test_file',
-        default=True,
-        type='bool',
-        help="In case of True, include the suite's relative"
-             " file path in the launch name as a convention of "
-             "'<RELATIVE_FILE_PATH>::<SUITE_NAME>'. "
-             "In case of False, set the launch name to be the suite name "
-             "only - this flag is relevant only when"
-             " 'rp_hierarchy_module' flag is set to False")
-    parser.addini(
         'rp_issue_id_marks',
         type='bool',
         default=True,
@@ -372,10 +338,6 @@ def pytest_addoption(parser):
         'retries',
         default='0',
         help='Amount of retries for performing REST calls to RP server')
-    parser.addini(
-        'rp_hierarchy_dir_path_separator',
-        default='',
-        help='Path separator to display directories in test hierarchy')
     parser.addini(
         'rp_skip_connection_test',
         default=False,

@@ -102,18 +102,11 @@ The following parameters are optional:
 - :code:`rp_log_batch_size = 20` - size of batch log request
 - :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers
 - :code:`rp_is_skipped_an_issue = False` - Treat skipped tests as required investigation. Default is True.
-- :code:`rp_hierarchy_dirs = True` - Enables hierarchy for tests directories, default `False`. Doesn't support 'xdist' plugin.
-- :code:`rp_hierarchy_module = True` - Enables hierarchy for module, default `True`. Doesn't support 'xdist' plugin.
-- :code:`rp_hierarchy_class = True` - Enables hierarchy for class, default `True`. Doesn't support 'xdist' plugin.
-- :code:`rp_hierarchy_parametrize = True` - Enables hierarchy parametrized tests, default `False`. Doesn't support 'xdist' plugin.
-- :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
 - :code:`rp_issue_marks = 'xfail' 'issue'` - Pytest marks that could be used to get issue information (id, type, reason)
 - :code:`rp_issue_system_url = http://bugzilla.some.com/show_bug.cgi?id={issue_id}` - issue URL (issue_id will be filled by parameter from pytest mark)
 - :code:`rp_issue_id_marks = True` - Enables adding marks for issue ids (e.g. "issue:123456")
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
-- :code:`rp_display_suite_test_file = True` - In case of True, include the suite's relative file path in the launch name as a convention of "<RELATIVE_FILE_PATH>::<SUITE_NAME>". In case of False, set the launch name to be the suite name only - this flag is relevant only when "rp_hierarchy_module" flag is set to False
 - :code:`rp_mode = DEFAULT` - DEBUG or DEFAULT launch mode. DEBUG launches are displayed in a separate tab and not visible to anyone except owner
-- :code:`rp_hierarchy_dir_path_separator` - Path separator to display directories in test hierarchy. In case of empty value current system path separator will be used
 
 
 If you like to override the above parameters from command line, or from CI environment based on your build, then pass
