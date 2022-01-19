@@ -40,6 +40,8 @@ def check_connection(aconf):
             resp.raise_for_status()
         except requests.exceptions.RequestException as exc:
             log.exception(exc)
+            log.error("Unable to connect to Report Portal, the launch won't be"
+                      " reported")
             aconf.pconfig._reportportal_configured = False
 
 
