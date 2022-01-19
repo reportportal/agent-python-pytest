@@ -1,6 +1,7 @@
 """This module includes Service functions for work with pytest agent."""
 
 import logging
+import os.path
 import sys
 from os import getenv
 from time import time
@@ -8,9 +9,8 @@ from time import time
 import pkg_resources
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
-from _pytest.nodes import File, Item
+from _pytest.nodes import Item
 from _pytest.python import Class, Function, Instance, Module
-from _pytest.unittest import TestCaseFunction, UnitTestCase
 from _pytest.warning_types import PytestWarning
 from reportportal_client.client import RPClient
 from reportportal_client.external.google_analytics import send_event
@@ -170,6 +170,16 @@ class PyTestServiceClass(object):
             send_event(self.agent_name, self.agent_version)
         return item_id
 
+    @staticmethod
+    def _get_item_path(item):
+        item_parts = PyTestServiceClass._get_item_parts(item)
+        module = item_parts[0]
+        path = [os.path.split(module.fspath)[1]]
+        for part in item_parts[1:]:
+            path.append(part.name)
+        path.append(item.name)
+        return path
+
     def collect_tests(self, session):
         """
         Collect all tests.
@@ -179,78 +189,33 @@ class PyTestServiceClass(object):
         if self.rp is None:
             return
 
-        hier_dirs = False
-        hier_module = False
-        hier_class = False
-        hier_param = False
-        display_suite_file_name = True
-
-        if not hasattr(session.config, 'workerinput'):
-            hier_dirs = session.config.getini('rp_hierarchy_dirs')
-            hier_module = session.config.getini('rp_hierarchy_module')
-            hier_class = session.config.getini('rp_hierarchy_class')
-            hier_param = session.config.getini('rp_hierarchy_parametrize')
-            display_suite_file_name = session.config.getini(
-                'rp_display_suite_test_file')
-
-        try:
-            hier_dirs_level = int(
-                session.config.getini('rp_hierarchy_dirs_level'))
-        except ValueError:
-            hier_dirs_level = 0
-
-        dir_path_separator = \
-            session.config._reporter_config.rp_hierarchy_dir_path_separator
-
-        tests_parts = {}
-
+        test_tree = {'children': {}, 'name': 'root', 'status': 'PASSED',
+                     'type': 'root'}
         for item in session.items:
-            # Start collecting test item parts
-            parts = []
+            dir_path = self._get_item_dirs(item)
+            class_path = self._get_item_path(item)
 
-            # Hierarchy for directories
-            rp_name = self._add_item_hier_parts_dirs(item, hier_dirs,
-                                                     hier_dirs_level, parts)
-
-            # Hierarchy for Module and Class/UnitTestCase
-            item_parts = self._get_item_parts(item)
-            rp_name = self._add_item_hier_parts_other(item_parts, item, Module,
-                                                      hier_module, parts,
-                                                      rp_name,
-                                                      dir_path_separator)
-            rp_name = self._add_item_hier_parts_other(item_parts, item, Class,
-                                                      hier_class, parts,
-                                                      rp_name,
-                                                      dir_path_separator)
-            rp_name = self._add_item_hier_parts_other(item_parts, item,
-                                                      UnitTestCase, hier_class,
-                                                      parts, rp_name,
-                                                      dir_path_separator)
-
-            # Hierarchy for parametrized tests
-            if hier_param:
-                rp_name = self._add_item_hier_parts_parametrize(item, parts,
-                                                                tests_parts,
-                                                                rp_name)
-
-            # Hierarchy for test itself (Function/TestCaseFunction)
-            item._rp_name = rp_name + ("::" if rp_name else "") + item.name
-
-            # Result initialization
-            for part in parts:
-                part._rp_result = "PASSED"
-
-            self._item_parts[item] = parts
-            for part in parts:
-                if '_pytest.python.Class' in str(type(
-                        part)) and not display_suite_file_name and not \
-                        hier_module:
-                    part._rp_name = part._rp_name.split("::")[-1]
-                if part not in self._hier_parts:
-                    self._hier_parts[part] = {"finish_counter": 1,
-                                              "start_flag": False}
+            current_node = test_tree
+            for i, path_part in enumerate(dir_path + class_path):
+                children = current_node['children']
+                node_type = 'dir'
+                if i >= len(dir_path):
+                    node_type = 'code'
+                if path_part not in children:
+                    children[path_part] = {'children': {}, 'name': path_part,
+                                           'status': 'PASSED',
+                                           'type': node_type,
+                                           'parent': current_node,
+                                           'start_flag': False,
+                                           'finish_counter': 1}
                 else:
-                    self._hier_parts[part]["finish_counter"] += 1
+                    children[path_part]['finish_counter'] += 1
+                current_node = children[path_part]
+
+            current_node['item'] = item
+
+        print(len(test_tree['children']))
+
 
     def start_pytest_item(self, test_item=None):
         """
@@ -389,140 +354,6 @@ class PyTestServiceClass(object):
             'attachment': attachment
         }
         self.rp.log(**sl_rq)
-
-    @staticmethod
-    def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts):
-        """
-        Add item to hierarchy of parents located in directory.
-
-        :param item:         Pytest.Item
-        :param hier_flag:    flag
-        :param dirs_level:   int value of level
-        :param report_parts: ''
-        :return: str rp_name
-        """
-        parts_dirs = PyTestServiceClass._get_item_dirs(item)
-        root_path = item.session.config.rootdir
-        dir_path = root_path.new()
-        rp_name_path = ""
-        dirs_parts = {}
-
-        for dir_name in parts_dirs[dirs_level:]:
-            dir_path = dir_path.join(dir_name)
-            path = str(dir_path.relto(root_path))
-
-            if hier_flag:
-                if path in dirs_parts:
-                    item_dir = dirs_parts[path]
-                else:
-                    if hasattr(Item, "from_parent"):
-                        item_dir = File.from_parent(parent=item,
-                                                    fspath=dir_path,
-                                                    nodeid=dir_name)
-                    else:
-                        item_dir = File(dir_path, nodeid=dir_name,
-                                        session=item.session,
-                                        config=item.session.config)
-                    item_dir._rp_name = dir_name
-                    dirs_parts[path] = item_dir
-
-                report_parts.append(item_dir)
-            else:
-                rp_name_path = path
-
-        if not hier_flag:
-            return rp_name_path
-
-        return ""
-
-    @staticmethod
-    def _add_item_hier_parts_parametrize(item, report_parts, tests_parts,
-                                         rp_name=""):
-        """
-        Add item to hierarchy of parents with params.
-
-        :param item:         pytest.Item
-        :param report_parts: Parent reports
-        :param tests_parts:  test item parts
-        :param rp_name:      name of report
-        :return: str rp_name
-        """
-        for mark in item.own_markers:
-            if mark.name == 'parametrize':
-                ch_index = item.nodeid.find("[")
-                test_fullname = item.nodeid[
-                                :ch_index if ch_index > 0 else len(
-                                    item.nodeid)]
-                test_name = item.originalname
-
-                rp_name += ("::" if rp_name else "") + test_name
-
-                if test_fullname in tests_parts:
-                    item_test = tests_parts[test_fullname]
-                else:
-                    if hasattr(Item, "from_parent"):
-                        item_test = Item.from_parent(parent=item,
-                                                     name=test_fullname,
-                                                     nodeid=test_fullname)
-                    else:
-                        item_test = Item(test_fullname, nodeid=test_fullname,
-                                         session=item.session,
-                                         config=item.session.config)
-                    item_test._rp_name = rp_name
-                    item_test.obj = item.obj
-                    item_test.keywords = item.keywords
-                    item_test.own_markers = item.own_markers
-                    item_test.parent = item.parent
-
-                    tests_parts[test_fullname] = item_test
-
-                rp_name = ""
-                report_parts.append(item_test)
-                break
-
-        return rp_name
-
-    @staticmethod
-    def _add_item_hier_parts_other(item_parts, item, item_type, hier_flag,
-                                   report_parts, rp_name="", dir_separator=""):
-        """
-        Add item to hierarchy of parents.
-
-        :param item_parts:  Parent_items
-        :param item:        pytest.Item
-        :param item_type:   (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
-         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
-        AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST)
-        :param hier_flag:    bool state
-        :param report_parts: list of parent reports
-        :param rp_name:      report name
-        :return: str rp_name
-        """
-        for part in item_parts:
-            if type(part) is item_type:
-
-                if item_type is Module:
-                    module_path = \
-                        item.fspath.new(dirname=rp_name,
-                                        basename=part.fspath.basename,
-                                        drive="")
-                    if dir_separator:
-                        module_path_str = dir_separator.join(
-                            [p.basename for p in module_path.parts(
-                                reverse=False) if p.basename])
-                    else:
-                        module_path_str = str(module_path)
-                    rp_name = module_path_str
-                elif item_type in (Class, Function, UnitTestCase,
-                                   TestCaseFunction):
-                    rp_name += ("::" if rp_name else "") + part.name
-
-                if hier_flag:
-                    part._rp_name = rp_name
-                    rp_name = ""
-                    report_parts.append(part)
-
-        return rp_name
 
     @staticmethod
     def _get_item_parts(item):
