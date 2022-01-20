@@ -10,8 +10,9 @@ import pkg_resources
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import Item
-from _pytest.python import Class, Function, Instance, Module
+from _pytest.python import Class, Function, Instance, Module, Package
 from _pytest.warning_types import PytestWarning
+from aenum import auto, Enum, unique
 from reportportal_client.client import RPClient
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
@@ -22,6 +23,9 @@ from reportportal_client.helpers import (
 from reportportal_client.service import _dict_to_payload
 
 log = logging.getLogger(__name__)
+
+MAX_ITEM_NAME_LENGTH = 256
+TRUNCATION_STR = '...'
 
 
 def timestamp():
@@ -61,12 +65,20 @@ def trim_docstring(docstring):
     return '\n'.join(trimmed)
 
 
+@unique
+class PathType(Enum):
+    """This class stores test item path types."""
+
+    DIR = auto()
+    CODE = auto()
+    ROOT = auto()
+
+
 class PyTestServiceClass(object):
     """Pytest service class for reporting test results to the Report Portal."""
 
     def __init__(self):
         """Initialize instance attributes."""
-        self._hier_parts = {}
         self._issue_types = {}
         self._item_parts = {}
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
@@ -171,14 +183,44 @@ class PyTestServiceClass(object):
         return item_id
 
     @staticmethod
-    def _get_item_path(item):
-        item_parts = PyTestServiceClass._get_item_parts(item)
-        module = item_parts[0]
-        path = [os.path.split(module.fspath)[1]]
-        for part in item_parts[1:]:
-            path.append(part.name)
-        path.append(item.name)
-        return path
+    def _get_item_dirs(item):
+        """
+        Get directory of item.
+
+        :param item: pytest.Item
+        :return: list of dirs
+        """
+        root_path = item.session.config.rootdir.strpath
+        dir_path = item.fspath.new(basename="")
+        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
+                               drive="")
+        return [d for d in rel_dir.parts(reverse=False) if d.basename]
+
+    @staticmethod
+    def _get_item_parts(item):
+        """
+        Get item of parents.
+
+        :param item: pytest.Item
+        :return list of parents
+        """
+        parts = [item]
+        parent = item.parent
+        while parent is not None and not isinstance(parent, Session):
+            if not isinstance(parent, Instance):
+                parts.append(parent)
+            parent = parent.parent
+
+        parts.reverse()
+        return parts
+
+    def _build_item_paths(self, node, path):
+        if 'children' in node and len(node['children']) > 0:
+            path.append(node)
+            for name, child_node in node['children'].items():
+                self._build_item_paths(child_node, path)
+        else:
+            self._item_parts[node['item']] = path + [node]
 
     def collect_tests(self, session):
         """
@@ -189,33 +231,80 @@ class PyTestServiceClass(object):
         if self.rp is None:
             return
 
+        # Create a test tree to be able to apply mutations
         test_tree = {'children': {}, 'name': 'root', 'status': 'PASSED',
-                     'type': 'root'}
+                     'type': PathType.ROOT, 'item_id': self.parent_item_id}
         for item in session.items:
             dir_path = self._get_item_dirs(item)
-            class_path = self._get_item_path(item)
+            class_path = self._get_item_parts(item)
 
             current_node = test_tree
             for i, path_part in enumerate(dir_path + class_path):
+                if isinstance(path_part, Package) and i == len(dir_path):
+                    # skip root packages, which already reported as dirs
+                    continue
+
                 children = current_node['children']
-                node_type = 'dir'
+                node_type = PathType.DIR
+
                 if i >= len(dir_path):
-                    node_type = 'code'
-                if path_part not in children:
-                    children[path_part] = {'children': {}, 'name': path_part,
-                                           'status': 'PASSED',
-                                           'type': node_type,
-                                           'parent': current_node,
-                                           'start_flag': False,
-                                           'finish_counter': 1}
+                    node_type = PathType.CODE
+
+                if node_type == PathType.DIR:
+                    name = path_part.basename
+                elif node_type == PathType.CODE and i == len(dir_path):
+                    name = os.path.split(path_part.fspath)[1]
                 else:
-                    children[path_part]['finish_counter'] += 1
-                current_node = children[path_part]
+                    name = path_part.name
 
-            current_node['item'] = item
+                if path_part not in children:
+                    children[name] = {
+                        'children': {}, 'name': name,
+                        'status': 'PASSED',
+                        'type': node_type,
+                        'parent': current_node,
+                        'start_flag': False,
+                        'finish_counter': 1,
+                        'item': path_part
+                    }
+                else:
+                    counter = int(children[name]['finish_counter'])
+                    children[name]['finish_counter'] = counter + 1
+                current_node = children[name]
 
-        print(len(test_tree['children']))
+        if session.config._reporter_config.rp_dir_level > 0:
+            for name, node in test_tree['children'].items():
+                print(name)  # TODO: Write dir level consumption
 
+        self._build_item_paths(test_tree, [])
+
+    def _build_start_suite_rq(self, part):
+        code_ref = str(part['item']) if part['type'] == PathType.DIR \
+            else str(part['item'].fspath)
+        payload = {
+            'name': self._get_item_name(part['name']),
+            'description': self._get_item_description(part['item']),
+            'start_time': timestamp(),
+            'item_type': 'SUITE',
+            'parent_item_id': part['parent']['item_id'],
+            'code_ref': code_ref
+        }
+        return payload
+
+    def _build_start_step_rq(self, part):
+        code_ref = '{0}:{1}'.format(part['item'].fspath, part['name'])
+        payload = {
+            'attributes': self._get_item_markers(part['item']),
+            'name': self._get_item_name(part['name']),
+            'description': self._get_item_description(part['item']),
+            'start_time': timestamp(),
+            'item_type': 'STEP',
+            'parent_item_id': part['parent']['item_id'],
+            'code_ref': code_ref
+        }
+        if self.rp_supports_parameters:
+            payload['parameters'] = self._get_parameters(part['item'])
+        return payload
 
     def start_pytest_item(self, test_item=None):
         """
@@ -227,45 +316,35 @@ class PyTestServiceClass(object):
         if self.rp is None:
             return
 
-        for part in self._item_parts[test_item]:
-            if self._hier_parts[part]["start_flag"]:
-                self.parent_item_id = self._hier_parts[part]["item_id"]
+        for part in self._item_parts[test_item][1:-1]:
+            if part['start_flag']:
                 continue
-            self._hier_parts[part]["start_flag"] = True
-            payload = {
-                'name': self._get_item_name(part),
-                'description': self._get_item_description(part),
-                'start_time': timestamp(),
-                'item_type': 'SUITE',
-                'parent_item_id': self.parent_item_id,
-                'code_ref': str(test_item.fspath)
-            }
+            payload = self._build_start_suite_rq(part)
             log.debug('ReportPortal - Start Suite: request_body=%s', payload)
             item_id = self.rp.start_test_item(**payload)
+            part['item_id'] = item_id
+            part['start_flag'] = True
             self.log_item_id = item_id
-            self.parent_item_id = item_id
-            self._hier_parts[part]["item_id"] = item_id
 
         # Item type should be sent as "STEP" until we upgrade to RPv6.
         # Details at:
         # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
-        start_rq = {
-            'attributes': self._get_item_markers(test_item),
-            'name': self._get_item_name(test_item),
-            'description': self._get_item_description(test_item),
-            'start_time': timestamp(),
-            'item_type': 'STEP',
-            'parent_item_id': self.parent_item_id,
-            'code_ref': '{0}:{1}'.format(test_item.fspath, test_item.name)
-        }
-        if self.rp_supports_parameters:
-            start_rq['parameters'] = self._get_parameters(test_item)
-
+        current_part = self._item_parts[test_item][-1]
+        start_rq = self._build_start_step_rq(current_part)
         log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
         item_id = self.rp.start_test_item(**start_rq)
+        current_part['item_id'] = item_id
         self.log_item_id = item_id
-        self.parent_item_id = None
         return item_id
+
+    def _build_finish_test_item_rq(self, part, issue):
+        fta_rq = {
+            'end_time': timestamp(),
+            'status': part['status'],
+            'issue': issue,
+            'item_id': part['item_id']
+        }
+        return fta_rq
 
     def finish_pytest_item(self, test_item, item_id, status, issue=None):
         """
@@ -281,30 +360,21 @@ class PyTestServiceClass(object):
         if self.rp is None:
             return
 
-        fta_rq = {
-            'end_time': timestamp(),
-            'status': status,
-            'issue': issue,
-            'item_id': item_id
-        }
-
-        log.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
-
         parts = self._item_parts[test_item]
+        item_part = parts.pop()
+        item_part['status'] = status
+        fta_rq = self._build_finish_test_item_rq(item_part, issue)
+        log.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
         self.rp.finish_test_item(**fta_rq)
-        while len(parts) > 0:
+
+        while len(parts) > 1:
             part = parts.pop()
-            if status == "FAILED":
-                part._rp_result = status
-            self._hier_parts[part]["finish_counter"] -= 1
-            if self._hier_parts[part]["finish_counter"] > 0:
+            if status == 'FAILED':
+                part['status'] = status
+            part["finish_counter"] -= 1
+            if part["finish_counter"] > 0:
                 continue
-            payload = {
-                'end_time': timestamp(),
-                'issue': issue,
-                'item_id': self._hier_parts[part]["item_id"],
-                'status': part._rp_result
-            }
+            payload = self._build_finish_test_item_rq(part, None)
             log.debug('ReportPortal - End TestSuite: request_body=%s', payload)
             self.rp.finish_test_item(**payload)
 
@@ -354,38 +424,6 @@ class PyTestServiceClass(object):
             'attachment': attachment
         }
         self.rp.log(**sl_rq)
-
-    @staticmethod
-    def _get_item_parts(item):
-        """
-        Get item of parents.
-
-        :param item: pytest.Item
-        :return list of parents
-        """
-        parts = []
-        parent = item.parent
-        while parent is not None and not isinstance(parent, Session):
-            if not isinstance(parent, Instance):
-                parts.append(parent)
-            parent = parent.parent
-
-        parts.reverse()
-        return parts
-
-    @staticmethod
-    def _get_item_dirs(item):
-        """
-        Get directory of item.
-
-        :param item: pytest.Item
-        :return: list of dirs
-        """
-        root_path = item.session.config.rootdir.strpath
-        dir_path = item.fspath.new(basename="")
-        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
-                               drive="")
-        return [d.basename for d in rel_dir.parts(reverse=False) if d.basename]
 
     def _get_launch_attributes(self, ini_attrs):
         """Generate launch attributes in the format supported by the client.
@@ -454,17 +492,17 @@ class PyTestServiceClass(object):
         return item.callspec.params if hasattr(item, 'callspec') else None
 
     @staticmethod
-    def _get_item_name(test_item):
+    def _get_item_name(name):
         """
         Get name of item.
 
-        :param test_item: pytest.Item
+        :param name: Item name
         :return: name
         """
-        name = test_item._rp_name
-        if len(name) > 256:
-            name = name[:256]
-            test_item.warn(
+        if len(name) > MAX_ITEM_NAME_LENGTH:
+            name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + \
+                   TRUNCATION_STR
+            log.warning(
                 PytestWarning(
                     'Test node ID was truncated to "{}" because of name size '
                     'constrains on reportportal'.format(name)

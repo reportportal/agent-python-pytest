@@ -317,6 +317,10 @@ def pytest_addoption(parser):
         type='bool',
         help='Treat skipped tests as required investigation')
     parser.addini(
+        'rp_hierarchy_dirs_level',
+        default='0',
+        help='Directory starting hierarchy level')
+    parser.addini(
         'rp_issue_marks',
         type='args',
         default='',
