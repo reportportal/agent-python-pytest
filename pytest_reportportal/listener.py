@@ -46,16 +46,14 @@ class RPReportListener(object):
         :return: generator object
         """
         self._add_issue_id_marks(item)
-        item_id = self.py_test_service.start_pytest_item(item)
+        self.py_test_service.start_pytest_item(item)
         with patching_logger_class():
             with _pytest.logging.catching_logs(self._log_handler,
                                                level=self._log_level):
                 yield
         # Finishing item in RP
         self.py_test_service.finish_pytest_item(
-            item, item_id, self.result or 'SKIPPED', self.issue or None)
-        # Flush log buffer
-        self.py_test_service.rp.terminate()
+            item, self.result or 'SKIPPED', self.issue or None)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self, item):

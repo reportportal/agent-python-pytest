@@ -149,6 +149,9 @@ def pytest_sessionfinish(session):
     if is_master(session.config):
         if not session.config.option.rp_launch_id:
             session.config.py_test_service.finish_launch()
+    rp = session.config.py_test_service.rp
+    if rp:
+        rp.terminate()
 
 
 def pytest_configure(config):

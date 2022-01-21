@@ -3,10 +3,10 @@
 import logging
 import os.path
 import sys
+import threading
 from os import getenv
 from time import time
 
-import pkg_resources
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import Item
@@ -66,7 +66,7 @@ def trim_docstring(docstring):
 
 
 @unique
-class PathType(Enum):
+class LeafType(Enum):
     """This class stores test item path types."""
 
     DIR = auto()
@@ -90,12 +90,7 @@ class PyTestServiceClass(object):
         self.log_item_id = None
         self.parent_item_id = None
         self.rp = None
-        self.rp_supports_parameters = True
         self.project_settings = {}
-        try:
-            pkg_resources.get_distribution('reportportal_client >= 3.2.0')
-        except pkg_resources.VersionConflict:
-            self.rp_supports_parameters = False
 
     @property
     def issue_types(self):
@@ -122,11 +117,9 @@ class PyTestServiceClass(object):
                      retries=0):
         """Update self.rp with the instance of the ReportPortalService."""
         if self.rp is None:
-            self.ignored_attributes = ignored_attributes or []
             self.parent_item_id = parent_item_id
-            if self.rp_supports_parameters:
-                self.ignored_attributes = list(
-                    set(self.ignored_attributes).union({'parametrize'}))
+            self.ignored_attributes = list(
+                set(ignored_attributes or []).union({'parametrize'}))
             self.log_batch_size = log_batch_size
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', endpoint, project, uuid)
@@ -214,11 +207,97 @@ class PyTestServiceClass(object):
         parts.reverse()
         return parts
 
+    def _build_test_tree(self, session):
+        test_tree = {'children': {}, 'status': 'PASSED', 'type': LeafType.ROOT,
+                     'item_id': self.parent_item_id}
+
+        for item in session.items:
+            dir_path = PyTestServiceClass._get_item_dirs(item)
+            class_path = PyTestServiceClass._get_item_parts(item)
+
+            current_node = test_tree
+            for i, path_part in enumerate(dir_path + class_path):
+                children = current_node['children']
+
+                node_type = LeafType.DIR
+                if i >= len(dir_path):
+                    node_type = LeafType.CODE
+
+                if path_part not in children:
+                    children[path_part] = {
+                        'children': {}, 'status': 'PASSED', 'type': node_type,
+                        'parent': current_node, 'start_flag': False,
+                        'finish_counter': 1, 'item': path_part,
+                        'lock': threading.Lock()
+                    }
+                else:
+                    counter = int(children[path_part]['finish_counter'])
+                    children[path_part]['finish_counter'] = counter + 1
+                current_node = children[path_part]
+        return test_tree
+
+    @staticmethod
+    def _remove_root_package(test_tree):
+        if test_tree['type'] == LeafType.ROOT or \
+                test_tree['type'] == LeafType.DIR:
+            for item, child_node in test_tree['children'].items():
+                PyTestServiceClass._remove_root_package(child_node)
+                return
+        if test_tree['type'] == LeafType.CODE and \
+                isinstance(test_tree['item'], Package) and \
+                test_tree['parent']['type'] == LeafType.DIR:
+            parent_node = test_tree['parent']
+            current_item = test_tree['item']
+            del parent_node['children'][current_item]
+            for item, child_node in test_tree['children'].items():
+                parent_node['children'][item] = child_node
+                child_node['parent'] = parent_node
+
+    @staticmethod
+    def _remove_root_dirs(test_tree, max_dir_level, dir_level=0):
+        if test_tree['type'] == LeafType.ROOT:
+            for item, child_node in test_tree['children'].items():
+                PyTestServiceClass._remove_root_dirs(child_node, max_dir_level,
+                                                     1)
+                return
+        if test_tree['type'] == LeafType.DIR and dir_level <= max_dir_level:
+            new_level = dir_level + 1
+            parent_node = test_tree['parent']
+            current_item = test_tree['item']
+            del parent_node['children'][current_item]
+            for item, child_node in test_tree['children'].items():
+                parent_node['children'][item] = child_node
+                child_node['parent'] = parent_node
+                PyTestServiceClass._remove_root_dirs(test_tree, max_dir_level,
+                                                     new_level)
+
+    @staticmethod
+    def _generate_names(test_tree):
+        if test_tree['type'] == LeafType.ROOT:
+            test_tree['name'] = 'root'
+
+        if test_tree['type'] == LeafType.DIR:
+            test_tree['name'] = test_tree['item'].basename
+
+        if test_tree['type'] == LeafType.CODE:
+            item = test_tree['item']
+            if isinstance(item, Package):
+                test_tree['name'] = \
+                    os.path.split(os.path.split(item.fspath)[0])[1]
+            elif isinstance(item, Module):
+                test_tree['name'] = os.path.split(item.fspath)[1]
+            else:
+                test_tree['name'] = item.name
+
+        for item, child_node in test_tree['children'].items():
+            PyTestServiceClass._generate_names(child_node)
+
     def _build_item_paths(self, node, path):
         if 'children' in node and len(node['children']) > 0:
             path.append(node)
             for name, child_node in node['children'].items():
                 self._build_item_paths(child_node, path)
+            path.pop()
         else:
             self._item_parts[node['item']] = path + [node]
 
@@ -232,63 +311,30 @@ class PyTestServiceClass(object):
             return
 
         # Create a test tree to be able to apply mutations
-        test_tree = {'children': {}, 'name': 'root', 'status': 'PASSED',
-                     'type': PathType.ROOT, 'item_id': self.parent_item_id}
-        for item in session.items:
-            dir_path = self._get_item_dirs(item)
-            class_path = self._get_item_parts(item)
-
-            current_node = test_tree
-            for i, path_part in enumerate(dir_path + class_path):
-                if isinstance(path_part, Package) and i == len(dir_path):
-                    # skip root packages, which already reported as dirs
-                    continue
-
-                children = current_node['children']
-                node_type = PathType.DIR
-
-                if i >= len(dir_path):
-                    node_type = PathType.CODE
-
-                if node_type == PathType.DIR:
-                    name = path_part.basename
-                elif node_type == PathType.CODE and i == len(dir_path):
-                    name = os.path.split(path_part.fspath)[1]
-                else:
-                    name = path_part.name
-
-                if path_part not in children:
-                    children[name] = {
-                        'children': {}, 'name': name,
-                        'status': 'PASSED',
-                        'type': node_type,
-                        'parent': current_node,
-                        'start_flag': False,
-                        'finish_counter': 1,
-                        'item': path_part
-                    }
-                else:
-                    counter = int(children[name]['finish_counter'])
-                    children[name]['finish_counter'] = counter + 1
-                current_node = children[name]
-
-        if session.config._reporter_config.rp_dir_level > 0:
-            for name, node in test_tree['children'].items():
-                print(name)  # TODO: Write dir level consumption
+        test_tree = self._build_test_tree(session)
+        self._remove_root_package(test_tree)
+        self._remove_root_dirs(test_tree,
+                               session.config._reporter_config.rp_dir_level)
+        self._generate_names(test_tree)
 
         self._build_item_paths(test_tree, [])
 
     def _build_start_suite_rq(self, part):
-        code_ref = str(part['item']) if part['type'] == PathType.DIR \
+        code_ref = str(part['item']) if part['type'] == LeafType.DIR \
             else str(part['item'].fspath)
         payload = {
             'name': self._get_item_name(part['name']),
             'description': self._get_item_description(part['item']),
             'start_time': timestamp(),
             'item_type': 'SUITE',
-            'parent_item_id': part['parent']['item_id'],
             'code_ref': code_ref
         }
+
+        if part['parent']['type'] == LeafType.ROOT:
+            payload['parent_item_id'] = part['parent']['item_id']
+        else:
+            with part['parent']['lock']:
+                payload['parent_item_id'] = part['parent']['item_id']
         return payload
 
     def _build_start_step_rq(self, part):
@@ -299,11 +345,11 @@ class PyTestServiceClass(object):
             'description': self._get_item_description(part['item']),
             'start_time': timestamp(),
             'item_type': 'STEP',
-            'parent_item_id': part['parent']['item_id'],
-            'code_ref': code_ref
+            'code_ref': code_ref,
+            'parameters': self._get_parameters(part['item'])
         }
-        if self.rp_supports_parameters:
-            payload['parameters'] = self._get_parameters(part['item'])
+        with part['parent']['lock']:
+            payload['parent_item_id'] = part['parent']['item_id']
         return payload
 
     def start_pytest_item(self, test_item=None):
@@ -319,12 +365,16 @@ class PyTestServiceClass(object):
         for part in self._item_parts[test_item][1:-1]:
             if part['start_flag']:
                 continue
-            payload = self._build_start_suite_rq(part)
-            log.debug('ReportPortal - Start Suite: request_body=%s', payload)
-            item_id = self.rp.start_test_item(**payload)
-            part['item_id'] = item_id
-            part['start_flag'] = True
-            self.log_item_id = item_id
+            with part['lock']:
+                if part['start_flag']:
+                    continue
+                part['start_flag'] = True
+                payload = self._build_start_suite_rq(part)
+                log.debug('ReportPortal - Start Suite: request_body=%s',
+                          payload)
+                item_id = self.rp.start_test_item(**payload)
+                part['item_id'] = item_id
+                self.log_item_id = item_id
 
         # Item type should be sent as "STEP" until we upgrade to RPv6.
         # Details at:
@@ -335,23 +385,31 @@ class PyTestServiceClass(object):
         item_id = self.rp.start_test_item(**start_rq)
         current_part['item_id'] = item_id
         self.log_item_id = item_id
-        return item_id
 
-    def _build_finish_test_item_rq(self, part, issue):
-        fta_rq = {
+    # noinspection PyMethodMayBeStatic
+    def _build_finish_step_rq(self, part, issue):
+        payload = {
             'end_time': timestamp(),
             'status': part['status'],
             'issue': issue,
             'item_id': part['item_id']
         }
-        return fta_rq
+        return payload
 
-    def finish_pytest_item(self, test_item, item_id, status, issue=None):
+    # noinspection PyMethodMayBeStatic
+    def _build_finish_suite_rq(self, part):
+        payload = {
+            'end_time': timestamp(),
+            'status': part['status'],
+            'item_id': part['item_id']
+        }
+        return payload
+
+    def finish_pytest_item(self, test_item, status, issue=None):
         """
         Finish pytest_item.
 
         :param test_item: test_item
-        :param item_id:   Pytest.Item
         :param status:    an item finish status (PASSED, FAILED, STOPPED,
         SKIPPED, RESETED, CANCELLED, INFO, WARN)
         :param issue:     an external system issue reference
@@ -363,20 +421,21 @@ class PyTestServiceClass(object):
         parts = self._item_parts[test_item]
         item_part = parts.pop()
         item_part['status'] = status
-        fta_rq = self._build_finish_test_item_rq(item_part, issue)
+        fta_rq = self._build_finish_step_rq(item_part, issue)
         log.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
         self.rp.finish_test_item(**fta_rq)
 
         while len(parts) > 1:
             part = parts.pop()
-            if status == 'FAILED':
-                part['status'] = status
-            part["finish_counter"] -= 1
-            if part["finish_counter"] > 0:
-                continue
-            payload = self._build_finish_test_item_rq(part, None)
-            log.debug('ReportPortal - End TestSuite: request_body=%s', payload)
-            self.rp.finish_test_item(**payload)
+            with part['lock']:
+                if status == 'FAILED':
+                    part['status'] = status
+                part["finish_counter"] -= 1
+                if part["finish_counter"] > 0:
+                    continue
+                payload = self._build_finish_suite_rq(part)
+                log.debug('ReportPortal - End TestSuite: request_body=%s', payload)
+                self.rp.finish_test_item(**payload)
 
     def finish_launch(self, status=None):
         """
@@ -396,6 +455,7 @@ class PyTestServiceClass(object):
         }
         log.debug('ReportPortal - Finish launch: request_body=%s', fl_rq)
         self.rp.finish_launch(**fl_rq)
+        self.rp.terminate()
         self.rp = None
 
     def post_log(self, message, loglevel='INFO', attachment=None):
