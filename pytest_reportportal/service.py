@@ -284,9 +284,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if self.rp is None:
             return
 
+        parent_item_id = self.parent_item_id
         for part in self._item_parts[test_item]:
             if self._hier_parts[part]["start_flag"]:
-                self.parent_item_id = self._hier_parts[part]["item_id"]
+                parent_item_id = self._hier_parts[part]["item_id"]
                 continue
             self._hier_parts[part]["start_flag"] = True
             payload = {
@@ -294,13 +295,13 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                 'description': self._get_item_description(part),
                 'start_time': timestamp(),
                 'item_type': 'SUITE',
-                'parent_item_id': self.parent_item_id,
+                'parent_item_id': parent_item_id,
                 'code_ref': str(test_item.fspath)
             }
             log.debug('ReportPortal - Start Suite: request_body=%s', payload)
             item_id = self.rp.start_test_item(**payload)
             self.log_item_id = item_id
-            self.parent_item_id = item_id
+            parent_item_id = item_id
             self._hier_parts[part]["item_id"] = item_id
 
         # Item type should be sent as "STEP" until we upgrade to RPv6.
@@ -312,16 +313,14 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             'description': self._get_item_description(test_item),
             'start_time': timestamp(),
             'item_type': 'STEP',
-            'parent_item_id': self.parent_item_id,
+            'parent_item_id': parent_item_id,
             'code_ref': '{0}:{1}'.format(test_item.fspath, test_item.name)
         }
         if self.rp_supports_parameters:
             start_rq['parameters'] = self._get_parameters(test_item)
 
         log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
-        item_id = self.rp.start_test_item(**start_rq)
-        self.log_item_id = item_id
-        self.parent_item_id = None
+        self.log_item_id = item_id = self.rp.start_test_item(**start_rq)
         return item_id
 
     def finish_pytest_item(self, test_item, item_id, status, issue=None):
