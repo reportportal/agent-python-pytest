@@ -3,7 +3,6 @@
 import logging
 import os.path
 import sys
-import threading
 from os import getenv
 from time import time
 
@@ -227,12 +226,8 @@ class PyTestServiceClass(object):
                     children[path_part] = {
                         'children': {}, 'status': 'PASSED', 'type': node_type,
                         'parent': current_node, 'start_flag': False,
-                        'finish_counter': 1, 'item': path_part,
-                        'lock': threading.Lock()
+                        'item': path_part
                     }
-                else:
-                    counter = int(children[path_part]['finish_counter'])
-                    children[path_part]['finish_counter'] = counter + 1
                 current_node = children[path_part]
         return test_tree
 
@@ -301,6 +296,37 @@ class PyTestServiceClass(object):
         else:
             self._item_parts[node['item']] = path + [node]
 
+    def _build_start_suite_rq(self, part):
+        code_ref = str(part['item']) if part['type'] == LeafType.DIR \
+            else str(part['item'].fspath)
+        payload = {
+            'name': self._get_item_name(part['name']),
+            'description': self._get_item_description(part['item']),
+            'start_time': timestamp(),
+            'item_type': 'SUITE',
+            'code_ref': code_ref,
+            'parent_item_id': part['parent']['item_id']
+        }
+        return payload
+
+    def _start_suite(self, suite_rq):
+        log.debug('ReportPortal - Start Suite: request_body=%s',
+                  suite_rq)
+        return self.rp.start_test_item(**suite_rq)
+
+    def _create_suites(self):
+        if self.rp is None:
+            return
+
+        for item, path in self._item_parts.items():
+            for part in path[1:-1]:
+                if part['start_flag']:
+                    continue
+                part['start_flag'] = True
+                item_id = self._start_suite(self._build_start_suite_rq(part))
+                part['item_id'] = item_id
+                self.log_item_id = item_id
+
     def collect_tests(self, session):
         """
         Collect all tests.
@@ -318,24 +344,7 @@ class PyTestServiceClass(object):
         self._generate_names(test_tree)
 
         self._build_item_paths(test_tree, [])
-
-    def _build_start_suite_rq(self, part):
-        code_ref = str(part['item']) if part['type'] == LeafType.DIR \
-            else str(part['item'].fspath)
-        payload = {
-            'name': self._get_item_name(part['name']),
-            'description': self._get_item_description(part['item']),
-            'start_time': timestamp(),
-            'item_type': 'SUITE',
-            'code_ref': code_ref
-        }
-
-        if part['parent']['type'] == LeafType.ROOT:
-            payload['parent_item_id'] = part['parent']['item_id']
-        else:
-            with part['parent']['lock']:
-                payload['parent_item_id'] = part['parent']['item_id']
-        return payload
+        self._create_suites()
 
     def _build_start_step_rq(self, part):
         code_ref = '{0}:{1}'.format(part['item'].fspath, part['name'])
@@ -346,11 +355,14 @@ class PyTestServiceClass(object):
             'start_time': timestamp(),
             'item_type': 'STEP',
             'code_ref': code_ref,
-            'parameters': self._get_parameters(part['item'])
+            'parameters': self._get_parameters(part['item']),
+            'parent_item_id': part['parent']['item_id']
         }
-        with part['parent']['lock']:
-            payload['parent_item_id'] = part['parent']['item_id']
         return payload
+
+    def _start_step(self, step_rq):
+        log.debug('ReportPortal - Start TestItem: request_body=%s', step_rq)
+        return self.rp.start_test_item(**step_rq)
 
     def start_pytest_item(self, test_item=None):
         """
@@ -362,27 +374,11 @@ class PyTestServiceClass(object):
         if self.rp is None:
             return
 
-        for part in self._item_parts[test_item][1:-1]:
-            if part['start_flag']:
-                continue
-            with part['lock']:
-                if part['start_flag']:
-                    continue
-                part['start_flag'] = True
-                payload = self._build_start_suite_rq(part)
-                log.debug('ReportPortal - Start Suite: request_body=%s',
-                          payload)
-                item_id = self.rp.start_test_item(**payload)
-                part['item_id'] = item_id
-                self.log_item_id = item_id
-
         # Item type should be sent as "STEP" until we upgrade to RPv6.
         # Details at:
         # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
         current_part = self._item_parts[test_item][-1]
-        start_rq = self._build_start_step_rq(current_part)
-        log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
-        item_id = self.rp.start_test_item(**start_rq)
+        item_id = self._start_step(self._build_start_step_rq(current_part))
         current_part['item_id'] = item_id
         self.log_item_id = item_id
 
@@ -396,14 +392,9 @@ class PyTestServiceClass(object):
         }
         return payload
 
-    # noinspection PyMethodMayBeStatic
-    def _build_finish_suite_rq(self, part):
-        payload = {
-            'end_time': timestamp(),
-            'status': part['status'],
-            'item_id': part['item_id']
-        }
-        return payload
+    def _finish_step(self, finish_rq):
+        log.debug('ReportPortal - Finish TestItem: request_body=%s', finish_rq)
+        self.rp.finish_test_item(**finish_rq)
 
     def finish_pytest_item(self, test_item, status, issue=None):
         """
@@ -419,23 +410,44 @@ class PyTestServiceClass(object):
             return
 
         parts = self._item_parts[test_item]
-        item_part = parts.pop()
+        item_part = parts[-1]
         item_part['status'] = status
-        fta_rq = self._build_finish_step_rq(item_part, issue)
-        log.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
-        self.rp.finish_test_item(**fta_rq)
+        self._finish_step(self._build_finish_step_rq(item_part, issue))
 
-        while len(parts) > 1:
-            part = parts.pop()
-            with part['lock']:
-                if status == 'FAILED':
-                    part['status'] = status
-                part["finish_counter"] -= 1
-                if part["finish_counter"] > 0:
-                    continue
-                payload = self._build_finish_suite_rq(part)
-                log.debug('ReportPortal - End TestSuite: request_body=%s', payload)
-                self.rp.finish_test_item(**payload)
+    def _finish_suite(self, finish_rq):
+        log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
+        self.rp.finish_test_item(**finish_rq)
+
+    # noinspection PyMethodMayBeStatic
+    def _build_finish_suite_rq(self, part):
+        payload = {
+            'end_time': timestamp(),
+            'status': part['status'],
+            'item_id': part['item_id']
+        }
+        return payload
+
+    def finish_suites(self):
+        if self.rp is None:
+            return
+
+        for item, path in self._item_parts.items():
+            my_path = list(path)
+            my_path.reverse()
+            for part in my_path[1:-1]:
+                self._finish_suite(self._build_finish_suite_rq(part))
+
+    # noinspection PyMethodMayBeStatic
+    def _build_finish_launch_rq(self, status):
+        finish_rq = {
+            'end_time': timestamp(),
+            'status': status
+        }
+        return finish_rq
+
+    def _finish_launch(self, finish_rq):
+        log.debug('ReportPortal - Finish launch: request_body=%s', finish_rq)
+        self.rp.finish_launch(**finish_rq)
 
     def finish_launch(self, status=None):
         """
@@ -449,13 +461,8 @@ class PyTestServiceClass(object):
             return
 
         # To finish launch session str parameter is needed
-        fl_rq = {
-            'end_time': timestamp(),
-            'status': status
-        }
-        log.debug('ReportPortal - Finish launch: request_body=%s', fl_rq)
-        self.rp.finish_launch(**fl_rq)
-        self.rp.terminate()
+        self._finish_launch(self._build_finish_launch_rq(status))
+        # self.rp.terminate()
         self.rp = None
 
     def post_log(self, message, loglevel='INFO', attachment=None):
@@ -505,17 +512,17 @@ class PyTestServiceClass(object):
         """
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_attributes parameter
-        def get_marker_value(item, keyword):
+        def get_marker_value(my_item, keyword):
             try:
-                marker = item.get_closest_marker(keyword)
+                marker = my_item.get_closest_marker(keyword)
             except AttributeError:
                 # pytest < 3.6
-                marker = item.keywords.get(keyword)
+                marker = my_item.keywords.get(keyword)
 
             marker_values = []
             if marker and marker.args:
-                for arg in marker.args:
-                    marker_values.append("{}:{}".format(keyword, arg))
+                for my_arg in marker.args:
+                    marker_values.append("{}:{}".format(keyword, my_arg))
             else:
                 marker_values.append(keyword)
             # returns a list of strings to accommodate multiple values
@@ -542,6 +549,7 @@ class PyTestServiceClass(object):
         raw_attrs.extend(item.session.config.getini('rp_tests_attributes'))
         return gen_attributes(raw_attrs)
 
+    # noinspection PyMethodMayBeStatic
     def _get_parameters(self, item):
         """
         Get params of item.

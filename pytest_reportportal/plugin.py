@@ -146,12 +146,14 @@ def pytest_sessionfinish(session):
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
+    session.config.py_test_service.finish_suites()
     if is_master(session.config):
         if not session.config.option.rp_launch_id:
             session.config.py_test_service.finish_launch()
     rp = session.config.py_test_service.rp
-    if rp:
-        rp.terminate()
+    # TODO: fix logging
+    # if rp:
+    #     rp.terminate()
 
 
 def pytest_configure(config):
