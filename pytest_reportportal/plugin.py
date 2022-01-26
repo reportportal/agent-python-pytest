@@ -12,7 +12,6 @@ import requests
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from reportportal_client.errors import ResponseError
-from reportportal_client.helpers import gen_attributes
 
 from .config import AgentConfig
 from .listener import RPReportListener
@@ -22,27 +21,28 @@ from .service import PyTestServiceClass
 log = logging.getLogger(__name__)
 
 
-def check_connection(aconf):
+def check_connection(agent_config, pytest_config):
     """Check connection to RP using provided options.
 
     If connection is not successful, then we update _reportportal_configured
     attribute of the Config object to False.
-    :param aconf: Instance of the AgentConfig class
+    :param agent_config:  Instance of the AgentConfig class
+    :param pytest_config: config object of PyTest
     """
-    if aconf.pconfig._reportportal_configured and \
-            not aconf.rp_skip_connection_test:
-        url = '{0}/api/v1/project/{1}'.format(aconf.rp_endpoint,
-                                              aconf.rp_project)
-        headers = {'Authorization': 'bearer {0}'.format(aconf.rp_uuid)}
+    if pytest_config._reportportal_configured and \
+            not agent_config.rp_skip_connection_test:
+        url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint,
+                                              agent_config.rp_project)
+        headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_uuid)}
         try:
             resp = requests.get(url, headers=headers,
-                                verify=aconf.rp_verify_ssl)
+                                verify=agent_config.rp_verify_ssl)
             resp.raise_for_status()
         except requests.exceptions.RequestException as exc:
             log.exception(exc)
             log.error("Unable to connect to Report Portal, the launch won't be"
                       " reported")
-            aconf.pconfig._reportportal_configured = False
+            pytest_config._reportportal_configured = False
 
 
 def is_master(config):
@@ -90,38 +90,15 @@ def pytest_sessionstart(session):
     if is_master(session.config):
         config = session.config
         try:
-            config.py_test_service.init_service(
-                project=config._reporter_config.rp_project,
-                endpoint=config._reporter_config.rp_endpoint,
-                uuid=config._reporter_config.rp_uuid,
-                log_batch_size=config._reporter_config.rp_log_batch_size,
-                is_skipped_an_issue=config._reporter_config.
-                rp_is_skipped_an_issue,
-                custom_launch=config._reporter_config.rp_launch_id,
-                ignored_attributes=config._reporter_config.
-                rp_ignore_attributes,
-                verify_ssl=config._reporter_config.rp_verify_ssl,
-                retries=config._reporter_config.rp_retries,
-                parent_item_id=config._reporter_config.rp_parent_item_id,
-            )
+            config.py_test_service.init_service()
         except ResponseError as response_error:
             log.warning('Failed to initialize reportportal-client service. '
                         'Reporting is disabled.')
             log.debug(str(response_error))
             config.py_test_service.rp = None
             return
-        rp_launch_attributes = config._reporter_config.rp_launch_attributes
-        attributes = gen_attributes(rp_launch_attributes) \
-            if rp_launch_attributes else None
         if not config._reporter_config.rp_launch_id:
-            config.py_test_service.start_launch(
-                config._reporter_config.rp_launch,
-                mode=config._reporter_config.rp_mode,
-                attributes=attributes,
-                description=config._reporter_config.rp_launch_description,
-                rerun=config._reporter_config.rp_rerun,
-                rerun_of=config._reporter_config.rp_rerun_of
-            )
+            config.py_test_service.start_launch()
             if config.pluginmanager.hasplugin('xdist'):
                 wait_launch(session.config.py_test_service.rp)
 
@@ -178,7 +155,7 @@ def pytest_configure(config):
         log.debug('Disabling reporting to RP.')
         return
 
-    check_connection(agent_config)
+    check_connection(agent_config, config)
     if config._reportportal_configured is False:
         log.debug('Failed to establish connection with RP. '
                   'Disabling reporting.')
@@ -187,7 +164,7 @@ def pytest_configure(config):
     config._reporter_config = agent_config
 
     if is_master(config):
-        config.py_test_service = PyTestServiceClass()
+        config.py_test_service = PyTestServiceClass(agent_config)
     else:
         config.py_test_service = pickle.loads(
             config.workerinput['py_test_service'])

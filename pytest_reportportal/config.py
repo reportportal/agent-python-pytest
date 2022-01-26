@@ -15,44 +15,45 @@ class AgentConfig(object):
 
     def __init__(self, pytest_config):
         """Initialize required attributes."""
-        self._rp_rerun = None
-        self.pconfig = pytest_config
-
-        self.rp_endpoint = self.find_option('rp_endpoint')
-        self.rp_dir_level = int(self.find_option('rp_hierarchy_dirs_level'))
-        self.rp_ignore_attributes = self.find_option('rp_ignore_attributes')
+        self.rp_rerun = (pytest_config.option.rp_rerun or
+                         pytest_config.getini('rp_rerun'))
+        self.rp_endpoint = self.find_option(pytest_config, 'rp_endpoint')
+        self.rp_dir_level = int(self.find_option(pytest_config,
+                                                 'rp_hierarchy_dirs_level'))
+        self.rp_ignore_attributes = self.find_option(pytest_config,
+                                                     'rp_ignore_attributes')
         self.rp_is_skipped_an_issue = self.find_option(
+            pytest_config,
             'rp_is_skipped_an_issue'
         )
-        self.rp_launch = self.find_option('rp_launch')
-        self.rp_launch_id = self.find_option('rp_launch_id')
-        self.rp_launch_attributes = self.find_option('rp_launch_attributes')
-        self.rp_launch_description = self.find_option('rp_launch_description')
-        self.rp_log_batch_size = int(self.find_option('rp_log_batch_size'))
-        self.rp_log_level = get_actual_log_level(self.pconfig, 'rp_log_level')
-        self.rp_mode = self.find_option('rp_mode')
-        self.rp_parent_item_id = self.find_option('rp_parent_item_id')
-        self.rp_project = self.find_option('rp_project')
-        self.rp_rerun_of = self.find_option('rp_rerun_of')
-        self.rp_retries = int(self.find_option('retries'))
+        self.rp_launch = self.find_option(pytest_config, 'rp_launch')
+        self.rp_launch_id = self.find_option(pytest_config, 'rp_launch_id')
+        self.rp_launch_attributes = self.find_option(pytest_config,
+                                                     'rp_launch_attributes')
+        self.rp_launch_description = self.find_option(pytest_config,
+                                                      'rp_launch_description')
+        self.rp_log_batch_size = int(self.find_option(pytest_config,
+                                                      'rp_log_batch_size'))
+        self.rp_log_level = get_actual_log_level(pytest_config, 'rp_log_level')
+        self.rp_mode = self.find_option(pytest_config, 'rp_mode')
+        self.rp_parent_item_id = self.find_option(pytest_config,
+                                                  'rp_parent_item_id')
+        self.rp_project = self.find_option(pytest_config,
+                                           'rp_project')
+        self.rp_rerun_of = self.find_option(pytest_config,
+                                            'rp_rerun_of')
+        self.rp_retries = int(self.find_option(pytest_config,
+                                               'retries'))
         self.rp_skip_connection_test = str(
-            self.find_option('rp_skip_connection_test')).lower() in (
+            self.find_option(pytest_config,
+                             'rp_skip_connection_test')).lower() in (
                                        'true', '1', 'yes', 'y')
-        self.rp_uuid = getenv('RP_UUID') or self.find_option('rp_uuid')
-        self.rp_verify_ssl = self.find_option('rp_verify_ssl')
+        self.rp_uuid = getenv('RP_UUID') or self.find_option(pytest_config,
+                                                             'rp_uuid')
+        self.rp_verify_ssl = self.find_option(pytest_config, 'rp_verify_ssl')
 
-    @property
-    def rp_rerun(self):
-        """Get value of the rp_rerun parameter."""
-        if self._rp_rerun is None:
-            if self.rp_rerun_of:
-                self._rp_rerun = True
-            else:
-                self._rp_rerun = (self.pconfig.option.rp_rerun or
-                                  self.pconfig.getini('rp_rerun'))
-        return self._rp_rerun
-
-    def find_option(self, option_name, default=None):
+    # noinspection PyMethodMayBeStatic
+    def find_option(self, pytest_config, option_name, default=None):
         """
         Find a single configuration setting from multiple places.
 
@@ -61,12 +62,13 @@ class AgentConfig(object):
         1. From `self.pconfig.option.[option_name]`.
         2. From `self.pconfig.getini(option_name)`.
 
-        :param option_name: name of the option
-        :param default:     value to be returned if not found
+        :param pytest_config: config object of PyTest
+        :param option_name:   name of the option
+        :param default:       value to be returned if not found
         :return: option value
         """
         value = (
-            getattr(self.pconfig.option, option_name, None) or
-            self.pconfig.getini(option_name)
+            getattr(pytest_config.option, option_name, None) or
+            pytest_config.getini(option_name)
         )
         return value if value else default

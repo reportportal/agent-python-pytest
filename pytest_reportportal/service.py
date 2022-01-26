@@ -3,6 +3,7 @@
 import logging
 import os.path
 import sys
+import threading
 from os import getenv
 from time import time
 
@@ -73,11 +74,21 @@ class LeafType(Enum):
     ROOT = auto()
 
 
+@unique
+class ExecStatus(Enum):
+    """This class stores test item path types."""
+
+    CREATED = auto()
+    IN_PROGRESS = auto()
+    FINISHED = auto()
+
+
 class PyTestServiceClass(object):
     """Pytest service class for reporting test results to the Report Portal."""
 
-    def __init__(self):
+    def __init__(self, agent_config):
         """Initialize instance attributes."""
+        self._config = agent_config
         self._issue_types = {}
         self._item_parts = {}
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
@@ -103,34 +114,26 @@ class PyTestServiceClass(object):
                     self._issue_types[item["shortName"]] = item["locator"]
         return self._issue_types
 
-    def init_service(self,
-                     endpoint,
-                     project,
-                     uuid,
-                     log_batch_size,
-                     ignored_attributes,
-                     custom_launch=None,
-                     is_skipped_an_issue=True,
-                     verify_ssl=True,
-                     parent_item_id=None,
-                     retries=0):
+    def init_service(self):
         """Update self.rp with the instance of the ReportPortalService."""
         if self.rp is None:
-            self.parent_item_id = parent_item_id
+            self.parent_item_id = self._config.rp_parent_item_id
             self.ignored_attributes = list(
-                set(ignored_attributes or []).union({'parametrize'}))
-            self.log_batch_size = log_batch_size
+                set(self._config.rp_ignore_attributes or [])
+                    .union({'parametrize'})
+            )
             log.debug('ReportPortal - Init service: endpoint=%s, '
-                      'project=%s, uuid=%s', endpoint, project, uuid)
+                      'project=%s, uuid=%s', self._config.rp_endpoint,
+                      self._config.rp_project, self._config.rp_uuid)
             self.rp = RPClient(
-                endpoint=endpoint,
-                project=project,
-                token=uuid,
-                is_skipped_an_issue=is_skipped_an_issue,
-                log_batch_size=log_batch_size,
-                retries=retries,
-                verify_ssl=verify_ssl,
-                launch_id=custom_launch,
+                endpoint=self._config.rp_endpoint,
+                project=self._config.rp_project,
+                token=self._config.rp_uuid,
+                is_skipped_an_issue=self._config.rp_is_skipped_an_issue,
+                log_batch_size=self._config.rp_log_batch_size,
+                retries=self._config.rp_retries,
+                verify_ssl=self._config.rp_verify_ssl,
+                launch_id=self._config.rp_launch_id,
             )
             self.project_settings = None
             if self.rp and hasattr(self.rp, "get_project_settings"):
@@ -140,33 +143,31 @@ class PyTestServiceClass(object):
             log.debug('The pytest is already initialized')
         return self.rp
 
-    def start_launch(self,
-                     launch_name,
-                     mode=None,
-                     description=None,
-                     attributes=None,
-                     rerun=False,
-                     rerun_of=None):
+    def _build_start_launch_rq(self):
+        rp_launch_attributes = self._config.rp_launch_attributes
+        attributes = gen_attributes(rp_launch_attributes) \
+            if rp_launch_attributes else None
+
+        start_rq = {
+            'attributes': self._get_launch_attributes(attributes),
+            'name': self._config.rp_launch,
+            'start_time': timestamp(),
+            'description': self._config.rp_launch_description,
+            'mode': self._config.rp_mode,
+            'rerun': self._config.rp_rerun,
+            'rerun_of': self._config.rp_rerun_of
+        }
+        return start_rq
+
+    def start_launch(self):
         """
         Launch test items.
 
-        :param launch_name: name of the launch
-        :param mode:        mode
-        :param description: description of launch test
         :return: item ID
         """
         if self.rp is None:
             return
-
-        sl_pt = {
-            'attributes': self._get_launch_attributes(attributes),
-            'name': launch_name,
-            'start_time': timestamp(),
-            'description': description,
-            'mode': mode,
-            'rerun': rerun,
-            'rerun_of': rerun_of
-        }
+        sl_pt = self._build_start_launch_rq()
         log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
         item_id = self.rp.start_launch(**sl_pt)
         log.debug('ReportPortal - Launch started: id=%s', item_id)
@@ -226,7 +227,8 @@ class PyTestServiceClass(object):
                     children[path_part] = {
                         'children': {}, 'status': 'PASSED', 'type': node_type,
                         'parent': current_node, 'start_flag': False,
-                        'item': path_part
+                        'item': path_part, 'lock': threading.Lock(),
+                        'exec': ExecStatus.CREATED, 'finish_flag': False
                     }
                 current_node = children[path_part]
         return test_tree
@@ -296,37 +298,6 @@ class PyTestServiceClass(object):
         else:
             self._item_parts[node['item']] = path + [node]
 
-    def _build_start_suite_rq(self, part):
-        code_ref = str(part['item']) if part['type'] == LeafType.DIR \
-            else str(part['item'].fspath)
-        payload = {
-            'name': self._get_item_name(part['name']),
-            'description': self._get_item_description(part['item']),
-            'start_time': timestamp(),
-            'item_type': 'SUITE',
-            'code_ref': code_ref,
-            'parent_item_id': part['parent']['item_id']
-        }
-        return payload
-
-    def _start_suite(self, suite_rq):
-        log.debug('ReportPortal - Start Suite: request_body=%s',
-                  suite_rq)
-        return self.rp.start_test_item(**suite_rq)
-
-    def _create_suites(self):
-        if self.rp is None:
-            return
-
-        for item, path in self._item_parts.items():
-            for part in path[1:-1]:
-                if part['start_flag']:
-                    continue
-                part['start_flag'] = True
-                item_id = self._start_suite(self._build_start_suite_rq(part))
-                part['item_id'] = item_id
-                self.log_item_id = item_id
-
     def collect_tests(self, session):
         """
         Collect all tests.
@@ -339,12 +310,56 @@ class PyTestServiceClass(object):
         # Create a test tree to be able to apply mutations
         test_tree = self._build_test_tree(session)
         self._remove_root_package(test_tree)
-        self._remove_root_dirs(test_tree,
-                               session.config._reporter_config.rp_dir_level)
+        self._remove_root_dirs(test_tree, self._config.rp_dir_level)
         self._generate_names(test_tree)
 
         self._build_item_paths(test_tree, [])
-        self._create_suites()
+
+    # noinspection PyMethodMayBeStatic
+    def _lock(self, part, func):
+        if 'lock' in part:
+            with part['lock']:
+                result = func(part)
+        else:
+            result = func(part)
+        return result
+
+    def _build_start_suite_rq(self, part):
+        code_ref = str(part['item']) if part['type'] == LeafType.DIR \
+            else str(part['item'].fspath)
+        payload = {
+            'name': self._get_item_name(part['name']),
+            'description': self._get_item_description(part['item']),
+            'start_time': timestamp(),
+            'item_type': 'SUITE',
+            'code_ref': code_ref,
+            'parent_item_id': self._lock(part['parent'],
+                                         lambda p: p['item_id'])
+        }
+        return payload
+
+    def _start_suite(self, suite_rq):
+        log.debug('ReportPortal - Start Suite: request_body=%s',
+                  suite_rq)
+        return self.rp.start_test_item(**suite_rq)
+
+    def _open_suite(self, part):
+        if part['start_flag']:
+            return
+        item_id = self._start_suite(self._build_start_suite_rq(part))
+        part['item_id'] = item_id
+        self.log_item_id = item_id
+        part['start_flag'] = True
+
+    def _create_suite_path(self, item):
+        if self.rp is None:
+            return
+
+        path = self._item_parts[item]
+        for part in path[1:-1]:
+            if part['start_flag']:
+                continue
+            self._lock(part, lambda p: self._open_suite(p))
 
     def _build_start_step_rq(self, part):
         code_ref = '{0}:{1}'.format(part['item'].fspath, part['name'])
@@ -356,7 +371,8 @@ class PyTestServiceClass(object):
             'item_type': 'STEP',
             'code_ref': code_ref,
             'parameters': self._get_parameters(part['item']),
-            'parent_item_id': part['parent']['item_id']
+            'parent_item_id': self._lock(part['parent'],
+                                         lambda p: p['item_id'])
         }
         return payload
 
@@ -371,8 +387,10 @@ class PyTestServiceClass(object):
         :param test_item: pytest.Item
         :return: item ID
         """
-        if self.rp is None:
+        if self.rp is None or test_item is None:
             return
+
+        self._create_suite_path(test_item)
 
         # Item type should be sent as "STEP" until we upgrade to RPv6.
         # Details at:
@@ -380,6 +398,7 @@ class PyTestServiceClass(object):
         current_part = self._item_parts[test_item][-1]
         item_id = self._start_step(self._build_start_step_rq(current_part))
         current_part['item_id'] = item_id
+        current_part['exec'] = ExecStatus.IN_PROGRESS
         self.log_item_id = item_id
 
     # noinspection PyMethodMayBeStatic
@@ -413,6 +432,7 @@ class PyTestServiceClass(object):
         item_part = parts[-1]
         item_part['status'] = status
         self._finish_step(self._build_finish_step_rq(item_part, issue))
+        item_part['exec'] = ExecStatus.FINISHED
 
     def _finish_suite(self, finish_rq):
         log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
@@ -427,6 +447,12 @@ class PyTestServiceClass(object):
         }
         return payload
 
+    def _close_suite(self, part):
+        if part['finish_flag']:
+            return
+        self._finish_suite(self._build_finish_suite_rq(part))
+        part['finish_flag'] = True
+
     def finish_suites(self):
         if self.rp is None:
             return
@@ -435,7 +461,10 @@ class PyTestServiceClass(object):
             my_path = list(path)
             my_path.reverse()
             for part in my_path[1:-1]:
-                self._finish_suite(self._build_finish_suite_rq(part))
+                if 'item_id' in part:
+                    if part['finish_flag']:
+                        continue
+                    self._lock(part, lambda p: self._close_suite(p))
 
     # noinspection PyMethodMayBeStatic
     def _build_finish_launch_rq(self, status):
