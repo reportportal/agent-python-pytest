@@ -226,9 +226,8 @@ class PyTestServiceClass(object):
                 if path_part not in children:
                     children[path_part] = {
                         'children': {}, 'status': 'PASSED', 'type': node_type,
-                        'parent': current_node, 'start_flag': False,
-                        'item': path_part, 'lock': threading.Lock(),
-                        'exec': ExecStatus.CREATED, 'finish_flag': False
+                        'parent': current_node, 'item': path_part,
+                        'lock': threading.Lock(), 'exec': ExecStatus.CREATED
                     }
                 current_node = children[path_part]
         return test_tree
@@ -317,6 +316,7 @@ class PyTestServiceClass(object):
 
     # noinspection PyMethodMayBeStatic
     def _lock(self, part, func):
+        result = None
         if 'lock' in part:
             with part['lock']:
                 result = func(part)
@@ -344,12 +344,13 @@ class PyTestServiceClass(object):
         return self.rp.start_test_item(**suite_rq)
 
     def _open_suite(self, part):
-        if part['start_flag']:
+        if part['exec'] != ExecStatus.CREATED:
             return
         item_id = self._start_suite(self._build_start_suite_rq(part))
+        print("Suite '{}', id: {}".format(part['name'], item_id))
         part['item_id'] = item_id
         self.log_item_id = item_id
-        part['start_flag'] = True
+        part['exec'] = ExecStatus.IN_PROGRESS
 
     def _create_suite_path(self, item):
         if self.rp is None:
@@ -357,7 +358,7 @@ class PyTestServiceClass(object):
 
         path = self._item_parts[item]
         for part in path[1:-1]:
-            if part['start_flag']:
+            if part['exec'] != ExecStatus.CREATED:
                 continue
             self._lock(part, lambda p: self._open_suite(p))
 
@@ -415,6 +416,38 @@ class PyTestServiceClass(object):
         log.debug('ReportPortal - Finish TestItem: request_body=%s', finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
+    def _finish_suite(self, finish_rq):
+        log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
+        self.rp.finish_test_item(**finish_rq)
+
+    # noinspection PyMethodMayBeStatic
+    def _build_finish_suite_rq(self, part):
+        payload = {
+            'end_time': timestamp(),
+            'status': part['status'],
+            'item_id': part['item_id']
+        }
+        return payload
+
+    def _proceed_suite_finish(self, part):
+        if part.get('exec', ExecStatus.FINISHED) == ExecStatus.FINISHED:
+            return
+
+        self._finish_suite(self._build_finish_suite_rq(part))
+        part['exec'] = ExecStatus.FINISHED
+
+    def _finish_parents(self, part):
+        if part['parent'].get('exec', ExecStatus.FINISHED) == ExecStatus.FINISHED:
+            return
+
+        for item, child_part in part['parent']['children'].items():
+            current_status = self._lock(child_part, lambda p: p['exec'])
+            if current_status != ExecStatus.FINISHED:
+                return
+
+        self._lock(part['parent'], lambda p: self._proceed_suite_finish(p))
+        self._finish_parents(part['parent'])
+
     def finish_pytest_item(self, test_item, status, issue=None):
         """
         Finish pytest_item.
@@ -433,38 +466,7 @@ class PyTestServiceClass(object):
         item_part['status'] = status
         self._finish_step(self._build_finish_step_rq(item_part, issue))
         item_part['exec'] = ExecStatus.FINISHED
-
-    def _finish_suite(self, finish_rq):
-        log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
-        self.rp.finish_test_item(**finish_rq)
-
-    # noinspection PyMethodMayBeStatic
-    def _build_finish_suite_rq(self, part):
-        payload = {
-            'end_time': timestamp(),
-            'status': part['status'],
-            'item_id': part['item_id']
-        }
-        return payload
-
-    def _close_suite(self, part):
-        if part['finish_flag']:
-            return
-        self._finish_suite(self._build_finish_suite_rq(part))
-        part['finish_flag'] = True
-
-    def finish_suites(self):
-        if self.rp is None:
-            return
-
-        for item, path in self._item_parts.items():
-            my_path = list(path)
-            my_path.reverse()
-            for part in my_path[1:-1]:
-                if 'item_id' in part:
-                    if part['finish_flag']:
-                        continue
-                    self._lock(part, lambda p: self._close_suite(p))
+        self._finish_parents(item_part)
 
     # noinspection PyMethodMayBeStatic
     def _build_finish_launch_rq(self, status):
