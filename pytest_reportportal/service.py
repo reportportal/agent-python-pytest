@@ -5,7 +5,7 @@ import os.path
 import sys
 import threading
 from os import getenv
-from time import time
+from time import time, sleep
 
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
@@ -343,11 +343,10 @@ class PyTestServiceClass(object):
                   suite_rq)
         return self.rp.start_test_item(**suite_rq)
 
-    def _open_suite(self, part):
+    def _create_suite(self, part):
         if part['exec'] != ExecStatus.CREATED:
             return
         item_id = self._start_suite(self._build_start_suite_rq(part))
-        print("Suite '{}', id: {}".format(part['name'], item_id))
         part['item_id'] = item_id
         self.log_item_id = item_id
         part['exec'] = ExecStatus.IN_PROGRESS
@@ -360,7 +359,7 @@ class PyTestServiceClass(object):
         for part in path[1:-1]:
             if part['exec'] != ExecStatus.CREATED:
                 continue
-            self._lock(part, lambda p: self._open_suite(p))
+            self._lock(part, lambda p: self._create_suite(p))
 
     def _build_start_step_rq(self, part):
         code_ref = '{0}:{1}'.format(part['item'].fspath, part['name'])
@@ -437,13 +436,16 @@ class PyTestServiceClass(object):
         part['exec'] = ExecStatus.FINISHED
 
     def _finish_parents(self, part):
-        if part['parent'].get('exec', ExecStatus.FINISHED) == ExecStatus.FINISHED:
+        if part['parent'].get('exec', ExecStatus.FINISHED) == \
+                ExecStatus.FINISHED:
             return
 
         for item, child_part in part['parent']['children'].items():
-            current_status = self._lock(child_part, lambda p: p['exec'])
+            current_status = child_part['exec']
             if current_status != ExecStatus.FINISHED:
-                return
+                current_status = self._lock(child_part, lambda p: p['exec'])
+                if current_status != ExecStatus.FINISHED:
+                    return
 
         self._lock(part['parent'], lambda p: self._proceed_suite_finish(p))
         self._finish_parents(part['parent'])
@@ -467,6 +469,21 @@ class PyTestServiceClass(object):
         self._finish_step(self._build_finish_step_rq(item_part, issue))
         item_part['exec'] = ExecStatus.FINISHED
         self._finish_parents(item_part)
+
+    def _get_items(self, exec_status):
+        return [k for k, v in self._item_parts.items() if
+                v[-1]['exec'] == exec_status]
+
+    def finish_suites(self):
+        while len(self._get_items(ExecStatus.IN_PROGRESS)) > 0:
+            sleep(0.1)
+        skipped_items = self._get_items(ExecStatus.CREATED)
+        for item in skipped_items:
+            parts = list(self._item_parts[item])
+            parts.reverse()
+            for part in parts[1:-1]:
+                if part['exec'] == ExecStatus.IN_PROGRESS:
+                    self._lock(part, lambda p: self._proceed_suite_finish(p))
 
     # noinspection PyMethodMayBeStatic
     def _build_finish_launch_rq(self, status):
