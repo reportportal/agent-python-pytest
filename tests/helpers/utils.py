@@ -20,10 +20,66 @@ import pytest
 
 DEFAULT_VARIABLES = {
     'rp_launch': 'Pytest',
-    'rp_endpoint': "http://localhost:8080",
-    'rp_project': "default_personal",
-    'rp_uuid': "test_uuid",
+    'rp_endpoint': 'http://localhost:8080',
+    'rp_project': 'default_personal',
+    'rp_uuid': 'test_uuid',
     'rp_hierarchy_dir_path_separator': '/'
+}
+
+DEFAULT_PROJECT_SETTINGS = {
+    'project': 2,
+    'subTypes': {
+        'NO_DEFECT': [
+            {
+                'id': 4,
+                'locator': 'nd001',
+                'typeRef': 'NO_DEFECT',
+                'longName': 'No Defect',
+                'shortName': 'ND',
+                'color': "#777777"
+            }
+        ],
+        'TO_INVESTIGATE': [
+            {
+                'id': 1,
+                'locator': 'ti001',
+                'typeRef': 'TO_INVESTIGATE',
+                'longName': 'To Investigate',
+                'shortName': 'TI',
+                'color': '#ffb743'
+            }
+        ],
+        'AUTOMATION_BUG': [
+            {
+                'id': 2,
+                'locator': 'ab001',
+                'typeRef': 'AUTOMATION_BUG',
+                'longName': 'Automation Bug',
+                'shortName': 'AB',
+                'color': '#f7d63e'
+            }
+        ],
+        'PRODUCT_BUG': [
+            {
+                'id': 3,
+                'locator': 'pb001',
+                'typeRef': 'PRODUCT_BUG',
+                'longName': 'Product Bug',
+                'shortName': 'PB',
+                'color': '#ec3900'
+            }
+        ],
+        'SYSTEM_ISSUE': [
+            {
+                'id': 5,
+                'locator': 'si001',
+                'typeRef': 'SYSTEM_ISSUE',
+                'longName': 'System Issue',
+                'shortName': 'SI',
+                'color': '#0274d1'
+            }
+        ]
+    }
 }
 
 
@@ -52,3 +108,7 @@ def run_pytest_tests(tests=None, variables=None):
 def item_id_gen(**kwargs):
     return "{}-{}-{}".format(kwargs['name'], str(round(time.time() * 1000)),
                              random.randint(0, 9999))
+
+
+def project_settings(**kwargs):
+    return DEFAULT_PROJECT_SETTINGS
