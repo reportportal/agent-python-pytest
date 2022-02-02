@@ -19,6 +19,7 @@ from six.moves import mock
 from examples import test_issue_id
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
+from reportportal_client.core.rp_issues import Issue
 
 ISSUE_PLACEHOLDER = '{issue_id}'
 ISSUE_URL_PATTERN = 'https://bugzilla.some.com/show_bug.cgi?id=' + \
@@ -47,10 +48,12 @@ def test_issue_report(mock_client_init):
     call_args = mock_client.finish_test_item.call_args_list
     finish_test_step = call_args[0][1]
     issue = finish_test_step['issue']
-    expect(issue['issueType'] == 'pb001')
-    expect(issue['comment'] is not None)
+
+    assert isinstance(issue, Issue)
+    expect(issue.issue_type == 'pb001')
+    expect(issue.comment is not None)
     assert_expectations()
-    comments = issue['comment'].split('\n')
+    comments = issue.comment.split('\n')
     assert len(comments) == 1
     comment = comments[0]
     assert comment == "* {}: [{}]({})" \
