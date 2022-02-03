@@ -29,9 +29,10 @@ ISSUE_URL_PATTERN = 'https://bugzilla.some.com/show_bug.cgi?id=' + \
 @mock.patch(REPORT_PORTAL_SERVICE)
 @pytest.mark.parametrize('issue_id_mark', [True, False])
 def test_issue_id_attribute(mock_client_init, issue_id_mark):
-    """Verify agent reports issue ids and defect type.
+    """Verify agent reports issue attribute if configured.
 
     :param mock_client_init: Pytest fixture
+    :param issue_id_mark:    Attribute report configuration
     """
     mock_client = mock_client_init.return_value
     mock_client.start_test_item.side_effect = utils.item_id_gen
@@ -89,3 +90,25 @@ def test_issue_report(mock_client_init):
     assert comment == "* {}: [{}]({})" \
         .format(test_issue_id.REASON, test_issue_id.ID,
                 ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID))
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_passed_no_issue_report(mock_client_init):
+    """Verify agent do not report issue if test passed.
+
+    :param mock_client_init: Pytest fixture
+    """
+    mock_client = mock_client_init.return_value
+    mock_client.start_test_item.side_effect = utils.item_id_gen
+    mock_client.get_project_settings.side_effect = utils.project_settings
+
+    variables = dict()
+    variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(tests=['examples/test_issue_id_pass.py'],
+                                    variables=variables)
+    assert int(result) == 0, 'Exit code should be 0 (no failures)'
+
+    call_args = mock_client.finish_test_item.call_args_list
+    finish_test_step = call_args[0][1]
+    assert 'issue' not in finish_test_step or finish_test_step['issue'] is None

@@ -561,12 +561,7 @@ class PyTestServiceClass(object):
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_attributes parameter
         def get_marker_value(my_item, keyword):
-            try:
-                marker = my_item.get_closest_marker(keyword)
-            except AttributeError:
-                # pytest < 3.6
-                marker = my_item.keywords.get(keyword)
-
+            marker = my_item.get_closest_marker(keyword)
             marker_values = []
             if marker and marker.args:
                 for my_arg in marker.args:

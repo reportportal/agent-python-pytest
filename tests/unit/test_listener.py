@@ -16,11 +16,11 @@ def test_pytest_runtest_protocol(mocked_item):
     rp_service = mock.Mock()
     rp_service.is_item_update_supported = mock.Mock(return_value=False)
     rp_listener = RPReportListener(rp_service)
-    rp_listener._add_issue_id_marks = mock.Mock()
+    rp_listener._add_issue_id_attribute = mock.Mock()
 
     next(rp_listener.pytest_runtest_protocol(mocked_item))
 
-    expect(rp_listener._add_issue_id_marks.call_count == 1,
+    expect(rp_listener._add_issue_id_attribute.call_count == 1,
            '_add_issue_id_marks called more than 1 time')
     assert_expectations()
 
@@ -82,7 +82,7 @@ def test_add_issue_id_marks(rp_listener, mocked_item):
     mocked_item.session.config.getini = getini
     mocked_item.iter_markers = iter_markers
 
-    rp_listener._add_issue_id_marks(mocked_item)
+    rp_listener._add_issue_id_attribute(mocked_item)
 
     expect(mocked_item.add_marker.call_count == 1,
            "item.add_marker called more than 1 time")
