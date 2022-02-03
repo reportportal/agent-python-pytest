@@ -12,7 +12,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
-
+import pytest
 from delayed_assert import expect, assert_expectations
 from six.moves import mock
 
@@ -27,6 +27,38 @@ ISSUE_URL_PATTERN = 'https://bugzilla.some.com/show_bug.cgi?id=' + \
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
+@pytest.mark.parametrize('issue_id_mark', [True, False])
+def test_issue_id_attribute(mock_client_init, issue_id_mark):
+    """Verify agent reports issue ids and defect type.
+
+    :param mock_client_init: Pytest fixture
+    """
+    mock_client = mock_client_init.return_value
+    mock_client.start_test_item.side_effect = utils.item_id_gen
+    mock_client.get_project_settings.side_effect = utils.project_settings
+
+    variables = dict()
+    variables['rp_issue_id_marks'] = issue_id_mark
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'],
+                                    variables=variables)
+    assert int(result) == 1, 'Exit code should be 1 (test failed)'
+
+    call_args = mock_client.start_test_item.call_args_list
+    finish_test_step = call_args[-1][1]
+    attributes = finish_test_step['attributes']
+
+    if issue_id_mark:
+        assert len(attributes) == 1
+        issue_attribute = attributes[0]
+        expect(issue_attribute['key'] == 'issue')
+        expect(issue_attribute['value'] == test_issue_id.ID)
+        assert_expectations()
+    else:
+        assert len(attributes) == 0
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
 def test_issue_report(mock_client_init):
     """Verify agent reports issue ids and defect type.
 
@@ -38,8 +70,6 @@ def test_issue_report(mock_client_init):
 
     variables = dict()
     variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
-    variables['rp_issue_id_marks'] = True
-    variables['rp_issue_marks'] = 'issue'
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'],
                                     variables=variables)

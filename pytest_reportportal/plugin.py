@@ -133,11 +133,21 @@ def pytest_sessionfinish(session):
     #     rp.terminate()
 
 
+def register_markers(config):
+    config.addinivalue_line(
+        "markers", "issue(issue_id, reason, issue_type, url): mark test with "
+                   "information about skipped or failed result"
+    )
+
+
 def pytest_configure(config):
     """Update Config object with attributes required for reporting to RP.
 
     :param config: Object of the pytest Config class
     """
+
+    register_markers(config)
+
     skip = (config.getoption('--collect-only', default=False) or
             config.getoption('--setup-plan', default=False) or
             not config.option.rp_enabled)
@@ -303,11 +313,6 @@ def pytest_addoption(parser):
         default='0',
         help='Directory starting hierarchy level')
     parser.addini(
-        'rp_issue_marks',
-        type='args',
-        default='',
-        help='Pytest marks to get issue information')
-    parser.addini(
         'rp_issue_system_url',
         default='',
         help='URL to get issue description. Issue id '
@@ -321,7 +326,7 @@ def pytest_addoption(parser):
         'rp_issue_id_marks',
         type='bool',
         default=True,
-        help='Adding tag with issue id to the test')
+        help='Add tag with issue id to the test')
     parser.addini(
         'retries',
         default='0',

@@ -29,7 +29,7 @@ class RPReportListener(object):
         # Test Item result
         self.py_test_service = py_test_service
         self.result = None
-        self.issue = {}
+        self.issues = {}
         self._log_level = log_level
         self._log_handler = \
             RPLogHandler(py_test_service=py_test_service,
@@ -93,23 +93,18 @@ class RPReportListener(object):
 
         :param item: pytest test item
         """
-        issue_marks = item.session.config.getini('rp_issue_marks')
-        if item.session.config.getini('rp_issue_id_marks'):
-            for mark_name in issue_marks:
-                for mark in item.iter_markers(name=mark_name):
-                    if mark:
-                        issue_ids = mark.kwargs.get("issue_id", [])
-                        if not isinstance(issue_ids, list):
-                            issue_ids = [issue_ids]
-                        for issue_id in issue_ids:
-                            mark_issue = "{}:{}".format(mark.name, issue_id)
-                            try:
-                                # register mark in pytest
-                                pytest.mark._markers.add(mark_issue),
-                                # for pytest >= 4.5.0
-                            except AttributeError:
-                                pass
-                            item.add_marker(mark_issue)
+        marks = []
+        for mark in item.iter_markers(name='issue'):
+            if mark:
+                marks.append(mark)
+                if item.session.config.getini('rp_issue_id_marks'):
+                    issue_ids = mark.kwargs.get("issue_id", [])
+                    if not isinstance(issue_ids, list):
+                        issue_ids = [issue_ids]
+                    for issue_id in issue_ids:
+                        mark_issue = "{}:{}".format(mark.name, issue_id)
+                        item.add_marker(mark_issue)
+        [item.own_markers.remove(mark) for mark in marks]
 
     def _add_issue_info(self, item, report):
         """Add issues description and issue_type to the test item.
@@ -119,40 +114,37 @@ class RPReportListener(object):
         :param report: pytest report instance
         """
         url = item.session.config.getini('rp_issue_system_url')
-        issue_marks = item.session.config.getini('rp_issue_marks')
         issue_type = None
         comment = ""
+        for mark in item.iter_markers(name='issue'):
+            if not mark:
+                continue
 
-        for mark_name in issue_marks:
-            for mark in item.iter_markers(name=mark_name):
-                if not mark:
-                    continue
+            mark_comment = ""
+            mark_url = mark.kwargs.get("url", None) or url
+            issue_ids = mark.kwargs.get("issue_id", [])
+            if not isinstance(issue_ids, list):
+                issue_ids = [issue_ids]
 
-                mark_comment = ""
-                mark_url = mark.kwargs.get("url", None) or url
-                issue_ids = mark.kwargs.get("issue_id", [])
-                if not isinstance(issue_ids, list):
-                    issue_ids = [issue_ids]
+            if issue_ids:
+                mark_comment = mark.kwargs.get("reason", mark.name)
+                mark_comment += ":"
+                for issue_id in issue_ids:
+                    issue_url = mark_url.format(issue_id=issue_id) if \
+                        mark_url else None
+                    template = " [{issue_id}]({url})" if issue_url \
+                        else " {issue_id}"
+                    mark_comment += template.format(issue_id=issue_id,
+                                                    url=issue_url)
+            elif "reason" in mark.kwargs:
+                mark_comment = mark.kwargs["reason"]
 
-                if issue_ids:
-                    mark_comment = mark.kwargs.get("reason", mark.name)
-                    mark_comment += ":"
-                    for issue_id in issue_ids:
-                        issue_url = mark_url.format(issue_id=issue_id) if \
-                            mark_url else None
-                        template = " [{issue_id}]({url})" if issue_url \
-                            else " {issue_id}"
-                        mark_comment += template.format(issue_id=issue_id,
-                                                        url=issue_url)
-                elif "reason" in mark.kwargs:
-                    mark_comment = mark.kwargs["reason"]
+            if mark_comment:
+                comment += ("\n* " if comment else "* ") + mark_comment
 
-                if mark_comment:
-                    comment += ("\n* " if comment else "* ") + mark_comment
-
-                # Set issue_type only for first issue mark
-                if "issue_type" in mark.kwargs and issue_type is None:
-                    issue_type = mark.kwargs["issue_type"]
+            # Set issue_type only for first issue mark
+            if "issue_type" in mark.kwargs and issue_type is None:
+                issue_type = mark.kwargs["issue_type"]
 
         # default value
         issue_type = "TI" if issue_type is None else issue_type
@@ -163,6 +155,5 @@ class RPReportListener(object):
                 self.issue['comment'] = comment
             self.issue['issueType'] = \
                 self.py_test_service.issue_types[issue_type]
-            # self.issue['ignoreAnalyzer'] = True ???
         elif (report.when == 'setup') and report.skipped:
             self.issue['issueType'] = 'NOT_ISSUE'

@@ -103,7 +103,6 @@ The following parameters are optional:
 - :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers
 - :code:`rp_is_skipped_an_issue = False` - Treat skipped tests as required investigation. Default is True.
 - :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
-- :code:`rp_issue_marks = 'xfail' 'issue'` - Pytest marks that could be used to get issue information (id, type, reason)
 - :code:`rp_issue_system_url = https://bugzilla.some.com/show_bug.cgi?id={issue_id}` - issue URL (issue_id will be filled by parameter from pytest mark)
 - :code:`rp_issue_id_marks = True` - Enables adding marks for issue ids (e.g. "issue:123456")
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
@@ -236,7 +235,6 @@ Send attachement (screenshots)
 ------------------------------
 
 https://github.com/reportportal/client-Python#send-attachement-screenshots
-
 
 
 Troubleshooting
