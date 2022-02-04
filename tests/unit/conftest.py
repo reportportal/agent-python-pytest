@@ -20,7 +20,7 @@ from pluggy._tracing import TagTracer
 from pytest import fixture
 from six.moves import mock
 
-from config import AgentConfig
+from pytest_reportportal.config import AgentConfig
 from pytest_reportportal import RPLogger
 from pytest_reportportal.listener import RPReportListener
 from pytest_reportportal.service import PyTestServiceClass
