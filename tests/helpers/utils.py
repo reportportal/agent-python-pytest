@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License
 """
+import os
 import random
 import time
 
@@ -106,7 +107,13 @@ def run_pytest_tests(tests, args=None, variables=None):
         for t in tests:
             arguments.append(t)
 
-    return pytest.main(arguments)
+    # Workaround collisions with parent test
+    current_test = os.environ['PYTEST_CURRENT_TEST']
+    del os.environ['PYTEST_CURRENT_TEST']
+    result = pytest.main(arguments)
+    os.environ['PYTEST_CURRENT_TEST'] = current_test
+
+    return result
 
 
 def item_id_gen(**kwargs):
