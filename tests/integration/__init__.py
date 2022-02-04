@@ -45,16 +45,24 @@ HIERARCHY_TEST_VARIABLES = \
 
 HIERARCHY_TEST_EXPECTED_ITEMS = [
     [
-        {'name': HIERARCHY_TESTS[0][0], 'item_type': 'SUITE',
+        {'name': 'examples', 'item_type': 'SUITE',
          'parent_item_id': lambda x: x is None},
+        {'name': 'test_simple.py', 'item_type': 'SUITE',
+         'parent_item_id': lambda x: x.startswith('examples')},
         {'name': 'test_simple', 'item_type': 'STEP',
-         'parent_item_id': lambda x: x.startswith(HIERARCHY_TESTS[0][0])}
+         'parent_item_id': lambda x: x.startswith('test_simple.py')}
     ],
     [
-        {'name': HIERARCHY_TESTS[1][0], 'item_type': 'SUITE',
+        {'name': 'examples', 'item_type': 'SUITE',
          'parent_item_id': lambda x: x is None},
+        {'name': 'hierarchy', 'item_type': 'SUITE',
+         'parent_item_id': lambda x: x.startswith('examples')},
+        {'name': 'inner', 'item_type': 'SUITE',
+         'parent_item_id': lambda x: x.startswith('hierarchy')},
+        {'name': 'test_inner_simple.py', 'item_type': 'SUITE',
+         'parent_item_id': lambda x: x.startswith('inner')},
         {'name': 'test_simple', 'item_type': 'STEP',
-         'parent_item_id': lambda x: x.startswith(HIERARCHY_TESTS[1][0])}
+         'parent_item_id': lambda x: x.startswith('test_inner_simple.py')}
     ],
     [
         {'name': HIERARCHY_TESTS[2][0], 'item_type': 'SUITE',
