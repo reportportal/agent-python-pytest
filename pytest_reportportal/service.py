@@ -279,9 +279,9 @@ class PyTestServiceClass(object):
             item = test_tree['item']
             if isinstance(item, Package):
                 test_tree['name'] = \
-                    os.path.split(os.path.split(item.fspath)[0])[1]
+                    os.path.split(os.path.split(str(item.fspath))[0])[1]
             elif isinstance(item, Module):
-                test_tree['name'] = os.path.split(item.fspath)[1]
+                test_tree['name'] = os.path.split(str(item.fspath))[1]
             else:
                 test_tree['name'] = item.name
 
