@@ -38,10 +38,7 @@ def test_launch_mode(mock_client_init):
     """
     result = utils.run_pytest_tests(tests=['examples/epmty/'])
 
-    if sys.version_info > (2, 7):
-        assert int(result) == 4, 'Exit code should be 4 (no tests)'
-    else:
-        assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    assert int(result) == 4, 'Exit code should be 4 (no tests)'
 
     mock_client = mock_client_init.return_value
     expect(mock_client.start_launch.call_count == 1,
