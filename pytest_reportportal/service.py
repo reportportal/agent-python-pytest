@@ -10,9 +10,9 @@ from time import time, sleep
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import Item
-from _pytest.python import Class, Function, Instance, Module, Package
 from _pytest.warning_types import PytestWarning
 from aenum import auto, Enum, unique
+from pytest import Class, Function, Instance, Module, Package
 from reportportal_client.client import RPClient
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
@@ -119,8 +119,9 @@ class PyTestServiceClass(object):
         if self.rp is None:
             self.parent_item_id = self._config.rp_parent_item_id
             self.ignored_attributes = list(
-                set(self._config.rp_ignore_attributes or [])
-                    .union({'parametrize'})
+                set(
+                    self._config.rp_ignore_attributes or []
+                ).union({'parametrize'})
             )
             log.debug('ReportPortal - Init service: endpoint=%s, '
                       'project=%s, uuid=%s', self._config.rp_endpoint,
@@ -315,13 +316,10 @@ class PyTestServiceClass(object):
 
     # noinspection PyMethodMayBeStatic
     def _lock(self, part, func):
-        result = None
         if 'lock' in part:
             with part['lock']:
-                result = func(part)
-        else:
-            result = func(part)
-        return result
+                return func(part)
+        return func(part)
 
     def _build_start_suite_rq(self, part):
         code_ref = str(part['item']) if part['type'] == LeafType.DIR \
@@ -557,6 +555,7 @@ class PyTestServiceClass(object):
         :param item: pytest.Item
         :return: list of tags
         """
+
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_attributes parameter
         def get_marker_value(my_item, keyword):
