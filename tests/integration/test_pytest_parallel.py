@@ -13,6 +13,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import pytest
 from delayed_assert import expect, assert_expectations
 from six.moves import mock
 
@@ -22,6 +23,8 @@ from tests.helpers.utils import item_id_gen
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
+@pytest.mark.skip(reason='This test breaks all other tests, so only for local '
+                         'execution')
 def test_pytest_parallel_threads(mock_client_init):
     """Verify "pytest_parallel" plugin run tests in two threads.
 
