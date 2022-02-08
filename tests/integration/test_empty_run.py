@@ -21,6 +21,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import sys
+
 from delayed_assert import expect, assert_expectations
 from six.moves import mock
 
@@ -35,7 +37,11 @@ def test_launch_mode(mock_client_init):
     :param mock_client_init: Pytest fixture
     """
     result = utils.run_pytest_tests(tests=['examples/epmty/'])
-    assert int(result) == 4, 'Exit code should be 4 (no tests)'
+
+    if sys.version_info > (2, 7):
+        assert int(result) == 4, 'Exit code should be 4 (no tests)'
+    else:
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
     mock_client = mock_client_init.return_value
     expect(mock_client.start_launch.call_count == 1,
