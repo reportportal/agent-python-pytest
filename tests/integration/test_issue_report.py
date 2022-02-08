@@ -14,12 +14,12 @@
 #  limitations under the License
 import pytest
 from delayed_assert import expect, assert_expectations
+from reportportal_client.core.rp_issues import Issue
 from six.moves import mock
 
 from examples import test_issue_id
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
-from reportportal_client.core.rp_issues import Issue
 
 ISSUE_PLACEHOLDER = '{issue_id}'
 ISSUE_URL_PATTERN = 'https://bugzilla.some.com/show_bug.cgi?id=' + \

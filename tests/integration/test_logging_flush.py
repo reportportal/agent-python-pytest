@@ -13,11 +13,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+from multiprocessing.pool import ThreadPool
+
 from six.moves import mock
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
-from multiprocessing.pool import ThreadPool
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -26,6 +27,7 @@ def test_logging_flushing(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
+
     def run_test():
         return utils.run_pytest_tests(['examples/test_rp_logging.py'])
 
