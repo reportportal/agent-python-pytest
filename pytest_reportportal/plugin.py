@@ -134,7 +134,7 @@ def pytest_sessionfinish(session):
 
 
 def register_markers(config):
-    """Register plugin's markers, to avoid declaring them in `pytest.ini`
+    """Register plugin's markers, to avoid declaring them in `pytest.ini`.
 
     :param config: Object of the pytest Config class
     """
