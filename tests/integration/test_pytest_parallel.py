@@ -40,15 +40,6 @@ def test_pytest_parallel_threads(mock_client_init):
            '"start_launch" method was not called')
     expect(mock_client.finish_launch.call_count == 1,
            '"finish_launch" method was not called')
-    start_item_called = mock_client.start_test_item.call_count
-    expect(start_item_called == 15,
-           '"start_test_item" method was called incorrect number of times: ' +
-           str(start_item_called))
-
-    finish_item_called = mock_client.finish_test_item.call_count
-    expect(finish_item_called == 15,
-           '"finish_test_item" method was called incorrect number of times: ' +
-           str(finish_item_called))
     assert_expectations()
 
     finish_args = mock_client.finish_launch.call_args_list
