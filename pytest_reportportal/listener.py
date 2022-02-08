@@ -85,9 +85,8 @@ class RPReportListener(object):
     def _get_issue_info(self, item, marks):
         """Add issues description and issue_type to the test item.
 
-        ToDo: THIS NEEDS TO BE REWRITTEN. LOOKS UGLY.
         :param item: pytest test item
-        :param report: pytest report instance
+        :param marks: pytest marks list
         """
         default_url = item.session.config.getini('rp_issue_system_url')
         issue_short_name = None
