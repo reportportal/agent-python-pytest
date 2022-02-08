@@ -1,5 +1,5 @@
 """This modules includes unit tests for the listener."""
-
+from _pytest.mark import MarkDecorator
 from six.moves import mock
 
 from delayed_assert import expect, assert_expectations
@@ -14,9 +14,10 @@ def test_pytest_runtest_protocol(mocked_item):
     :param mocked_item: Pytest fixture
     """
     rp_service = mock.Mock()
-    rp_service.is_item_update_supported = mock.Mock(return_value=False)
+    rp_service.issue_types = {}
     rp_listener = RPReportListener(rp_service)
     rp_listener._add_issue_id_attribute = mock.Mock()
+    mocked_item.iter_markers = lambda name: []
 
     next(rp_listener.pytest_runtest_protocol(mocked_item))
 
@@ -25,8 +26,8 @@ def test_pytest_runtest_protocol(mocked_item):
     assert_expectations()
 
 
-def test_add_issue_info(rp_listener, rp_service):
-    """Test listener helper _add_issue_info method.
+def test_get_issue_info(rp_listener, rp_service):
+    """Test listener helper _get_issue_info method.
 
     :param rp_listener: Pytest fixture
     :param rp_service:  Pytest fixture
@@ -52,11 +53,12 @@ def test_add_issue_info(rp_listener, rp_service):
     test_item.session.config.getini = getini
     test_item.iter_markers = iter_markers
 
-    rp_listener._add_issue_info(test_item, report)
+    marks = rp_listener._process_issue_marks(test_item)
+    issue = rp_listener._get_issue_info(test_item, marks)
 
-    expect(rp_listener.issue['issueType'] == "TEST",
+    expect(issue.issue_type == "TEST",
            "incorrect test issue_type")
-    expect(rp_listener.issue['comment'] ==
+    expect(issue.comment ==
            "* issue: [456823](https://bug.com/456823)",
            "incorrect test comment")
     assert_expectations()
@@ -82,10 +84,15 @@ def test_add_issue_id_marks(rp_listener, mocked_item):
     mocked_item.session.config.getini = getini
     mocked_item.iter_markers = iter_markers
 
-    rp_listener._add_issue_id_attribute(mocked_item)
+    marks = rp_listener._process_issue_marks(mocked_item)
+    rp_listener._add_issue_id_attribute(mocked_item, marks)
 
-    expect(mocked_item.add_marker.call_count == 1,
-           "item.add_marker called more than 1 time")
-    expect(mocked_item.add_marker.call_args[0][0] == "issue:456823",
-           "item.add_marker called with incorrect parameters")
+    assert mocked_item.add_marker.call_count == 1,\
+        "item.add_marker called more than 1 time"
+    mark = mocked_item.add_marker.call_args[0][0]
+    expect(isinstance(mark, MarkDecorator))
+    expect(mark.name == "issue",
+           "incorrect mark name: {}".format(str(mark.name)))
+    expect(mark.args[0] == "456823",
+           "incorrect mark args: {}".format(str(mark.args)))
     assert_expectations()
