@@ -129,8 +129,8 @@ def pytest_sessionfinish(session):
             session.config.py_test_service.finish_launch()
     rp = session.config.py_test_service.rp
     # TODO: fix logging
-    # if rp:
-    #     rp.terminate()
+    if rp:
+        rp.terminate()
 
 
 def register_markers(config):

@@ -509,7 +509,7 @@ class PyTestServiceClass(object):
 
         # To finish launch session str parameter is needed
         self._finish_launch(self._build_finish_launch_rq(status))
-        # self.rp.terminate()
+        self.rp.terminate()
         self.rp = None
 
     def post_log(self, message, loglevel='INFO', attachment=None):
