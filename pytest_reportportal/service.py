@@ -12,7 +12,12 @@ from _pytest.main import Session
 from _pytest.nodes import Item
 from _pytest.warning_types import PytestWarning
 from aenum import auto, Enum, unique
-from pytest import Class, Function, Instance, Module, Package
+from pytest import Class, Function, Module, Package
+try:
+    from pytest import Instance
+except ImportError:
+    # pytest >= 7.0
+    Instance = type('dummy', (), {})
 from reportportal_client.client import RPClient
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
