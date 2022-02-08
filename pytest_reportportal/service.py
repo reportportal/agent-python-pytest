@@ -294,7 +294,7 @@ class PyTestServiceClass(object):
             for name, child_node in node['children'].items():
                 self._build_item_paths(child_node, path)
             path.pop()
-        else:
+        elif node['type'] != LeafType.ROOT:
             self._item_parts[node['item']] = path + [node]
 
     def collect_tests(self, session):
@@ -311,7 +311,6 @@ class PyTestServiceClass(object):
         self._remove_root_package(test_tree)
         self._remove_root_dirs(test_tree, self._config.rp_dir_level)
         self._generate_names(test_tree)
-
         self._build_item_paths(test_tree, [])
 
     # noinspection PyMethodMayBeStatic
