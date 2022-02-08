@@ -134,6 +134,10 @@ def pytest_sessionfinish(session):
 
 
 def register_markers(config):
+    """Register plugin's markers, to avoid declaring them in `pytest.ini`
+
+    :param config: Object of the pytest Config class
+    """
     config.addinivalue_line(
         "markers", "issue(issue_id, reason, issue_type, url): mark test with "
                    "information about skipped or failed result"
@@ -145,7 +149,6 @@ def pytest_configure(config):
 
     :param config: Object of the pytest Config class
     """
-
     register_markers(config)
 
     skip = (config.getoption('--collect-only', default=False) or

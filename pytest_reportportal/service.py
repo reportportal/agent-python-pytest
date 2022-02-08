@@ -477,6 +477,15 @@ class PyTestServiceClass(object):
                 v[-1]['exec'] == exec_status]
 
     def finish_suites(self):
+        """
+        Finish all suites in run with status calculations.
+
+        If an execution passes in multiprocessing mode we don't know which and
+        how many items will be passed to our process. Because of that we don't
+        finish suites until the very last step. And after that we finish them
+        at once.
+        """
+        # Ensure there is no running items
         while len(self._get_items(ExecStatus.IN_PROGRESS)) > 0:
             sleep(0.1)
         skipped_items = self._get_items(ExecStatus.CREATED)
@@ -560,7 +569,6 @@ class PyTestServiceClass(object):
         :param item: pytest.Item
         :return: list of tags
         """
-
         # Try to extract names of @pytest.mark.* decorators used for test item
         # and exclude those which present in rp_ignore_attributes parameter
         def get_marker_value(my_item, keyword):
