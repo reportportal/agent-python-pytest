@@ -16,7 +16,7 @@ from pytest import Class, Function, Module, Package
 try:
     from pytest import Instance
 except ImportError:
-    # pytest >= 7.0
+    # in pytest >= 7.0 this type was removed
     Instance = type('dummy', (), {})
 from reportportal_client.client import RPClient
 from reportportal_client.external.google_analytics import send_event
@@ -102,7 +102,8 @@ class PyTestServiceClass(object):
         self.agent_version = get_package_version(self.agent_name)
         self.ignored_attributes = []
         self.log_batch_size = 20
-        self.log_item_id = None
+        self.local = threading.local()
+        self.local.log_item_id = None
         self.parent_item_id = None
         self.rp = None
         self.project_settings = {}
@@ -350,7 +351,6 @@ class PyTestServiceClass(object):
             return
         item_id = self._start_suite(self._build_start_suite_rq(part))
         part['item_id'] = item_id
-        self.log_item_id = item_id
         part['exec'] = ExecStatus.IN_PROGRESS
 
     def _create_suite_path(self, item):
@@ -401,7 +401,7 @@ class PyTestServiceClass(object):
         item_id = self._start_step(self._build_start_step_rq(current_part))
         current_part['item_id'] = item_id
         current_part['exec'] = ExecStatus.IN_PROGRESS
-        self.log_item_id = item_id
+        self.local.log_item_id = item_id
 
     # noinspection PyMethodMayBeStatic
     def _build_finish_step_rq(self, part, issue):
@@ -470,6 +470,7 @@ class PyTestServiceClass(object):
         item_part['status'] = status
         self._finish_step(self._build_finish_step_rq(item_part, issue))
         item_part['exec'] = ExecStatus.FINISHED
+        self.local.log_item_id = None
         self._finish_parents(item_part)
 
     def _get_items(self, exec_status):
@@ -543,7 +544,7 @@ class PyTestServiceClass(object):
             loglevel = 'INFO'
 
         sl_rq = {
-            'item_id': self.log_item_id,
+            'item_id': self.local.log_item_id,
             'time': timestamp(),
             'message': message,
             'level': loglevel,
