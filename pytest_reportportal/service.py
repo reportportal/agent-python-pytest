@@ -31,7 +31,7 @@ log = logging.getLogger(__name__)
 
 MAX_ITEM_NAME_LENGTH = 256
 TRUNCATION_STR = '...'
-ROOT_DIR = os.path.abspath(curdir)
+ROOT_DIR = str(os.path.abspath(curdir))
 
 
 def timestamp():
@@ -367,7 +367,7 @@ class PyTestServiceClass(object):
     # noinspection PyMethodMayBeStatic
     def _get_code_ref(self, part):
         item = part['item']
-        path = os.path.relpath(item.fspath, ROOT_DIR)
+        path = os.path.relpath(str(item.fspath), ROOT_DIR)
         method_name = item.originalname
         parent = item.parent
         classes = [method_name]
