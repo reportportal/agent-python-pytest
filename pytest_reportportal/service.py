@@ -373,9 +373,8 @@ class PyTestServiceClass(object):
         parent = item.parent
         classes = [method_name]
         while not isinstance(parent, Module):
-            if isinstance(parent, Instance):
-                continue
-            classes.append(parent.name)
+            if not isinstance(parent, Instance):
+                classes.append(parent.name)
             parent = parent.parent
         classes.reverse()
         class_path = '.'.join(classes)
