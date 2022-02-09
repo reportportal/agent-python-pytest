@@ -114,5 +114,6 @@ def test_code_ref_bypass(mocked_item_start, mocked_item, mocked_session,
 
     expect(mocked_item_start.call_count == 2, 'One HTTP POST sent')
     code_ref = mocked_item_start.call_args[-1]['code_ref']
-    expect(code_ref == '/path/to/test:test_item')
+    expect(code_ref == 'examples/test_simple.py:test_item',
+           'Invalid code reference: {}'.format(code_ref))
     assert_expectations()

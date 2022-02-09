@@ -14,14 +14,13 @@
 #  limitations under the License
 
 import py
-from _pytest.config import Config
 from _pytest.main import Session
 from pluggy._tracing import TagTracer
-from pytest import fixture
+from pytest import fixture, Module, Config
 from six.moves import mock
 
-from pytest_reportportal.config import AgentConfig
 from pytest_reportportal import RPLogger
+from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.listener import RPReportListener
 from pytest_reportportal.service import PyTestServiceClass
 from tests import REPORT_PORTAL_SERVICE
@@ -77,7 +76,7 @@ def mocked_session(mocked_config):
 @fixture()
 def mocked_module(mocked_session):
     """Mock Pytest Module for testing."""
-    mocked_module = mock.Mock()
+    mocked_module = mock.create_autospec(Module)
     mocked_module.parent = mocked_session
     mocked_module.name = 'module'
     return mocked_module
@@ -88,8 +87,10 @@ def mocked_item(mocked_session, mocked_module):
     """Mock Pytest item for testing."""
     test_item = mock.Mock()
     test_item.session = mocked_session
-    test_item.fspath = py.path.local('/path/to/test')
-    test_item.name = 'test_item'
+    test_item.fspath = py.path.local('examples/test_simple.py')
+    name = 'test_item'
+    test_item.name = name
+    test_item.originalname = name
     test_item.parent = mocked_module
     return test_item
 
