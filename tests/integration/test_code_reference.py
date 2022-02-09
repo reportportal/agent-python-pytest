@@ -31,8 +31,8 @@ from tests.helpers import utils
      'examples/hierarchy/test_in_class_in_class.py:'
      'Tests.Test.test_in_class_in_class')
 ])
-def test_launch_mode(mock_client_init, test, code_ref):
-    """Verify different launch modes are passed to `start_launch` method.
+def test_code_reference(mock_client_init, test, code_ref):
+    """Verify different tests have correct code reference.
 
     :param mock_client_init: Pytest fixture
     :param test:             a test to run

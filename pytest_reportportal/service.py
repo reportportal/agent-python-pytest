@@ -368,7 +368,8 @@ class PyTestServiceClass(object):
     def _get_code_ref(self, part):
         item = part['item']
         path = os.path.relpath(str(item.fspath), ROOT_DIR)
-        method_name = item.originalname
+        method_name = item.originalname if item.originalname is not None \
+            else item.name
         parent = item.parent
         classes = [method_name]
         while not isinstance(parent, Module):
