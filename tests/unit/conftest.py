@@ -26,6 +26,7 @@ from pytest_reportportal.listener import RPReportListener
 from pytest_reportportal.service import PyTestServiceClass
 from tests import REPORT_PORTAL_SERVICE
 
+ITEM_PATH = py.path.local('examples/test_simple.py')
 
 @fixture
 def logger():
@@ -80,6 +81,7 @@ def mocked_module(mocked_session):
     mocked_module = mock.create_autospec(Module)
     mocked_module.parent = mocked_session
     mocked_module.name = 'module'
+    mocked_module.fspath = ITEM_PATH
     return mocked_module
 
 
@@ -88,7 +90,7 @@ def mocked_item(mocked_session, mocked_module):
     """Mock Pytest item for testing."""
     test_item = mock.Mock()
     test_item.session = mocked_session
-    test_item.fspath = py.path.local('examples/test_simple.py')
+    test_item.fspath = ITEM_PATH
     name = 'test_item'
     test_item.name = name
     test_item.originalname = name
