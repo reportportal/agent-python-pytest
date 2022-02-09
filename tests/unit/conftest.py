@@ -28,6 +28,7 @@ from tests import REPORT_PORTAL_SERVICE
 
 ITEM_PATH = py.path.local('examples/test_simple.py')
 
+
 @fixture
 def logger():
     """Prepare instance of the RPLogger for testing."""
