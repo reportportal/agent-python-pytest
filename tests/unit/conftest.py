@@ -14,7 +14,8 @@
 #  limitations under the License
 
 import py
-from _pytest.main import Session, Config
+from _pytest.config import Config
+from _pytest.main import Session
 from pluggy._tracing import TagTracer
 from pytest import fixture, Module
 from six.moves import mock
