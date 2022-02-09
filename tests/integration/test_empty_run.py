@@ -29,7 +29,7 @@ from tests.helpers import utils
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_launch_mode(mock_client_init):
+def test_empty_run(mock_client_init):
     """Verify that RP plugin does not fail if there is not tests in run.
 
     :param mock_client_init: Pytest fixture

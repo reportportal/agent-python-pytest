@@ -4,7 +4,7 @@ import logging
 import os.path
 import sys
 import threading
-from os import getenv
+from os import getenv, curdir
 from time import time, sleep
 
 from _pytest.doctest import DoctestItem
@@ -31,6 +31,7 @@ log = logging.getLogger(__name__)
 
 MAX_ITEM_NAME_LENGTH = 256
 TRUNCATION_STR = '...'
+ROOT_DIR = os.path.abspath(curdir)
 
 
 def timestamp():
@@ -363,8 +364,22 @@ class PyTestServiceClass(object):
                 continue
             self._lock(part, lambda p: self._create_suite(p))
 
+    # noinspection PyMethodMayBeStatic
+    def _get_code_ref(self, part):
+        item = part['item']
+        path = os.path.relpath(item.fspath, ROOT_DIR)
+        method_name = item.originalname
+        parent = item.parent
+        classes = [method_name]
+        while not isinstance(parent, Module):
+            classes.append(parent.name)
+            parent = parent.parent
+        classes.reverse()
+        class_path = '.'.join(classes)
+        return '{0}:{1}'.format(path, class_path)
+
     def _build_start_step_rq(self, part):
-        code_ref = '{0}:{1}'.format(part['item'].fspath, part['name'])
+        code_ref = self._get_code_ref(part)
         payload = {
             'attributes': self._get_item_markers(part['item']),
             'name': self._get_item_name(part['name']),
