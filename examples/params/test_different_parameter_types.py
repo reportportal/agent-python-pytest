@@ -1,4 +1,4 @@
-"""A simple example test in a class with a parameter."""
+"""A simple example test with different parameter types."""
 import pytest
 
 
@@ -7,6 +7,6 @@ import pytest
 )
 def test_in_class_parameterized(integer, floating_point, boolean, none):
     """
-    This is my test inside `Tests` class with a parameter
+    This is my test with different parameter types.
     """
     assert True
