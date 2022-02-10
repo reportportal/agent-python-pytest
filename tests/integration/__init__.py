@@ -24,7 +24,7 @@ HIERARCHY_TESTS = \
         ['examples/hierarchy/another_inner/test_another_inner_simple.py',
          'examples/hierarchy/inner/test_inner_simple.py']
     ] + \
-    [['examples/test_in_class_parameterized.py'] for _ in range(2)]
+    [['examples/params/test_in_class_parameterized.py'] for _ in range(2)]
 
 HIERARCHY_TEST_VARIABLES = \
     [utils.DEFAULT_VARIABLES] * 6 + \
@@ -102,8 +102,10 @@ HIERARCHY_TEST_EXPECTED_ITEMS = [
     [
         {'name': 'examples', 'item_type': 'SUITE',
          'parent_item_id': lambda x: x is None},
-        {'name': 'test_in_class_parameterized.py', 'item_type': 'SUITE',
+        {'name': 'params', 'item_type': 'SUITE',
          'parent_item_id': lambda x: x.startswith('examples')},
+        {'name': 'test_in_class_parameterized.py', 'item_type': 'SUITE',
+         'parent_item_id': lambda x: x.startswith('params')},
         {'name': 'Tests', 'item_type': 'SUITE',
          'parent_item_id': lambda x: x.startswith(
              'test_in_class_parameterized.py')},
@@ -111,8 +113,10 @@ HIERARCHY_TEST_EXPECTED_ITEMS = [
          'parent_item_id': lambda x: x.startswith('Tests')}
     ],
     [
-        {'name': 'test_in_class_parameterized.py', 'item_type': 'SUITE',
+        {'name': 'params', 'item_type': 'SUITE',
          'parent_item_id': lambda x: x is None},
+        {'name': 'test_in_class_parameterized.py', 'item_type': 'SUITE',
+         'parent_item_id': lambda x: x.startswith('params')},
         {'name': 'Tests', 'item_type': 'SUITE',
          'parent_item_id': lambda x: x.startswith(
              'test_in_class_parameterized.py')},

@@ -1,4 +1,4 @@
-"""This module includes integration tests for code references generation."""
+"""This module includes integration tests for parameters report."""
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -20,23 +20,19 @@ from tests.helpers import utils
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@pytest.mark.parametrize(['test', 'code_ref'], [
-    ('examples/test_simple.py', 'examples/test_simple.py:test_simple'),
-    ('examples/params/test_in_class_parameterized.py',
-     'examples/params/test_in_class_parameterized.py:'
-     'Tests.test_in_class_parameterized'),
-    ('examples/hierarchy/test_in_class.py',
-     'examples/hierarchy/test_in_class.py:Tests.test_in_class'),
-    ('examples/hierarchy/test_in_class_in_class.py',
-     'examples/hierarchy/test_in_class_in_class.py:'
-     'Tests.Test.test_in_class_in_class')
+@pytest.mark.parametrize(['test', 'expected_params'], [
+    ('examples/test_simple.py', None),
+    ('examples/params/test_in_class_parameterized.py', {'param': 'param'}),
+    ('examples/params/test_different_parameter_types.py',
+     {'integer': 1, 'floating_point': 1.5, 'boolean': True,
+      'none': None})
 ])
-def test_code_reference(mock_client_init, test, code_ref):
-    """Verify different tests have correct code reference.
+def test_parameters(mock_client_init, test, expected_params):
+    """Verify different tests have correct parameters.
 
     :param mock_client_init: Pytest fixture
     :param test:             a test to run
-    :param code_ref:         an expected code reference value
+    :param expected_params:  an expected parameter dictionary
     """
     variables = utils.DEFAULT_VARIABLES
     result = utils.run_pytest_tests(tests=[test],
@@ -49,4 +45,4 @@ def test_code_reference(mock_client_init, test, code_ref):
 
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[-1][1]
-    assert step_call_args['code_ref'] == code_ref
+    assert step_call_args['parameters'] == expected_params
