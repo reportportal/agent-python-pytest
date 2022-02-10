@@ -380,8 +380,13 @@ class PyTestServiceClass(object):
         class_path = '.'.join(classes)
         return '{0}:{1}'.format(path, class_path)
 
+    # noinspection PyMethodMayBeStatic
+    def _get_test_case_id(self, part, code_ref, parameters):
+        pass
+
     def _build_start_step_rq(self, part):
         code_ref = self._get_code_ref(part)
+        parameters = self._get_parameters(part['item'])
         payload = {
             'attributes': self._get_item_markers(part['item']),
             'name': self._get_item_name(part['name']),
@@ -389,9 +394,10 @@ class PyTestServiceClass(object):
             'start_time': timestamp(),
             'item_type': 'STEP',
             'code_ref': code_ref,
-            'parameters': self._get_parameters(part['item']),
+            'parameters': parameters,
             'parent_item_id': self._lock(part['parent'],
-                                         lambda p: p['item_id'])
+                                         lambda p: p['item_id']),
+            'test_case_id': self._get_test_case_id(part, code_ref, parameters)
         }
         return payload
 
