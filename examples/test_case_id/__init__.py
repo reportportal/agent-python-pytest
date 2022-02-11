@@ -1,4 +1,4 @@
-"""This package contains integration test examples for the project.
+"""This package contains Test Case ID integration test examples.
 
 Copyright (c) 2022 https://reportportal.io .
 Licensed under the Apache License, Version 2.0 (the "License");
