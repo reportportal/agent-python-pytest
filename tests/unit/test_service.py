@@ -42,7 +42,7 @@ def test_item_attributes(mocked_item, rp_service):
         pytest.mark.test_decorator_key('test_decorator_value'),
         pytest.mark.test_decorator_key('new_decorator_value'),
     ]
-    markers = rp_service._get_item_markers(mocked_item)
+    markers = rp_service._get_attributes(mocked_item)
     assert markers == [{'value': 'test_marker'},
                        {'key': 'test_decorator_key',
                         'value': 'test_decorator_value'},

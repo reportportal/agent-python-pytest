@@ -122,3 +122,13 @@ def item_id_gen(**kwargs):
 
 def project_settings(**kwargs):
     return DEFAULT_PROJECT_SETTINGS
+
+
+def attributes_to_tuples(attributes):
+    result = set()
+    for attribute in attributes:
+        if 'key' in attribute:
+            result.add((attribute['key'], attribute['value']))
+        else:
+            result.add((None, attribute['value']))
+    return result

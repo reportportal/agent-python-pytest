@@ -13,6 +13,8 @@ from _pytest.nodes import Item
 from _pytest.warning_types import PytestWarning
 from aenum import auto, Enum, unique
 from pytest import Class, Function, Module, Package
+from reportportal_client.core.rp_issues import Issue
+
 try:
     from pytest import Instance
 except ImportError:
@@ -32,6 +34,7 @@ log = logging.getLogger(__name__)
 MAX_ITEM_NAME_LENGTH = 256
 TRUNCATION_STR = '...'
 ROOT_DIR = str(os.path.abspath(curdir))
+PYTEST_MARKS_IGNORE = {'parametrize', 'usefixtures', 'filterwarnings'}
 
 
 def timestamp():
@@ -115,9 +118,8 @@ class PyTestServiceClass(object):
         if not self._issue_types:
             if not self.project_settings:
                 return self._issue_types
-            for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE",
-                              "NO_DEFECT", "TO_INVESTIGATE"):
-                for item in self.project_settings["subTypes"][item_type]:
+            for values in self.project_settings["subTypes"].values():
+                for item in values:
                     self._issue_types[item["shortName"]] = item["locator"]
         return self._issue_types
 
@@ -321,7 +323,6 @@ class PyTestServiceClass(object):
         self._generate_names(test_tree)
         self._build_item_paths(test_tree, [])
 
-    # noinspection PyMethodMayBeStatic
     def _lock(self, part, func):
         if 'lock' in part:
             with part['lock']:
@@ -364,9 +365,7 @@ class PyTestServiceClass(object):
                 continue
             self._lock(part, lambda p: self._create_suite(p))
 
-    # noinspection PyMethodMayBeStatic
-    def _get_code_ref(self, part):
-        item = part['item']
+    def _get_code_ref(self, item):
         path = os.path.relpath(str(item.fspath), ROOT_DIR)
         method_name = item.originalname if item.originalname is not None \
             else item.name
@@ -380,24 +379,134 @@ class PyTestServiceClass(object):
         class_path = '.'.join(classes)
         return '{0}:{1}'.format(path, class_path)
 
-    # noinspection PyMethodMayBeStatic
-    def _get_test_case_id(self, part, code_ref, parameters):
-        pass
+    def _get_test_case_id(self, mark, part):
+        parameters = part.get('parameters', None)
+        param_str = None
+        if parameters is not None and len(parameters) > 0:
+            param_str = str([param for param in parameters.values()])
+
+        code_ref = part['code_ref']
+        if mark is None:
+            if param_str is None:
+                return code_ref
+            else:
+                return code_ref + param_str
+        else:
+            name_part = code_ref
+            if mark.args is not None and len(mark.args) > 0:
+                name_part = str(mark.args[0])
+            selected_params = mark.kwargs.get('params', None)
+            parameterized = mark.kwargs.get('parametrized', True)
+
+
+
+    def _get_issue_ids(self, mark):
+        issue_ids = mark.kwargs.get("issue_id", [])
+        if not isinstance(issue_ids, list):
+            issue_ids = [issue_ids]
+        return issue_ids
+
+    def _get_issue_description_line(self, mark, default_url):
+        issue_ids = self._get_issue_ids(mark)
+        if not issue_ids:
+            return mark.kwargs["reason"]
+
+        mark_url = mark.kwargs.get("url", None) or default_url
+        reason = mark.kwargs.get("reason", mark.name)
+        issues = ""
+        for issue_id in issue_ids:
+            issue_url = mark_url.format(issue_id=issue_id) if \
+                mark_url else None
+            template = " [{issue_id}]({url})" if issue_url \
+                else " {issue_id}"
+            issues += template.format(issue_id=issue_id,
+                                      url=issue_url)
+        return "{}:{}".format(reason, issues)
+
+    def _get_issue(self, mark):
+        """Add issues description and issue_type to the test item.
+
+        :param mark: pytest mark
+        """
+        default_url = self._config.rp_issue_system_url
+        issue_description_line = \
+            self._get_issue_description_line(mark, default_url)
+
+        # Set issue_type only for first issue mark
+        issue_short_name = None
+        if "issue_type" in mark.kwargs:
+            issue_short_name = mark.kwargs["issue_type"]
+
+        # default value
+        issue_short_name = "TI" if issue_short_name is None else \
+            issue_short_name
+
+        registered_issues = self.issue_types
+        if issue_short_name in registered_issues:
+            return Issue(registered_issues[issue_short_name],
+                         issue_description_line)
+
+    def _to_attribute(self, attribute_tuple):
+        if attribute_tuple[0]:
+            return {'key': attribute_tuple[0], 'value': attribute_tuple[1]}
+        else:
+            return {'value': attribute_tuple[0]}
+
+    def _process_attributes(self, part):
+        """
+        Process all types of attributes of item.
+
+        :param part: item context
+        """
+        item = part['item']
+
+        parameters = self._get_parameters(item)
+        part['parameters'] = parameters
+
+        code_ref = self._get_code_ref(item)
+        part['code_ref'] = code_ref
+
+        attributes = set()
+        for marker in part['item'].iter_markers():
+            if marker.name == 'tc_id':
+                test_case_id = self._get_test_case_id(marker, code_ref,
+                                                      parameters)
+                part['test_case_id'] = test_case_id
+                continue
+            if marker.name == 'issue':
+                issue = self._get_issue(marker)
+                part['issue'] = issue
+                if self._config.rp_issue_id_marks:
+                    for issue_id in self._get_issue_ids(marker):
+                        attributes.add((marker.name, issue_id))
+                continue
+            if marker.name in self._config.rp_ignore_attributes \
+                    or marker.name in PYTEST_MARKS_IGNORE:
+                continue
+            if len(marker.args) > 0:
+                attributes.add((marker.name, str(marker.args[0])))
+            else:
+                attributes.add((None, marker.name))
+
+        part['attributes'] = [self._to_attribute(attribute)
+                              for attribute in attributes]
+
+        if 'test_case_id' not in part:
+            part['test_case_id'] = self._get_test_case_id(None, code_ref,
+                                                          parameters)
 
     def _build_start_step_rq(self, part):
-        code_ref = self._get_code_ref(part)
-        parameters = self._get_parameters(part['item'])
         payload = {
-            'attributes': self._get_item_markers(part['item']),
+            'attributes': part.get('attributes', None),
             'name': self._get_item_name(part['name']),
             'description': self._get_item_description(part['item']),
             'start_time': timestamp(),
             'item_type': 'STEP',
-            'code_ref': code_ref,
-            'parameters': parameters,
+            'code_ref': part.get('code_ref', None),
+            'parameters': part.get('parameters', None),
             'parent_item_id': self._lock(part['parent'],
                                          lambda p: p['item_id']),
-            'test_case_id': self._get_test_case_id(part, code_ref, parameters)
+            'test_case_id': part.get('test_case_id', None)
         }
         return payload
 
@@ -421,12 +530,12 @@ class PyTestServiceClass(object):
         # Details at:
         # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
         current_part = self._item_parts[test_item][-1]
+        self._process_attributes(current_part)
         item_id = self._start_step(self._build_start_step_rq(current_part))
         current_part['item_id'] = item_id
         current_part['exec'] = ExecStatus.IN_PROGRESS
         self.local.log_item_id = item_id
 
-    # noinspection PyMethodMayBeStatic
     def _build_finish_step_rq(self, part, issue):
         payload = {
             'end_time': timestamp(),
@@ -444,7 +553,6 @@ class PyTestServiceClass(object):
         log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
-    # noinspection PyMethodMayBeStatic
     def _build_finish_suite_rq(self, part):
         payload = {
             'end_time': timestamp(),
@@ -520,7 +628,6 @@ class PyTestServiceClass(object):
                 if part['exec'] == ExecStatus.IN_PROGRESS:
                     self._lock(part, lambda p: self._proceed_suite_finish(p))
 
-    # noinspection PyMethodMayBeStatic
     def _build_finish_launch_rq(self, status):
         finish_rq = {
             'end_time': timestamp(),
@@ -586,48 +693,6 @@ class PyTestServiceClass(object):
             '{}-{}'.format(self.agent_name, self.agent_version))
         return attributes + _dict_to_payload(system_attributes)
 
-    def _get_item_markers(self, item):
-        """
-        Get attributes of item.
-
-        :param item: pytest.Item
-        :return: list of tags
-        """
-        # Try to extract names of @pytest.mark.* decorators used for test item
-        # and exclude those which present in rp_ignore_attributes parameter
-        def get_marker_value(my_item, keyword):
-            marker = my_item.get_closest_marker(keyword)
-            marker_values = []
-            if marker and marker.args:
-                for my_arg in marker.args:
-                    marker_values.append("{}:{}".format(keyword, my_arg))
-            else:
-                marker_values.append(keyword)
-            # returns a list of strings to accommodate multiple values
-            return marker_values
-
-        try:
-            get_marker = getattr(item, "get_closest_marker")
-        except AttributeError:
-            get_marker = getattr(item, "get_marker")
-
-        raw_attrs = []
-        for k in item.keywords:
-            if get_marker(k) is not None and k not in self.ignored_attributes:
-                raw_attrs.extend(get_marker_value(item, k))
-        # When we have custom markers with different values, append the
-        # raw_attrs with the markers which were missed initially.
-        # Adds supports to have two attributes with same keys.
-        for cust_marker in item.own_markers:
-            for arg in cust_marker.args:
-                custom_arg = "{0}:{1}".format(cust_marker.name, arg)
-                if not (custom_arg in raw_attrs) and \
-                        cust_marker.name not in self.ignored_attributes:
-                    raw_attrs.append(custom_arg)
-        raw_attrs.extend(item.session.config.getini('rp_tests_attributes'))
-        return gen_attributes(raw_attrs)
-
-    # noinspection PyMethodMayBeStatic
     def _get_parameters(self, item):
         """
         Get params of item.

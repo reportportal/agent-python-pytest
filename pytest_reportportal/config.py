@@ -20,12 +20,18 @@ class AgentConfig(object):
         self.rp_endpoint = self.find_option(pytest_config, 'rp_endpoint')
         self.rp_dir_level = int(self.find_option(pytest_config,
                                                  'rp_hierarchy_dirs_level'))
-        self.rp_ignore_attributes = self.find_option(pytest_config,
-                                                     'rp_ignore_attributes')
+        ignore_attributes = self.find_option(pytest_config,
+                                             'rp_ignore_attributes')
+        self.rp_ignore_attributes = set(ignore_attributes) \
+            if ignore_attributes else set()
         self.rp_is_skipped_an_issue = self.find_option(
             pytest_config,
             'rp_is_skipped_an_issue'
         )
+        self.rp_issue_id_marks = self.find_option(pytest_config,
+                                                  'rp_issue_id_marks')
+        self.rp_issue_system_url = self.find_option(pytest_config,
+                                                    'rp_issue_system_url')
         self.rp_launch = self.find_option(pytest_config, 'rp_launch')
         self.rp_launch_id = self.find_option(pytest_config, 'rp_launch_id')
         self.rp_launch_attributes = self.find_option(pytest_config,
