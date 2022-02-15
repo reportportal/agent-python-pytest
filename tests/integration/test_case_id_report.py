@@ -38,18 +38,13 @@ from tests.helpers import utils
      test_case_id_decorator_params_partially.TEST_CASE_ID + '[value1]'),
     ('examples/test_case_id/test_case_id_decorator_params_true.py',
      test_case_id_decorator_params_true.TEST_CASE_ID + '[value1,value2]'),
-    ('examples/test_case_id/test_case_id_decorator_no_id.py',
-     'examples/test_case_id/test_case_id_decorator_no_id.py:'
-     'test_case_id_decorator[value1,value2]'),
-    ('examples/test_case_id/test_case_id_decorator_no_id_params_false.py',
-     'examples/test_case_id/test_case_id_decorator_no_id_params_false.py:'
-     'test_case_id_decorator'),
+    ('examples/test_case_id/test_case_id_decorator_no_id.py', ''),
+    ('examples/test_case_id/test_case_id_decorator_no_id_params_false.py', ''),
     ('examples/test_case_id/test_case_id_decorator_no_id_params_true.py',
-     'examples/test_case_id/test_case_id_decorator_no_id_params_true.py:'
-     'test_case_id_decorator[value1,value2]'),
-    ('examples/test_case_id/test_case_id_decorator_no_id_partial_params.py',
-     'examples/test_case_id/test_case_id_decorator_no_id_partial_params.py:'
-     'test_case_id_decorator[value2]')
+     '[value1,value2]'),
+    ('examples/test_case_id/'
+     'test_case_id_decorator_no_id_partial_params_true.py',
+     '[value2]')
 ])
 def test_parameters(mock_client_init, test, expected_id):
     """Verify different tests have correct Test Case IDs.

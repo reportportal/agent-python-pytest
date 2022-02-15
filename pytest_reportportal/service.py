@@ -381,24 +381,39 @@ class PyTestServiceClass(object):
 
     def _get_test_case_id(self, mark, part):
         parameters = part.get('parameters', None)
-        param_str = None
-        if parameters is not None and len(parameters) > 0:
-            param_str = str([param for param in parameters.values()])
+        parameterized = True
+        selected_params = None
+        if mark is not None:
+            parameterized = mark.kwargs.get('parameterized', False)
+            selected_params = mark.kwargs.get('params', None)
+        if selected_params is not None and not isinstance(selected_params,
+                                                          list):
+            selected_params = [selected_params]
 
-        code_ref = part['code_ref']
+        param_str = None
+        if parameterized and parameters is not None and len(parameters) > 0:
+            if selected_params is not None and len(selected_params) > 0:
+                param_list = [str(parameters.get(param, None)) for param in
+                              selected_params]
+            else:
+                param_list = [str(param) for param in parameters.values()]
+            param_str = '[{}]'.format(','.join(param_list))
+
+        name_part = part['code_ref']
         if mark is None:
             if param_str is None:
-                return code_ref
+                return name_part
             else:
-                return code_ref + param_str
+                return name_part + param_str
         else:
-            name_part = code_ref
             if mark.args is not None and len(mark.args) > 0:
                 name_part = str(mark.args[0])
-            selected_params = mark.kwargs.get('params', None)
-            parameterized = mark.kwargs.get('parametrized', True)
-
-
+            else:
+                name_part = ""
+            if param_str is None:
+                return name_part
+            else:
+                return name_part + param_str
 
     def _get_issue_ids(self, mark):
         issue_ids = mark.kwargs.get("issue_id", [])
@@ -469,8 +484,7 @@ class PyTestServiceClass(object):
         attributes = set()
         for marker in part['item'].iter_markers():
             if marker.name == 'tc_id':
-                test_case_id = self._get_test_case_id(marker, code_ref,
-                                                      parameters)
+                test_case_id = self._get_test_case_id(marker, part)
                 part['test_case_id'] = test_case_id
                 continue
             if marker.name == 'issue':
@@ -492,8 +506,7 @@ class PyTestServiceClass(object):
                               for attribute in attributes]
 
         if 'test_case_id' not in part:
-            part['test_case_id'] = self._get_test_case_id(None, code_ref,
-                                                          parameters)
+            part['test_case_id'] = self._get_test_case_id(None, part)
 
     def _build_start_step_rq(self, part):
         payload = {

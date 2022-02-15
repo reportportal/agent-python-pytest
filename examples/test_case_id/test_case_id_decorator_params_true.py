@@ -18,6 +18,6 @@ TEST_CASE_ID = "ISSUE-231"
 
 
 @pytest.mark.parametrize(('param1', 'param2'), [('value1', 'value2')])
-@pytest.mark.tc_id(TEST_CASE_ID, parametrized=True)
+@pytest.mark.tc_id(TEST_CASE_ID, parameterized=True)
 def test_case_id_decorator(param1, param2):
     assert True

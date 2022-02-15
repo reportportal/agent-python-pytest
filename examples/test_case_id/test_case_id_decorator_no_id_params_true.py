@@ -16,6 +16,6 @@ import pytest
 
 
 @pytest.mark.parametrize(('param1', 'param2'), [('value1', 'value2')])
-@pytest.mark.tc_id(parametrized=True)
+@pytest.mark.tc_id(parameterized=True)
 def test_case_id_decorator(param1, param2):
     assert True
