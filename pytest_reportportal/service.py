@@ -398,7 +398,7 @@ class PyTestServiceClass(object):
                               selected_params]
             else:
                 param_list = [str(param) for param in parameters.values()]
-            param_str = '[{}]'.format(','.join(param_list))
+            param_str = '[{}]'.format(','.join(sorted(param_list)))
 
         name_part = part['code_ref']
         if mark is None:
