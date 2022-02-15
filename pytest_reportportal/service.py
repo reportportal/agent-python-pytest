@@ -35,6 +35,7 @@ MAX_ITEM_NAME_LENGTH = 256
 TRUNCATION_STR = '...'
 ROOT_DIR = str(os.path.abspath(curdir))
 PYTEST_MARKS_IGNORE = {'parametrize', 'usefixtures', 'filterwarnings'}
+NOT_ISSUE = Issue('NOT_ISSUE')
 
 
 def timestamp():
@@ -436,7 +437,7 @@ class PyTestServiceClass(object):
                 else " {issue_id}"
             issues += template.format(issue_id=issue_id,
                                       url=issue_url)
-        return "{}:{}".format(reason, issues)
+        return "* {}:{}".format(reason, issues)
 
     def _get_issue(self, mark):
         """Add issues description and issue_type to the test item.
@@ -549,10 +550,16 @@ class PyTestServiceClass(object):
         current_part['exec'] = ExecStatus.IN_PROGRESS
         self.local.log_item_id = item_id
 
-    def _build_finish_step_rq(self, part, issue):
+    def _build_finish_step_rq(self, part):
+        issue = part.get('issue', None)
+        status = part['status']
+        if status == 'SKIPPED' and not self._config.rp_is_skipped_an_issue:
+            issue = NOT_ISSUE
+        if status == 'PASSED':
+            issue = None
         payload = {
             'end_time': timestamp(),
-            'status': part['status'],
+            'status': status,
             'issue': issue,
             'item_id': part['item_id']
         }
@@ -596,14 +603,13 @@ class PyTestServiceClass(object):
         self._lock(part['parent'], lambda p: self._proceed_suite_finish(p))
         self._finish_parents(part['parent'])
 
-    def finish_pytest_item(self, test_item, status, issue=None):
+    def finish_pytest_item(self, test_item, status):
         """
         Finish pytest_item.
 
         :param test_item: test_item
         :param status:    an item finish status (PASSED, FAILED, STOPPED,
         SKIPPED, RESETED, CANCELLED, INFO, WARN)
-        :param issue:     an external system issue reference
         :return: None
         """
         if self.rp is None:
@@ -612,7 +618,7 @@ class PyTestServiceClass(object):
         parts = self._item_parts[test_item]
         item_part = parts[-1]
         item_part['status'] = status
-        self._finish_step(self._build_finish_step_rq(item_part, issue))
+        self._finish_step(self._build_finish_step_rq(item_part))
         item_part['exec'] = ExecStatus.FINISHED
         self.local.log_item_id = None
         self._finish_parents(item_part)

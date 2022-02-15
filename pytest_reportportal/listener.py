@@ -14,8 +14,6 @@ except ImportError:
 import _pytest.logging
 from .rp_logging import RPLogHandler, patching_logger_class
 
-NOT_ISSUE = Issue('NOT_ISSUE')
-
 
 class RPReportListener(object):
     """RPReportListener class."""
@@ -33,7 +31,6 @@ class RPReportListener(object):
         # Test Item result
         self.py_test_service = py_test_service
         self.results = {}
-        self.issues = {}
         self._log_level = log_level
         self._log_handler = \
             RPLogHandler(py_test_service=py_test_service,
@@ -56,7 +53,7 @@ class RPReportListener(object):
                 yield
         # Finishing item in RP
         self.py_test_service.finish_pytest_item(
-            item, self.results[item] or 'SKIPPED', self.issues[item])
+            item, self.results[item] or 'SKIPPED')
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self, item):
@@ -84,9 +81,3 @@ class RPReportListener(object):
         if report.skipped:
             if self.results[item] in (None, 'PASSED'):
                 self.results[item] = 'SKIPPED'
-                if not self.py_test_service.rp.is_skipped_an_issue:
-                    self.issues[item] = NOT_ISSUE
-
-        if report.when == 'teardown':
-            if self.results[item] == 'PASSED':
-                self.issues[item] = None  # Do not report issue if passed

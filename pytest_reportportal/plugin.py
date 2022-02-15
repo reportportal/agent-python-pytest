@@ -143,7 +143,7 @@ def register_markers(config):
                    "information about skipped or failed result"
     )
     config.addinivalue_line(
-        "markers", "tc_id('unique ID', parameterized, params): report the test"
+        "markers", "tc_id(id, parameterized, params): report the test"
                    "case with a custom Test Case ID. Parameters: \n"
                    "parameterized [True / False] - use parameter values in "
                    "Test Case ID generation \n"
