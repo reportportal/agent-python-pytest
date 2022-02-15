@@ -3,7 +3,6 @@
 import logging
 
 import pytest
-from reportportal_client.core.rp_issues import Issue
 
 try:
     # noinspection PyCompatibility
