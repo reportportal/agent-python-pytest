@@ -142,6 +142,14 @@ def register_markers(config):
         "markers", "issue(issue_id, reason, issue_type, url): mark test with "
                    "information about skipped or failed result"
     )
+    config.addinivalue_line(
+        "markers", "tc_id('unique ID', parameterized, params): report the test"
+                   "case with a custom Test Case ID. Parameters: \n"
+                   "parameterized [True / False] - use parameter values in "
+                   "Test Case ID generation \n"
+                   "params [parameter names as list] - use only specified"
+                   "parameters"
+    )
 
 
 def pytest_configure(config):
