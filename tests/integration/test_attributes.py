@@ -14,7 +14,6 @@
 
 from six.moves import mock
 
-from helpers.utils import attributes_to_tuples
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
@@ -94,7 +93,7 @@ def test_two_attributes_different_values_report(mock_client_init):
     step_call_args = call_args[-1][1]
     actual_attributes = step_call_args['attributes']
 
-    assert attributes_to_tuples(actual_attributes) == {
+    assert utils.attributes_to_tuples(actual_attributes) == {
         ('scope', 'smoke'),
         ('scope', 'regression')
     }
