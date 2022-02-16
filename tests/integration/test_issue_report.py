@@ -141,9 +141,5 @@ def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
     assert int(result) == 0, 'Exit code should be 0 (no failures)'
     call_args = mock_client.finish_test_item.call_args_list
     finish_test_step = call_args[0][1]
-    if expected_issue is None:
-        assert 'issue' not in finish_test_step or finish_test_step[
-            'issue'] is None
-    else:
-        assert 'issue' in finish_test_step and finish_test_step[
-            'issue'] is expected_issue
+    actual_issue = finish_test_step.get('issue', None)
+    assert actual_issue == expected_issue
