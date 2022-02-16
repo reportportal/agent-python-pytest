@@ -18,6 +18,7 @@ from reportportal_client.core.rp_issues import Issue
 from six.moves import mock
 
 from examples import test_issue_id
+from pytest_reportportal.service import NOT_ISSUE
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
@@ -112,3 +113,37 @@ def test_passed_no_issue_report(mock_client_init):
     call_args = mock_client.finish_test_item.call_args_list
     finish_test_step = call_args[0][1]
     assert 'issue' not in finish_test_step or finish_test_step['issue'] is None
+
+
+@pytest.mark.parametrize(('flag_value', 'expected_issue'), [(True, None),
+                                                            (False, NOT_ISSUE),
+                                                            (None, None)])
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
+    """Verify 'rp_is_skipped_an_issue' option handling.
+
+    :param mock_client_init: mocked Report Portal client Pytest fixture
+    :param flag_value:       option value to set during the test
+    :param expected_issue:   result issue value to verify
+    """
+    mock_client = mock_client_init.return_value
+    mock_client.start_test_item.side_effect = utils.item_id_gen
+    mock_client.get_project_settings.side_effect = utils.project_settings
+
+    variables = dict()
+    if flag_value is not None:
+        variables['rp_is_skipped_an_issue'] = flag_value
+    variables.update(utils.DEFAULT_VARIABLES.items())
+
+    result = utils.run_pytest_tests(tests=['examples/test_skip_simple.py'],
+                                    variables=variables)
+
+    assert int(result) == 0, 'Exit code should be 0 (no failures)'
+    call_args = mock_client.finish_test_item.call_args_list
+    finish_test_step = call_args[0][1]
+    if expected_issue is None:
+        assert 'issue' not in finish_test_step or finish_test_step[
+            'issue'] is None
+    else:
+        assert 'issue' in finish_test_step and finish_test_step[
+            'issue'] is expected_issue
