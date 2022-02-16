@@ -134,7 +134,7 @@ def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
         variables['rp_is_skipped_an_issue'] = flag_value
     variables.update(utils.DEFAULT_VARIABLES.items())
 
-    result = utils.run_pytest_tests(tests=['examples/test_skip_simple.py'],
+    result = utils.run_pytest_tests(tests=['examples/test_simple_skip.py'],
                                     variables=variables)
 
     assert int(result) == 0, 'Exit code should be 0 (no failures)'

@@ -15,5 +15,5 @@ import pytest
 
 
 @pytest.mark.skip(reason='no way of currently testing this')
-def test_the_unknown():
+def test_simple_skip():
     assert False
