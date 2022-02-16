@@ -128,7 +128,6 @@ def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
     """
     mock_client = mock_client_init.return_value
     mock_client.start_test_item.side_effect = utils.item_id_gen
-    mock_client.get_project_settings.side_effect = utils.project_settings
 
     variables = dict()
     if flag_value is not None:
