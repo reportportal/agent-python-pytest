@@ -22,11 +22,11 @@ from tests.helpers import utils
 @pytest.mark.parametrize(('test', 'expected_run_status',
                           'expected_item_statuses'), [
                              ('examples/test_simple.py', 0,
-                              ['PASSED', 'PASSED', 'PASSED']),
+                              ['PASSED', 'PASSED', 'PASSED', None]),
                              ('examples/test_simple_fail.py', 1,
-                              ['FAILED', 'FAILED', 'FAILED']),
+                              ['FAILED', 'FAILED', 'FAILED', None]),
                              ('examples/test_simple_skip.py', 0,
-                              ['SKIPPED', 'PASSED', 'PASSED'])
+                              ['SKIPPED', 'PASSED', 'PASSED', None])
                          ])
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_simple_tests(mock_client_init, test, expected_run_status,
@@ -59,4 +59,15 @@ def test_simple_tests(mock_client_init, test, expected_run_status,
         expect(actual_status == expected_item_statuses[i],
                'Invalid item status, actual "{}", expected: "{}"'
                .format(actual_status, expected_item_statuses[i]))
+
+    finish_launch_call_args = mock_client.finish_launch.call_args_list
+    expect(len(finish_launch_call_args) == 1)
+    expect('end_time' in finish_launch_call_args[0][1])
+    expect(finish_launch_call_args[0][1]['end_time'] is not None)
+    expect('status' in finish_launch_call_args[0][1])
+    expected_launch_status = expected_item_statuses[-1]
+    actual_launch_status = finish_launch_call_args[0][1]['status']
+    expect(actual_launch_status == expected_launch_status,
+           'Invalid Launch status, actual "{}", expected: "{}"'
+           .format(actual_launch_status, expected_launch_status))
     assert_expectations()
