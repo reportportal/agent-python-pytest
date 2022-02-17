@@ -20,23 +20,22 @@ from tests.helpers import utils
 
 
 @pytest.mark.parametrize(('test', 'expected_run_status',
-                          'expected_item_statuses'), [
-                             ('examples/test_simple.py', 0,
-                              ['PASSED', 'PASSED', 'PASSED', None]),
-                             ('examples/test_simple_fail.py', 1,
-                              ['FAILED', 'FAILED', 'FAILED', None]),
-                             ('examples/test_simple_skip.py', 0,
-                              ['SKIPPED', 'PASSED', 'PASSED', None])
+                          'expected_item_status'), [
+                             ('examples/test_simple.py', 0, 'PASSED'),
+                             ('examples/test_simple_fail.py', 1, 'FAILED'),
+                             ('examples/test_simple_skip.py', 0, 'SKIPPED')
                          ])
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_simple_tests(mock_client_init, test, expected_run_status,
-                      expected_item_statuses):
+                      expected_item_status):
     """Verify a simple test creates correct structure and finishes all items.
 
-    :param mock_client_init:       mocked Report Portal client Pytest fixture
-    :param test:                   a test to run as use case
-    :param expected_run_status:    expected pytest run status
-    :param expected_item_statuses: expected result test item status
+    Report 'None' for suites and launch due to possible parallel execution.
+    Leave status calculation on Server.
+    :param mock_client_init:     mocked Report Portal client Pytest fixture
+    :param test:                 a test to run as use case
+    :param expected_run_status:  expected pytest run status
+    :param expected_item_status: expected result test item status
     """
     mock_client = mock_client_init.return_value
     mock_client.start_test_item.side_effect = utils.item_id_gen
@@ -55,19 +54,15 @@ def test_simple_tests(mock_client_init, test, expected_run_status,
         finish_test_step = finish_call_args[i][1]
 
         expect(finish_test_step['item_id'].startswith(start_test_step['name']))
-        actual_status = finish_test_step['status']
-        expect(actual_status == expected_item_statuses[i],
-               'Invalid item status, actual "{}", expected: "{}"'
-               .format(actual_status, expected_item_statuses[i]))
+        if i == 0:
+            actual_status = finish_test_step['status']
+            expect(actual_status == expected_item_status,
+                   'Invalid item status, actual "{}", expected: "{}"'
+                   .format(actual_status, expected_item_status))
 
     finish_launch_call_args = mock_client.finish_launch.call_args_list
     expect(len(finish_launch_call_args) == 1)
     expect('end_time' in finish_launch_call_args[0][1])
     expect(finish_launch_call_args[0][1]['end_time'] is not None)
-    expect('status' in finish_launch_call_args[0][1])
-    expected_launch_status = expected_item_statuses[-1]
-    actual_launch_status = finish_launch_call_args[0][1]['status']
-    expect(actual_launch_status == expected_launch_status,
-           'Invalid Launch status, actual "{}", expected: "{}"'
-           .format(actual_launch_status, expected_launch_status))
+    expect('status' not in finish_launch_call_args[0][1])
     assert_expectations()

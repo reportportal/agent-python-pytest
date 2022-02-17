@@ -7,7 +7,6 @@ import threading
 from os import getenv, curdir
 from time import time, sleep
 
-import reportportal_client.helpers
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import Item
@@ -237,9 +236,9 @@ class PyTestServiceClass(object):
 
                 if path_part not in children:
                     children[path_part] = {
-                        'children': {}, 'status': 'PASSED', 'type': node_type,
-                        'parent': current_node, 'item': path_part,
-                        'lock': threading.Lock(), 'exec': ExecStatus.CREATED
+                        'children': {}, 'type': node_type, 'item': path_part,
+                        'parent': current_node,  'lock': threading.Lock(),
+                        'exec': ExecStatus.CREATED
                     }
                 current_node = children[path_part]
         return test_tree
@@ -574,18 +573,9 @@ class PyTestServiceClass(object):
         log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
-    def _evaluate_suite_status(self, part):
-        current_status = part['status']
-        for child_part in part['children'].values():
-            child_status = child_part['status']
-            current_status = reportportal_client.helpers.evaluate_status(
-                current_status, child_status)
-        part['status'] = current_status
-
     def _build_finish_suite_rq(self, part):
         payload = {
             'end_time': timestamp(),
-            'status': part['status'],
             'item_id': part['item_id']
         }
         return payload
@@ -594,7 +584,6 @@ class PyTestServiceClass(object):
         if part.get('exec', ExecStatus.FINISHED) == ExecStatus.FINISHED:
             return
 
-        self._evaluate_suite_status(part)
         self._finish_suite(self._build_finish_suite_rq(part))
         part['exec'] = ExecStatus.FINISHED
 
@@ -657,10 +646,9 @@ class PyTestServiceClass(object):
                 if part['exec'] == ExecStatus.IN_PROGRESS:
                     self._lock(part, lambda p: self._proceed_suite_finish(p))
 
-    def _build_finish_launch_rq(self, status):
+    def _build_finish_launch_rq(self):
         finish_rq = {
-            'end_time': timestamp(),
-            'status': status
+            'end_time': timestamp()
         }
         return finish_rq
 
@@ -668,19 +656,17 @@ class PyTestServiceClass(object):
         log.debug('ReportPortal - Finish launch: request_body=%s', finish_rq)
         self.rp.finish_launch(**finish_rq)
 
-    def finish_launch(self, status=None):
+    def finish_launch(self):
         """
         Finish tests launch.
 
-        :param status: an launch status (PASSED, FAILED, STOPPED, SKIPPED,
-        INTERRUPTED, CANCELLED, INFO, WARN)
         :return: None
         """
         if self.rp is None:
             return
 
         # To finish launch session str parameter is needed
-        self._finish_launch(self._build_finish_launch_rq(status))
+        self._finish_launch(self._build_finish_launch_rq())
         self.rp.terminate()
         self.rp = None
 
