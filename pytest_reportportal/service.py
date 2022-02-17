@@ -466,7 +466,7 @@ class PyTestServiceClass(object):
         if attribute_tuple[0]:
             return {'key': attribute_tuple[0], 'value': attribute_tuple[1]}
         else:
-            return {'value': attribute_tuple[0]}
+            return {'value': attribute_tuple[1]}
 
     def _process_attributes(self, part):
         """

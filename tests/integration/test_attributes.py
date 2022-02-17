@@ -97,3 +97,25 @@ def test_two_attributes_different_values_report(mock_client_init):
         ('scope', 'smoke'),
         ('scope', 'regression')
     }
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_skip_attribute(mock_client_init):
+    """Skip attribute is reported.
+
+    :param mock_client_init: Pytest fixture
+    """
+    result = utils.run_pytest_tests(tests=['examples/test_simple_skip.py'])
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    mock_client = mock_client_init.return_value
+    assert mock_client.start_test_item.call_count > 2, \
+        '"start_test_item" called incorrect number of times'
+
+    call_args = mock_client.start_test_item.call_args_list
+    step_call_args = call_args[-1][1]
+    actual_attributes = step_call_args['attributes']
+
+    assert utils.attributes_to_tuples(actual_attributes) == {
+        (None, 'skip')
+    }
