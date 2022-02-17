@@ -107,8 +107,7 @@ class PyTestServiceClass(object):
         self.agent_version = get_package_version(self.agent_name)
         self.ignored_attributes = []
         self.log_batch_size = 20
-        self.local = threading.local()
-        self.local.log_item_id = None
+        self.item_ids = {}
         self.parent_item_id = None
         self.rp = None
         self.project_settings = {}
@@ -548,7 +547,7 @@ class PyTestServiceClass(object):
         item_id = self._start_step(self._build_start_step_rq(current_part))
         current_part['item_id'] = item_id
         current_part['exec'] = ExecStatus.IN_PROGRESS
-        self.local.log_item_id = item_id
+        self.item_ids[threading.current_thread().ident] = item_id
 
     def _build_finish_step_rq(self, part):
         issue = part.get('issue', None)
@@ -619,7 +618,6 @@ class PyTestServiceClass(object):
         item_part['status'] = status
         self._finish_step(self._build_finish_step_rq(item_part))
         item_part['exec'] = ExecStatus.FINISHED
-        self.local.log_item_id = None
         self._finish_parents(item_part)
 
     def _get_items(self, exec_status):
@@ -687,9 +685,9 @@ class PyTestServiceClass(object):
             log.warning('Incorrect loglevel = %s. Force set to INFO. '
                         'Available levels: %s.', loglevel, self._loglevels)
             loglevel = 'INFO'
-
+        item_id = self.item_ids.get(threading.current_thread().ident, None)
         sl_rq = {
-            'item_id': self.local.log_item_id,
+            'item_id': item_id,
             'time': timestamp(),
             'message': message,
             'level': loglevel,
