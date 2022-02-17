@@ -20,20 +20,23 @@ from tests.helpers import utils
 
 
 @pytest.mark.parametrize(('test', 'expected_run_status',
-                          'expected_item_status'), [
-                             ('examples/test_simple.py', 0, 'PASSED'),
-                             ('examples/test_simple_fail.py', 1, 'FAILED'),
-                             ('examples/test_simple_skip.py', 0, 'SKIPPED')
+                          'expected_item_statuses'), [
+                             ('examples/test_simple.py', 0,
+                              ['PASSED', 'PASSED', 'PASSED']),
+                             ('examples/test_simple_fail.py', 1,
+                              ['FAILED', 'FAILED', 'FAILED']),
+                             ('examples/test_simple_skip.py', 0,
+                              ['SKIPPED', 'PASSED', 'PASSED'])
                          ])
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_simple_tests(mock_client_init, test, expected_run_status,
-                      expected_item_status):
+                      expected_item_statuses):
     """Verify a simple test creates correct structure and finishes all items.
 
     :param mock_client_init: mocked Report Portal client Pytest fixture
     :param test:              a test to run as use case
     :param expected_run_status:  expected pytest run status
-    :param expected_item_status:  expected result test item status
+    :param expected_item_statuses:  expected result test item status
     """
     mock_client = mock_client_init.return_value
     mock_client.start_test_item.side_effect = utils.item_id_gen
@@ -53,7 +56,7 @@ def test_simple_tests(mock_client_init, test, expected_run_status,
 
         expect(finish_test_step['item_id'].startswith(start_test_step['name']))
         actual_status = finish_test_step['status']
-        expect(finish_test_step['status'] == expected_item_status,
+        expect(actual_status == expected_item_statuses[i],
                'Invalid item status, actual "{}", expected: "{}"'
-               .format(actual_status, expected_item_status))
+               .format(actual_status, expected_item_statuses[i]))
     assert_expectations()

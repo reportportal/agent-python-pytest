@@ -7,6 +7,7 @@ import threading
 from os import getenv, curdir
 from time import time, sleep
 
+import reportportal_client.helpers
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import Item
@@ -573,6 +574,14 @@ class PyTestServiceClass(object):
         log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
+    def _evaluate_suite_status(self, part):
+        current_status = part['status']
+        for child_part in part['children'].values():
+            child_status = child_part['status']
+            current_status = reportportal_client.helpers.evaluate_status(
+                current_status, child_status)
+        part['status'] = current_status
+
     def _build_finish_suite_rq(self, part):
         payload = {
             'end_time': timestamp(),
@@ -585,6 +594,7 @@ class PyTestServiceClass(object):
         if part.get('exec', ExecStatus.FINISHED) == ExecStatus.FINISHED:
             return
 
+        self._evaluate_suite_status(part)
         self._finish_suite(self._build_finish_suite_rq(part))
         part['exec'] = ExecStatus.FINISHED
 
