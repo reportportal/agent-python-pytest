@@ -33,10 +33,10 @@ def test_simple_tests(mock_client_init, test, expected_run_status,
                       expected_item_statuses):
     """Verify a simple test creates correct structure and finishes all items.
 
-    :param mock_client_init: mocked Report Portal client Pytest fixture
-    :param test:              a test to run as use case
-    :param expected_run_status:  expected pytest run status
-    :param expected_item_statuses:  expected result test item status
+    :param mock_client_init:       mocked Report Portal client Pytest fixture
+    :param test:                   a test to run as use case
+    :param expected_run_status:    expected pytest run status
+    :param expected_item_statuses: expected result test item status
     """
     mock_client = mock_client_init.return_value
     mock_client.start_test_item.side_effect = utils.item_id_gen
