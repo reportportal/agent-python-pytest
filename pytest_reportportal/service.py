@@ -107,7 +107,7 @@ class PyTestServiceClass(object):
         self.agent_version = get_package_version(self.agent_name)
         self.ignored_attributes = []
         self.log_batch_size = 20
-        self.item_ids = {}
+        self.item_ids = {}  # do not use threading.local due to pickling
         self.parent_item_id = None
         self.rp = None
         self.project_settings = {}
