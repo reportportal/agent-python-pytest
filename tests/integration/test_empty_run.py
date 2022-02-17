@@ -46,7 +46,8 @@ def test_empty_run(mock_client_init):
     assert_expectations()
 
     finish_args = mock_client.finish_launch.call_args_list
-    expect(finish_args[0][1]['status'] in ('PASSED', None), 'Launch failed')
+    expect('status' not in finish_args[0][1],
+           'Launch status should not be defined')
     launch_end_time = finish_args[0][1]['end_time']
     expect(launch_end_time is not None and int(launch_end_time) > 0,
            'Launch end time is empty')
