@@ -101,7 +101,7 @@ def test_two_attributes_different_values_report(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_skip_attribute(mock_client_init):
-    """Skip attribute is reported.
+    """Skip attribute is reported as tag.
 
     :param mock_client_init: Pytest fixture
     """
