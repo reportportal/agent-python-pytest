@@ -301,7 +301,7 @@ def test_pytest_sessionfinish(mocked_session):
     :param mocked_session: pytest fixture
     """
     mocked_session.config.py_test_service = mock.Mock()
-    mocked_session.config.option.rp_launch_id = None
+    mocked_session.config._reporter_config.rp_launch_id = None
     pytest_sessionfinish(mocked_session)
     assert mocked_session.config.py_test_service.finish_launch.called
 
