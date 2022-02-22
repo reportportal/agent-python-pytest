@@ -9,9 +9,15 @@ import pkg_resources
 from _pytest.doctest import DoctestItem
 from _pytest.main import Session
 from _pytest.nodes import File, Item
-from _pytest.python import Class, Function, Instance, Module
 from _pytest.unittest import TestCaseFunction, UnitTestCase
 from _pytest.warning_types import PytestWarning
+from pytest import Class, Function, Module
+
+try:
+    from pytest import Instance
+except ImportError:
+    # in pytest >= 7.0 this type was removed
+    Instance = type('dummy', (), {})
 from reportportal_client import ReportPortalService
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
@@ -19,6 +25,7 @@ from reportportal_client.helpers import (
     get_launch_sys_attrs,
     get_package_version
 )
+
 from reportportal_client.service import _dict_to_payload
 from six import with_metaclass
 
