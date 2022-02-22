@@ -2,6 +2,7 @@
 
 # This program is free software: you can redistribute it
 # and/or modify it under the terms of the GPL licence
+import os.path
 
 import dill as pickle
 import logging
@@ -323,6 +324,15 @@ def pytest_addoption(parser):
         'rp_hierarchy_dirs_level',
         default='0',
         help='Directory starting hierarchy level')
+    parser.addini(
+        'rp_hierarchy_dirs',
+        default=False,
+        type='bool',
+        help='Enables hierarchy for directories')
+    parser.addini(
+        'rp_hierarchy_dir_path_separator',
+        default=os.path.sep,
+        help='Path separator to display directories in test hierarchy')
     parser.addini(
         'rp_issue_system_url',
         default='',

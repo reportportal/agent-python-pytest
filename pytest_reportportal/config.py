@@ -20,6 +20,10 @@ class AgentConfig(object):
         self.rp_endpoint = self.find_option(pytest_config, 'rp_endpoint')
         self.rp_dir_level = int(self.find_option(pytest_config,
                                                  'rp_hierarchy_dirs_level'))
+        self.rp_hierarchy_dirs = self.find_option(pytest_config,
+                                                  'rp_hierarchy_dirs')
+        self.rp_dir_path_separator = \
+            self.find_option(pytest_config, 'rp_hierarchy_dir_path_separator')
         ignore_attributes = self.find_option(pytest_config,
                                              'rp_ignore_attributes')
         self.rp_ignore_attributes = set(ignore_attributes) \

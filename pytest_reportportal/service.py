@@ -274,7 +274,7 @@ class PyTestServiceClass(object):
             for item, child_node in test_tree['children'].items():
                 parent_node['children'][item] = child_node
                 child_node['parent'] = parent_node
-                PyTestServiceClass._remove_root_dirs(test_tree, max_dir_level,
+                PyTestServiceClass._remove_root_dirs(child_node, max_dir_level,
                                                      new_level)
 
     @staticmethod
