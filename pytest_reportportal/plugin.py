@@ -146,7 +146,7 @@ def pytest_sessionfinish(session):
         # Stop now if the plugin is not properly configured
         return
     if is_master(session.config):
-        if not session.config.option.rp_launch_id:
+        if not session.config._reporter_config.rp_launch_id:
             session.config.py_test_service.finish_launch()
 
 
