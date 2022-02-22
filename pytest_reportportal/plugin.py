@@ -126,7 +126,7 @@ def pytest_sessionfinish(session):
         return
     session.config.py_test_service.finish_suites()
     if is_master(session.config):
-        if not session.config.option.rp_launch_id:
+        if not session.config._reporter_config.rp_launch_id:
             session.config.py_test_service.finish_launch()
     rp = session.config.py_test_service.rp
     # TODO: fix logging
