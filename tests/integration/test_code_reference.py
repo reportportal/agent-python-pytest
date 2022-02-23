@@ -44,7 +44,7 @@ def test_code_reference(mock_client_init, test, code_ref):
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
     mock_client = mock_client_init.return_value
-    assert mock_client.start_test_item.call_count > 2, \
+    assert mock_client.start_test_item.call_count > 0, \
         '"start_test_item" called incorrect number of times'
 
     call_args = mock_client.start_test_item.call_args_list

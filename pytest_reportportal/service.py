@@ -185,8 +185,7 @@ class PyTestServiceClass(object):
             send_event(self.agent_name, self.agent_version)
         return item_id
 
-    @staticmethod
-    def _get_item_dirs(item):
+    def _get_item_dirs(self, item):
         """
         Get directory of item.
 
@@ -199,8 +198,7 @@ class PyTestServiceClass(object):
                                drive="")
         return [d for d in rel_dir.parts(reverse=False) if d.basename]
 
-    @staticmethod
-    def _get_item_parts(item):
+    def _get_item_parts(self, item):
         """
         Get item of parents.
 
@@ -222,8 +220,8 @@ class PyTestServiceClass(object):
                      'item_id': self.parent_item_id}
 
         for item in session.items:
-            dir_path = PyTestServiceClass._get_item_dirs(item)
-            class_path = PyTestServiceClass._get_item_parts(item)
+            dir_path = self._get_item_dirs(item)
+            class_path = self._get_item_parts(item)
 
             current_node = test_tree
             for i, path_part in enumerate(dir_path + class_path):
@@ -236,18 +234,17 @@ class PyTestServiceClass(object):
                 if path_part not in children:
                     children[path_part] = {
                         'children': {}, 'type': node_type, 'item': path_part,
-                        'parent': current_node,  'lock': threading.Lock(),
+                        'parent': current_node, 'lock': threading.Lock(),
                         'exec': ExecStatus.CREATED
                     }
                 current_node = children[path_part]
         return test_tree
 
-    @staticmethod
-    def _remove_root_package(test_tree):
+    def _remove_root_package(self, test_tree):
         if test_tree['type'] == LeafType.ROOT or \
                 test_tree['type'] == LeafType.DIR:
             for item, child_node in test_tree['children'].items():
-                PyTestServiceClass._remove_root_package(child_node)
+                self._remove_root_package(child_node)
                 return
         if test_tree['type'] == LeafType.CODE and \
                 isinstance(test_tree['item'], Package) and \
@@ -259,12 +256,10 @@ class PyTestServiceClass(object):
                 parent_node['children'][item] = child_node
                 child_node['parent'] = parent_node
 
-    @staticmethod
-    def _remove_root_dirs(test_tree, max_dir_level, dir_level=0):
+    def _remove_root_dirs(self, test_tree, max_dir_level, dir_level=0):
         if test_tree['type'] == LeafType.ROOT:
             for item, child_node in test_tree['children'].items():
-                PyTestServiceClass._remove_root_dirs(child_node, max_dir_level,
-                                                     1)
+                self._remove_root_dirs(child_node, max_dir_level, 1)
                 return
         if test_tree['type'] == LeafType.DIR and dir_level <= max_dir_level:
             new_level = dir_level + 1
@@ -274,11 +269,10 @@ class PyTestServiceClass(object):
             for item, child_node in test_tree['children'].items():
                 parent_node['children'][item] = child_node
                 child_node['parent'] = parent_node
-                PyTestServiceClass._remove_root_dirs(child_node, max_dir_level,
-                                                     new_level)
+                self._remove_root_dirs(child_node, max_dir_level,
+                                       new_level)
 
-    @staticmethod
-    def _generate_names(test_tree):
+    def _generate_names(self, test_tree):
         if test_tree['type'] == LeafType.ROOT:
             test_tree['name'] = 'root'
 
@@ -296,7 +290,25 @@ class PyTestServiceClass(object):
                 test_tree['name'] = item.name
 
         for item, child_node in test_tree['children'].items():
-            PyTestServiceClass._generate_names(child_node)
+            self._generate_names(child_node)
+
+    def _merge_dirs(self, test_tree):
+        if test_tree['type'] == LeafType.ROOT:
+            for item, child_node in test_tree['children'].items():
+                self._merge_dirs(child_node)
+                return
+        if test_tree['type'] == LeafType.DIR:
+            parent_node = test_tree['parent']
+            current_item = test_tree['item']
+            current_name = test_tree['name']
+            del parent_node['children'][current_item]
+            for item, child_node in test_tree['children'].items():
+                parent_node['children'][item] = child_node
+                child_node['parent'] = parent_node
+                child_node['name'] = current_name + \
+                                     self._config.rp_dir_path_separator + \
+                                     child_node['name']
+                self._merge_dirs(child_node)
 
     def _build_item_paths(self, node, path):
         if 'children' in node and len(node['children']) > 0:
@@ -321,6 +333,8 @@ class PyTestServiceClass(object):
         self._remove_root_package(test_tree)
         self._remove_root_dirs(test_tree, self._config.rp_dir_level)
         self._generate_names(test_tree)
+        if not self._config.rp_hierarchy_dirs:
+            self._merge_dirs(test_tree)
         self._build_item_paths(test_tree, [])
 
     def _lock(self, part, func):
@@ -366,7 +380,10 @@ class PyTestServiceClass(object):
             self._lock(part, lambda p: self._create_suite(p))
 
     def _get_code_ref(self, item):
-        path = os.path.relpath(str(item.fspath), ROOT_DIR)
+        # Generate script path from work dir, use only backslashes to have the
+        # same path on different systems and do not affect Test Case ID on
+        # different systems
+        path = os.path.relpath(str(item.fspath), ROOT_DIR).replace('\\', '/')
         method_name = item.originalname if item.originalname is not None \
             else item.name
         parent = item.parent
@@ -715,8 +732,7 @@ class PyTestServiceClass(object):
         """
         return item.callspec.params if hasattr(item, 'callspec') else None
 
-    @staticmethod
-    def _get_item_name(name):
+    def _get_item_name(self, name):
         """
         Get name of item.
 
@@ -734,8 +750,7 @@ class PyTestServiceClass(object):
             )
         return name
 
-    @staticmethod
-    def _get_item_description(test_item):
+    def _get_item_description(self, test_item):
         """
         Get description of item.
 
