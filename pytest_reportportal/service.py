@@ -305,9 +305,9 @@ class PyTestServiceClass(object):
             for item, child_node in test_tree['children'].items():
                 parent_node['children'][item] = child_node
                 child_node['parent'] = parent_node
-                child_node['name'] = current_name + \
-                                     self._config.rp_dir_path_separator + \
-                                     child_node['name']
+                child_node['name'] = \
+                    current_name + self._config.rp_dir_path_separator + \
+                    child_node['name']
                 self._merge_dirs(child_node)
 
     def _build_item_paths(self, node, path):
