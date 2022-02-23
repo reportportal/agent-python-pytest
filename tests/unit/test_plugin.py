@@ -302,7 +302,7 @@ def test_pytest_sessionfinish(mocked_session):
     :param mocked_session: pytest fixture
     """
     mocked_session.config.py_test_service = mock.Mock()
-    mocked_session.config.option.rp_launch_id = None
+    mocked_session.config._reporter_config.rp_launch_id = None
     pytest_sessionfinish(mocked_session)
     assert mocked_session.config.py_test_service.finish_launch.called
 
@@ -338,6 +338,8 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_ignore_attributes',
         'rp_is_skipped_an_issue',
         'rp_hierarchy_dirs_level',
+        'rp_hierarchy_dirs',
+        'rp_hierarchy_dir_path_separator',
         'rp_issue_system_url',
         'rp_verify_ssl',
         'rp_issue_id_marks',
