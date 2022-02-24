@@ -292,23 +292,29 @@ class PyTestServiceClass(object):
         for item, child_node in test_tree['children'].items():
             self._generate_names(child_node)
 
-    def _merge_dirs(self, test_tree):
-        if test_tree['type'] == LeafType.ROOT:
-            for item, child_node in test_tree['children'].items():
-                self._merge_dirs(child_node)
-                return
-        if test_tree['type'] == LeafType.DIR:
+    def _merge_node_type(self, test_tree, node_type, separator):
+        child_items = list(test_tree['children'].items())
+        if test_tree['type'] != node_type:
+            for item, child_node in child_items:
+                self._merge_node_type(child_node, node_type, separator)
+        elif len(test_tree['children'].items()) > 0:
             parent_node = test_tree['parent']
             current_item = test_tree['item']
             current_name = test_tree['name']
             del parent_node['children'][current_item]
-            for item, child_node in test_tree['children'].items():
+            for item, child_node in child_items:
                 parent_node['children'][item] = child_node
                 child_node['parent'] = parent_node
                 child_node['name'] = \
-                    current_name + self._config.rp_dir_path_separator + \
-                    child_node['name']
-                self._merge_dirs(child_node)
+                    current_name + separator + child_node['name']
+                self._merge_node_type(child_node, node_type, separator)
+
+    def _merge_dirs(self, test_tree):
+        self._merge_node_type(test_tree, LeafType.DIR,
+                              self._config.rp_dir_path_separator)
+
+    def _merge_code(self, test_tree):
+        self._merge_node_type(test_tree, LeafType.CODE, '::')
 
     def _build_item_paths(self, node, path):
         if 'children' in node and len(node['children']) > 0:
@@ -335,6 +341,8 @@ class PyTestServiceClass(object):
         self._generate_names(test_tree)
         if not self._config.rp_hierarchy_dirs:
             self._merge_dirs(test_tree)
+        if not self._config.rp_hierarchy_code:
+            self._merge_code(test_tree)
         self._build_item_paths(test_tree, [])
 
     def _lock(self, part, func):

@@ -18,6 +18,8 @@ class AgentConfig(object):
         self.rp_rerun = (pytest_config.option.rp_rerun or
                          pytest_config.getini('rp_rerun'))
         self.rp_endpoint = self.find_option(pytest_config, 'rp_endpoint')
+        self.rp_hierarchy_code = self.find_option(pytest_config,
+                                                  'rp_hierarchy_code')
         self.rp_dir_level = int(self.find_option(pytest_config,
                                                  'rp_hierarchy_dirs_level'))
         self.rp_hierarchy_dirs = self.find_option(pytest_config,
@@ -57,7 +59,7 @@ class AgentConfig(object):
         self.rp_skip_connection_test = str(
             self.find_option(pytest_config,
                              'rp_skip_connection_test')).lower() in (
-                                       'true', '1', 'yes', 'y')
+                                           'true', '1', 'yes', 'y')
         self.rp_uuid = getenv('RP_UUID') or self.find_option(pytest_config,
                                                              'rp_uuid')
         self.rp_verify_ssl = self.find_option(pytest_config, 'rp_verify_ssl')
@@ -78,7 +80,7 @@ class AgentConfig(object):
         :return: option value
         """
         value = (
-            getattr(pytest_config.option, option_name, None) or
-            pytest_config.getini(option_name)
+                getattr(pytest_config.option, option_name, None) or
+                pytest_config.getini(option_name)
         )
         return value if value else default
