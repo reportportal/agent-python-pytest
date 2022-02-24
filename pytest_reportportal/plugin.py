@@ -88,8 +88,8 @@ def pytest_sessionstart(session):
     if session.config._reportportal_configured is False:
         # Stop now if the plugin is not properly configured
         return
-    if is_master(session.config):
-        config = session.config
+    config = session.config
+    if is_master(config):
         try:
             config.py_test_service.init_service()
         except ResponseError as response_error:
@@ -190,6 +190,7 @@ def pytest_configure(config):
     else:
         config.py_test_service = pickle.loads(
             config.workerinput['py_test_service'])
+        config.py_test_service.rp.start()
 
     config._reporter = RPReportListener(
         config.py_test_service,
