@@ -25,25 +25,33 @@ HIERARCHY_TESTS = \
          'examples/hierarchy/inner/test_inner_simple.py']
     ] + \
     [['examples/params/test_in_class_parameterized.py']] * 5 + \
-    [['examples/hierarchy/inner/test_inner_simple.py']] * 3
+    [['examples/hierarchy/inner/test_inner_simple.py']] * 7
 
 # noinspection PyTypeChecker
 HIERARCHY_TEST_VARIABLES = \
     [dict({'rp_hierarchy_dirs': True}, **utils.DEFAULT_VARIABLES)] * 6 + \
     [
-        dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_dirs_level': 1},
-             **utils.DEFAULT_VARIABLES),
-        dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_dirs_level': 2},
-             **utils.DEFAULT_VARIABLES),
-        dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_dirs_level': 999},
-             **utils.DEFAULT_VARIABLES),
-        dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_dirs_level': -1},
-             **utils.DEFAULT_VARIABLES),
-        dict({'rp_hierarchy_dir_path_separator': '/'},
-             **utils.DEFAULT_VARIABLES),
-        dict({'rp_hierarchy_dir_path_separator': '\\'},
-             **utils.DEFAULT_VARIABLES),
-        dict({'rp_hierarchy_dirs_level': 1}, **utils.DEFAULT_VARIABLES)
+        dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_code': True,
+              'rp_hierarchy_dirs_level': 1}, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_code': True,
+              'rp_hierarchy_dirs_level': 2}, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_code': True,
+              'rp_hierarchy_dirs_level': 999}, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dirs': True, 'rp_hierarchy_code': True,
+              'rp_hierarchy_dirs_level': -1}, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dir_path_separator': '/',
+              'rp_hierarchy_code': True}, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dir_path_separator': '\\',
+              'rp_hierarchy_code': True}, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dirs_level': 1, 'rp_hierarchy_code': True,
+              }, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dirs_level': 2, 'rp_hierarchy_code': True,
+              }, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dirs_level': 999, 'rp_hierarchy_code': True,
+              }, **utils.DEFAULT_VARIABLES),
+        dict({'rp_hierarchy_dirs_level': -1, 'rp_hierarchy_code': True,
+              }, **utils.DEFAULT_VARIABLES),
+        dict(**utils.DEFAULT_VARIABLES)
     ]
 
 HIERARCHY_TEST_EXPECTED_ITEMS = [
@@ -191,6 +199,34 @@ HIERARCHY_TEST_EXPECTED_ITEMS = [
          'parent_item_id':
              lambda x:
              x.startswith('hierarchy/inner/test_inner_simple.py')}
+    ],
+    [
+        {'name': 'inner/test_inner_simple.py',
+         'item_type': 'SUITE', 'parent_item_id': lambda x: x is None},
+        {'name': 'test_simple', 'item_type': 'STEP',
+         'parent_item_id':
+             lambda x:
+             x.startswith('inner/test_inner_simple.py')}
+    ],
+    [
+        {'name': 'test_inner_simple.py',
+         'item_type': 'SUITE', 'parent_item_id': lambda x: x is None},
+        {'name': 'test_simple', 'item_type': 'STEP',
+         'parent_item_id':
+             lambda x:
+             x.startswith('test_inner_simple.py')}
+    ],
+    [
+        {'name': 'examples/hierarchy/inner/test_inner_simple.py',
+         'item_type': 'SUITE', 'parent_item_id': lambda x: x is None},
+        {'name': 'test_simple', 'item_type': 'STEP',
+         'parent_item_id':
+             lambda x:
+             x.startswith('examples/hierarchy/inner/test_inner_simple.py')}
+    ],
+    [
+        {'name': 'examples/hierarchy/inner/test_inner_simple.py:test_simple',
+         'item_type': 'STEP', 'parent_item_id': lambda x: x is None}
     ]
 ]
 
