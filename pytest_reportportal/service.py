@@ -634,7 +634,7 @@ class PyTestServiceClass(object):
 
     def process_results(self, test_item, report):
         """
-        Save test item results after execution
+        Save test item results after execution.
 
         :param test_item: pytest.Item
         :param report:    pytest's result report
