@@ -22,7 +22,6 @@ from six.moves import mock
 
 from pytest_reportportal import RPLogger
 from pytest_reportportal.config import AgentConfig
-from pytest_reportportal.listener import RPReportListener
 from pytest_reportportal.service import PyTestServiceClass
 from tests import REPORT_PORTAL_SERVICE
 
@@ -106,9 +105,3 @@ def rp_service(mocked_config):
     with mock.patch(REPORT_PORTAL_SERVICE + '.get_project_settings'):
         service.init_service()
         return service
-
-
-@fixture()
-def rp_listener(rp_service):
-    """Prepare instance of the RPReportListener for testing."""
-    return RPReportListener(rp_service)

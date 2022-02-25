@@ -21,7 +21,6 @@ from six.moves import mock
 
 from reportportal_client.errors import ResponseError
 from pytest_reportportal.config import AgentConfig
-from pytest_reportportal.listener import RPReportListener
 from pytest_reportportal.plugin import (
     is_master,
     log,
@@ -97,8 +96,6 @@ def test_pytest_configure(mocked_config):
     expect(mocked_config._reportportal_configured is True)
     expect(
         lambda: isinstance(mocked_config.py_test_service, PyTestServiceClass))
-    expect(
-        lambda: isinstance(mocked_config._reporter, RPReportListener))
     assert_expectations()
     mocked_config.getoption.assert_has_calls(
         [

@@ -199,8 +199,12 @@ def pytest_runtest_protocol(item):
     :param item:  Pytest.Item
     :return: generator object
     """
-    service = item.config.py_test_service
-    agent_config = item.config._reporter_config
+    config = item.config
+    if not config._reportportal_configured:
+        yield
+        return
+    service = config.py_test_service
+    agent_config = config._reporter_config
     service.start_pytest_item(item)
     log_level = agent_config.rp_log_level or logging.NOTSET
     log_handler = RPLogHandler(
@@ -223,6 +227,10 @@ def pytest_runtest_makereport(item):
     :param item: pytest.Item
     :return: None
     """
+    config = item.config
+    if not config._reportportal_configured:
+        yield
+        return
     report = (yield).get_result()
     service = item.config.py_test_service
     service.process_results(item, report)
