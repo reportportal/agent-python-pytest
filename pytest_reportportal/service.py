@@ -390,7 +390,7 @@ class PyTestServiceClass(object):
 
     def _lock(self, node, func):
         """
-        Lock test tree node and execute a function, bypass the node to it
+        Lock test tree node and execute a function, bypass the node to it.
 
         :param node: a node to lock
         :param func: a function to execute
@@ -633,6 +633,12 @@ class PyTestServiceClass(object):
         current_part['exec'] = ExecStatus.IN_PROGRESS
 
     def process_results(self, test_item, report):
+        """
+        Save test item results after execution
+
+        :param test_item: pytest.Item
+        :param report:    pytest's result report
+        """
         if report.longrepr:
             self.post_log(test_item, report.longreprtext, loglevel='ERROR')
 
@@ -706,8 +712,6 @@ class PyTestServiceClass(object):
         Finish pytest_item.
 
         :param test_item: pytest.Item
-        :param status:    an item finish status (PASSED, FAILED, STOPPED,
-        SKIPPED, RESETED, CANCELLED, INFO, WARN)
         :return: None
         """
         if self.rp is None:
@@ -715,7 +719,6 @@ class PyTestServiceClass(object):
 
         parts = self._item_parts[test_item]
         item_part = parts[-1]
-        status = item_part['status']
         self._finish_step(self._build_finish_step_rq(item_part))
         item_part['exec'] = ExecStatus.FINISHED
         self._finish_parents(item_part)

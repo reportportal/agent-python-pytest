@@ -194,10 +194,10 @@ def pytest_configure(config):
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item):
     """
-    Controls start and finish of pytest items
+    Control start and finish of pytest items.
 
-    :param item:  Pytest.Item
-    :return: generator object
+    :param item: Pytest.Item
+    :return:     generator object
     """
     config = item.config
     if not config._reportportal_configured:
