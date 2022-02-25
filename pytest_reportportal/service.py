@@ -107,7 +107,6 @@ class PyTestServiceClass(object):
         self.agent_version = get_package_version(self.agent_name)
         self.ignored_attributes = []
         self.log_batch_size = 20
-        self.item_ids = {}  # do not use threading.local due to pickling
         self.parent_item_id = None
         self.rp = None
         self.project_settings = {}
@@ -152,6 +151,17 @@ class PyTestServiceClass(object):
         else:
             log.debug('The pytest is already initialized')
         return self.rp
+
+    def _get_launch_attributes(self, ini_attrs):
+        """Generate launch attributes in the format supported by the client.
+
+        :param list ini_attrs: List for attributes from the pytest.ini file
+        """
+        attributes = ini_attrs or []
+        system_attributes = get_launch_sys_attrs()
+        system_attributes['agent'] = (
+            '{}-{}'.format(self.agent_name, self.agent_version))
+        return attributes + _dict_to_payload(system_attributes)
 
     def _build_start_launch_rq(self):
         rp_launch_attributes = self._config.rp_launch_attributes
@@ -345,11 +355,51 @@ class PyTestServiceClass(object):
             self._merge_code(test_tree)
         self._build_item_paths(test_tree, [])
 
-    def _lock(self, part, func):
-        if 'lock' in part:
-            with part['lock']:
-                return func(part)
-        return func(part)
+    def _get_item_name(self, name):
+        """
+        Get name of item.
+
+        :param name: Item name
+        :return: name
+        """
+        if len(name) > MAX_ITEM_NAME_LENGTH:
+            name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + \
+                   TRUNCATION_STR
+            log.warning(
+                PytestWarning(
+                    'Test node ID was truncated to "{}" because of name size '
+                    'constrains on reportportal'.format(name)
+                )
+            )
+        return name
+
+    def _get_item_description(self, test_item):
+        """
+        Get description of item.
+
+        :param test_item: pytest.Item
+        :return string description
+        """
+        if isinstance(test_item, (Class, Function, Module, Item)):
+            if hasattr(test_item, "obj"):
+                doc = test_item.obj.__doc__
+                if doc is not None:
+                    return trim_docstring(doc)
+        if isinstance(test_item, DoctestItem):
+            return test_item.reportinfo()[2]
+
+    def _lock(self, node, func):
+        """
+        Lock test tree node and execute a function, bypass the node to it
+
+        :param node: a node to lock
+        :param func: a function to execute
+        :return: the result of the function bypassed
+        """
+        if 'lock' in node:
+            with node['lock']:
+                return func(node)
+        return func(node)
 
     def _build_start_suite_rq(self, part):
         code_ref = str(part['item']) if part['type'] == LeafType.DIR \
@@ -492,6 +542,15 @@ class PyTestServiceClass(object):
         else:
             return {'value': attribute_tuple[1]}
 
+    def _get_parameters(self, item):
+        """
+        Get params of item.
+
+        :param item: Pytest.Item
+        :return: dict of params
+        """
+        return item.callspec.params if hasattr(item, 'callspec') else None
+
     def _process_attributes(self, part):
         """
         Process all types of attributes of item.
@@ -572,7 +631,23 @@ class PyTestServiceClass(object):
         item_id = self._start_step(self._build_start_step_rq(current_part))
         current_part['item_id'] = item_id
         current_part['exec'] = ExecStatus.IN_PROGRESS
-        self.item_ids[threading.current_thread().ident] = item_id
+
+    def process_results(self, test_item, report):
+        if report.longrepr:
+            self.post_log(test_item, report.longreprtext, loglevel='ERROR')
+
+        node = self._item_parts[test_item][-1]
+        # Defining test result
+        if report.when == 'setup':
+            node['status'] = 'PASSED'
+
+        if report.failed:
+            node['status'] = 'FAILED'
+            return
+
+        if report.skipped:
+            if node['status'] in (None, 'PASSED'):
+                node['status'] = 'SKIPPED'
 
     def _build_finish_step_rq(self, part):
         issue = part.get('issue', None)
@@ -626,11 +701,11 @@ class PyTestServiceClass(object):
         self._lock(part['parent'], lambda p: self._proceed_suite_finish(p))
         self._finish_parents(part['parent'])
 
-    def finish_pytest_item(self, test_item, status):
+    def finish_pytest_item(self, test_item):
         """
         Finish pytest_item.
 
-        :param test_item: test_item
+        :param test_item: pytest.Item
         :param status:    an item finish status (PASSED, FAILED, STOPPED,
         SKIPPED, RESETED, CANCELLED, INFO, WARN)
         :return: None
@@ -640,7 +715,7 @@ class PyTestServiceClass(object):
 
         parts = self._item_parts[test_item]
         item_part = parts[-1]
-        item_part['status'] = status
+        status = item_part['status']
         self._finish_step(self._build_finish_step_rq(item_part))
         item_part['exec'] = ExecStatus.FINISHED
         self._finish_parents(item_part)
@@ -693,10 +768,11 @@ class PyTestServiceClass(object):
         self.rp.terminate()
         self.rp = None
 
-    def post_log(self, message, loglevel='INFO', attachment=None):
+    def post_log(self, test_item, message, loglevel='INFO', attachment=None):
         """
         Send a log message to the Report Portal.
 
+        :param test_item: pytest.Item
         :param message:    message in log body
         :param loglevel:   a level of a log entry (ERROR, WARN, INFO, DEBUG,
         TRACE, FATAL, UNKNOWN)
@@ -710,7 +786,7 @@ class PyTestServiceClass(object):
             log.warning('Incorrect loglevel = %s. Force set to INFO. '
                         'Available levels: %s.', loglevel, self._loglevels)
             loglevel = 'INFO'
-        item_id = self.item_ids.get(threading.current_thread().ident, None)
+        item_id = self._item_parts[test_item][-1]['item_id']
         sl_rq = {
             'item_id': item_id,
             'time': timestamp(),
@@ -719,56 +795,3 @@ class PyTestServiceClass(object):
             'attachment': attachment
         }
         self.rp.log(**sl_rq)
-
-    def _get_launch_attributes(self, ini_attrs):
-        """Generate launch attributes in the format supported by the client.
-
-        :param list ini_attrs: List for attributes from the pytest.ini file
-        """
-        attributes = ini_attrs or []
-        system_attributes = get_launch_sys_attrs()
-        system_attributes['agent'] = (
-            '{}-{}'.format(self.agent_name, self.agent_version))
-        return attributes + _dict_to_payload(system_attributes)
-
-    def _get_parameters(self, item):
-        """
-        Get params of item.
-
-        :param item: Pytest.Item
-        :return: dict of params
-        """
-        return item.callspec.params if hasattr(item, 'callspec') else None
-
-    def _get_item_name(self, name):
-        """
-        Get name of item.
-
-        :param name: Item name
-        :return: name
-        """
-        if len(name) > MAX_ITEM_NAME_LENGTH:
-            name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + \
-                   TRUNCATION_STR
-            log.warning(
-                PytestWarning(
-                    'Test node ID was truncated to "{}" because of name size '
-                    'constrains on reportportal'.format(name)
-                )
-            )
-        return name
-
-    def _get_item_description(self, test_item):
-        """
-        Get description of item.
-
-        :param test_item: pytest.Item
-        :return string description
-        """
-        if isinstance(test_item, (Class, Function, Module, Item)):
-            if hasattr(test_item, "obj"):
-                doc = test_item.obj.__doc__
-                if doc is not None:
-                    return trim_docstring(doc)
-        if isinstance(test_item, DoctestItem):
-            return test_item.reportinfo()[2]

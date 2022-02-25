@@ -1,23 +1,21 @@
 """This module contains changed pytest for report-portal."""
 
+import logging
 # This program is free software: you can redistribute it
 # and/or modify it under the terms of the GPL licence
 import os.path
-
-import dill as pickle
-import logging
 import time
 
+import _pytest.logging
+import dill as pickle
 import pytest
 import requests
-
-from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from reportportal_client.errors import ResponseError
 
+from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from .config import AgentConfig
-from .listener import RPReportListener
+from .rp_logging import RPLogHandler, patching_logger_class
 from .service import PyTestServiceClass
-
 
 log = logging.getLogger(__name__)
 
@@ -192,12 +190,42 @@ def pytest_configure(config):
             config.workerinput['py_test_service'])
         config.py_test_service.rp.start()
 
-    config._reporter = RPReportListener(
-        config.py_test_service,
-        log_level=agent_config.rp_log_level or logging.NOTSET,
-        endpoint=agent_config.rp_endpoint)
-    if hasattr(config, '_reporter'):
-        config.pluginmanager.register(config._reporter)
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_protocol(item):
+    """
+    Controls start and finish of pytest items
+
+    :param item:  Pytest.Item
+    :return: generator object
+    """
+    service = item.config.py_test_service
+    agent_config = item.config._reporter_config
+    service.start_pytest_item(item)
+    log_level = agent_config.rp_log_level or logging.NOTSET
+    log_handler = RPLogHandler(
+        item, service, level=log_level,
+        filter_client_logs=True, endpoint=agent_config.rp_endpoint
+    )
+    with patching_logger_class():
+        with _pytest.logging.catching_logs(log_handler,
+                                           level=log_level):
+            yield
+    # Finishing item in RP
+    service.finish_pytest_item(item)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item):
+    """
+        Change runtest_makereport function.
+
+    :param item: pytest.Item
+    :return: None
+    """
+    report = (yield).get_result()
+    service = item.config.py_test_service
+    service.process_results(item, report)
 
 
 def pytest_unconfigure(config):

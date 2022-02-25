@@ -1,7 +1,7 @@
 """RPLogger class for low-level logging in tests."""
 
-import sys
 import logging
+import sys
 from contextlib import contextmanager
 from functools import wraps
 
@@ -83,7 +83,7 @@ class RPLogHandler(logging.Handler):
     }
     _sorted_levelnos = sorted(_loglevel_map.keys(), reverse=True)
 
-    def __init__(self, py_test_service,
+    def __init__(self, test_item, py_test_service,
                  level=logging.NOTSET,
                  filter_client_logs=False,
                  endpoint=None):
@@ -97,6 +97,7 @@ class RPLogHandler(logging.Handler):
         :param endpoint:           link to send reports
         """
         super(RPLogHandler, self).__init__(level)
+        self.item = test_item
         self.py_test_service = py_test_service
         self.filter_client_logs = filter_client_logs
         self.ignored_record_names = ('reportportal_client',
@@ -141,9 +142,12 @@ class RPLogHandler(logging.Handler):
         for level in self._sorted_levelnos:
             if level <= record.levelno:
                 return self.py_test_service.post_log(
+                    self.item,
                     msg,
-                    loglevel=self._loglevel_map[level],
-                    attachment=record.__dict__.get('attachment', None),
+                    loglevel=
+                    self._loglevel_map[level],
+                    attachment=record.__dict__.get(
+                        'attachment', None),
                 )
 
 
@@ -168,6 +172,7 @@ def patching_logger_class():
                     kwargs.setdefault('extra', {}).update(
                         {'attachment': attachment})
                 return original_func(self, *args, **kwargs)
+
             return _log
 
         def wrap_makeRecord(original_func):
@@ -190,6 +195,7 @@ def patching_logger_class():
                                            extra=extra)
                 record.attachment = attachment
                 return record
+
             return makeRecord
 
         if not issubclass(logger_class, RPLogger):
