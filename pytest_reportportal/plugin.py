@@ -20,35 +20,31 @@ from .service import PyTestServiceClass
 log = logging.getLogger(__name__)
 
 
-def check_connection(agent_config, pytest_config):
-    """Check connection to RP using provided options.
+MANDATORY_PARAMETER_MISSED_PATTERN = \
+    'One of the following mandatory parameters is unset: ' + \
+    'rp_project: {}, ' + \
+    'rp_endpoint: {}, ' + \
+    'rp_uuid: {}'
 
-    If connection is not successful, then we update _reportportal_configured
-    attribute of the Config object to False.
-    :param agent_config:  Instance of the AgentConfig class
-    :param pytest_config: config object of PyTest
+
+@pytest.mark.optionalhook
+def pytest_configure_node(node):
+    """Configure xdist node controller.
+
+    :param node: Object of the xdist WorkerController class
     """
-    if pytest_config._reportportal_configured and \
-            not agent_config.rp_skip_connection_test:
-        url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint,
-                                              agent_config.rp_project)
-        headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_uuid)}
-        try:
-            resp = requests.get(url, headers=headers,
-                                verify=agent_config.rp_verify_ssl)
-            resp.raise_for_status()
-        except requests.exceptions.RequestException as exc:
-            log.exception(exc)
-            log.error("Unable to connect to Report Portal, the launch won't be"
-                      " reported")
-            pytest_config._reportportal_configured = False
+    if not node.config._rp_enabled:
+        # Stop now if the plugin is not properly configured
+        return
+    node.workerinput['py_test_service'] = pickle.dumps(
+        node.config.py_test_service)
 
 
-def is_master(config):
+def is_control(config):
     """Validate workerinput attribute of the Config object.
 
     True if the code, running the given pytest.config object,
-    is running as the xdist master node or not running xdist at all.
+    is running as the xdist control node or not running xdist at all.
     """
     return not hasattr(config, 'workerinput')
 
@@ -65,41 +61,22 @@ def wait_launch(rp_client):
         time.sleep(1)
 
 
-@pytest.mark.optionalhook
-def pytest_configure_node(node):
-    """Configure xdist node controller.
-
-    :param node: Object of the xdist WorkerController class
-    """
-    if node.config._reportportal_configured is False:
-        # Stop now if the plugin is not properly configured
-        return
-    node.workerinput['py_test_service'] = pickle.dumps(
-        node.config.py_test_service)
-
-
 def pytest_sessionstart(session):
-    """Start test session.
+    """Start Report Portal launch.
 
+    This method is called every time on control or worker process start, it
+    analyses from which process it is called and starts a Report Portal launch
+    if it's a control process.
     :param session: Object of the pytest Session class
     """
-    if session.config._reportportal_configured is False:
-        # Stop now if the plugin is not properly configured
-        return
     config = session.config
-    if is_master(config):
-        try:
-            config.py_test_service.init_service()
-        except ResponseError as response_error:
-            log.warning('Failed to initialize reportportal-client service. '
-                        'Reporting is disabled.')
-            log.debug(str(response_error))
-            config.py_test_service.rp = None
-            return
-        if not config._reporter_config.rp_launch_id:
-            config.py_test_service.start_launch()
-            if config.pluginmanager.hasplugin('xdist'):
-                wait_launch(session.config.py_test_service.rp)
+    if not config._rp_enabled or not is_control(config):
+        return
+
+    if not config._reporter_config.rp_launch_id:
+        config.py_test_service.start_launch()
+        if config.pluginmanager.hasplugin('xdist'):
+            wait_launch(session.config.py_test_service.rp)
 
 
 def pytest_collection_finish(session):
@@ -107,7 +84,7 @@ def pytest_collection_finish(session):
 
     :param session: Object of the pytest Session class
     """
-    if session.config._reportportal_configured is False:
+    if not session.config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
 
@@ -119,17 +96,14 @@ def pytest_sessionfinish(session):
 
     :param session: Object of the pytest Session class
     """
-    if session.config._reportportal_configured is False:
+    if not session.config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
     session.config.py_test_service.finish_suites()
-    if is_master(session.config):
-        if not session.config._reporter_config.rp_launch_id:
-            session.config.py_test_service.finish_launch()
-    rp = session.config.py_test_service.rp
-    # TODO: fix logging
-    if rp:
-        rp.terminate()
+    if is_control(session.config) \
+            and not session.config._reporter_config.rp_launch_id:
+        session.config.py_test_service.finish_launch()
+    session.config.py_test_service.stop()
 
 
 def register_markers(config):
@@ -151,6 +125,28 @@ def register_markers(config):
     )
 
 
+def check_connection(agent_config):
+    """Check connection to RP using provided options.
+
+    If connection is successful returns True either False.
+    :param agent_config: Instance of the AgentConfig class
+    :return True on successful connection check, either False
+    """
+    url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint,
+                                          agent_config.rp_project)
+    headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_uuid)}
+    try:
+        resp = requests.get(url, headers=headers,
+                            verify=agent_config.rp_verify_ssl)
+        resp.raise_for_status()
+        return True
+    except requests.exceptions.RequestException as exc:
+        log.exception(exc)
+        log.error("Unable to connect to Report Portal, the launch won't be"
+                  " reported")
+        return False
+
+
 def pytest_configure(config):
     """Update Config object with attributes required for reporting to RP.
 
@@ -158,37 +154,48 @@ def pytest_configure(config):
     """
     register_markers(config)
 
-    skip = (config.getoption('--collect-only', default=False) or
+    config._rp_enabled = not (
+            config.getoption('--collect-only', default=False) or
             config.getoption('--setup-plan', default=False) or
             not config.option.rp_enabled)
-    if skip:
-        config._reportportal_configured = False
+    if not config._rp_enabled:
         return
 
     agent_config = AgentConfig(config)
+
     cond = (agent_config.rp_project, agent_config.rp_endpoint,
             agent_config.rp_uuid)
-    config._reportportal_configured = all(cond)
-    if config._reportportal_configured is False:
-        log.debug('One of the following parameters is unset: rp_project:{}, '
-                  'rp_endpoint:{}, rp_uuid:{}!'.format(*cond))
+    config._rp_enabled = all(cond)
+    if not config._rp_enabled:
+        log.debug(MANDATORY_PARAMETER_MISSED_PATTERN.format(*cond))
         log.debug('Disabling reporting to RP.')
         return
 
-    check_connection(agent_config, config)
-    if config._reportportal_configured is False:
+    if not agent_config.rp_skip_connection_test:
+        config._rp_enabled = check_connection(agent_config)
+
+    if not config._rp_enabled:
         log.debug('Failed to establish connection with RP. '
                   'Disabling reporting.')
         return
 
     config._reporter_config = agent_config
 
-    if is_master(config):
+    if is_control(config):
         config.py_test_service = PyTestServiceClass(agent_config)
     else:
+        # noinspection PyUnresolvedReferences
         config.py_test_service = pickle.loads(
             config.workerinput['py_test_service'])
-        config.py_test_service.rp.start()
+
+    try:
+        config.py_test_service.start()
+    except ResponseError as response_error:
+        log.warning('Failed to initialize reportportal-client service. '
+                    'Reporting is disabled.')
+        log.debug(str(response_error))
+        config.py_test_service.rp = None
+        config._rp_enabled = False
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -200,9 +207,10 @@ def pytest_runtest_protocol(item):
     :return:     generator object
     """
     config = item.config
-    if not config._reportportal_configured:
+    if not config._rp_enabled:
         yield
         return
+
     service = config.py_test_service
     agent_config = config._reporter_config
     service.start_pytest_item(item)
@@ -228,27 +236,13 @@ def pytest_runtest_makereport(item):
     :return: None
     """
     config = item.config
-    if not config._reportportal_configured:
+    if not config._rp_enabled:
         yield
         return
+
     report = (yield).get_result()
     service = item.config.py_test_service
     service.process_results(item, report)
-
-
-def pytest_unconfigure(config):
-    """Clear config from reporter.
-
-    :param config: Object of the pytest Config class
-    """
-    if getattr(config, '_reportportal_configured', False) is False:
-        # Stop now if the plugin is not properly configured
-        return
-    if hasattr(config, '_reporter'):
-        reporter = config._reporter
-        del config._reporter
-        config.pluginmanager.unregister(reporter)
-        log.debug('RP is unconfigured.')
 
 
 def pytest_addoption(parser):

@@ -3,3 +3,4 @@ pytest>=3.8.0
 reportportal-client>=5.1.0
 six>=1.15.0
 aenum>=3.1.0
+requests

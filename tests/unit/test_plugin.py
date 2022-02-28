@@ -20,27 +20,28 @@ from requests.exceptions import RequestException
 from six.moves import mock
 
 from reportportal_client.errors import ResponseError
+
 from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.plugin import (
-    is_master,
+    is_control,
     log,
     pytest_addoption,
     pytest_configure,
     pytest_collection_finish,
     pytest_sessionstart,
     pytest_sessionfinish,
-    pytest_unconfigure,
-    wait_launch
+    wait_launch,
+    MANDATORY_PARAMETER_MISSED_PATTERN
 )
 from pytest_reportportal.service import PyTestServiceClass
 
 
-def test_is_master(mocked_config):
+def test_is_control(mocked_config):
     """Test is_master() function for the correct responses."""
     mocked_config.workerinput = None
-    expect(is_master(mocked_config) is False)
+    expect(is_control(mocked_config) is False)
     delattr(mocked_config, 'workerinput')
-    expect(is_master(mocked_config) is True)
+    expect(is_control(mocked_config) is True)
     assert_expectations()
 
 
@@ -71,19 +72,24 @@ def test_logger_handle_no_attachment(mock_handler, logger, log_level):
     assert_expectations()
 
 
-def test_portal_on_maintenance(mocked_session):
+@mock.patch('pytest_reportportal.plugin.requests.get', mock.Mock())
+@mock.patch('pytest_reportportal.plugin.PyTestServiceClass')
+def test_portal_on_maintenance(mocked_service_class, mocked_config):
     """Test session configuration if RP is in maintenance mode.
 
     :param mocked_session: pytest fixture
     """
-    mocked_session.config._reporter_config = mock.Mock()
-    mocked_session.config.py_test_service = mock.Mock()
-    mocked_session.config.py_test_service.init_service.side_effect = \
+    mocked_config.option.rp_enabled = True
+    mocked_config.option.rp_project = None
+
+    mocked_service = mocked_service_class.return_value
+    mocked_service.start.side_effect = \
         ResponseError("<title>Report Portal - Maintenance</title>")
-    pytest_sessionstart(mocked_session)
-    assert mocked_session.config.py_test_service.rp is None
+    pytest_configure(mocked_config)
+    assert mocked_config.py_test_service.rp is None
 
 
+@mock.patch('pytest_reportportal.plugin.requests.Session.get', mock.Mock())
 @mock.patch('pytest_reportportal.plugin.requests.get', mock.Mock())
 def test_pytest_configure(mocked_config):
     """Test plugin successful configuration.
@@ -93,7 +99,7 @@ def test_pytest_configure(mocked_config):
     mocked_config.option.rp_enabled = True
     mocked_config.option.rp_project = None
     pytest_configure(mocked_config)
-    expect(mocked_config._reportportal_configured is True)
+    expect(mocked_config._rp_enabled is True)
     expect(
         lambda: isinstance(mocked_config.py_test_service, PyTestServiceClass))
     assert_expectations()
@@ -110,7 +116,7 @@ def test_pytest_configure_dry_run(mocked_config):
     """Test plugin configuration in case of dry-run execution."""
     mocked_config.getoption.return_value = True
     pytest_configure(mocked_config)
-    assert mocked_config._reportportal_configured is False
+    assert mocked_config._rp_enabled is False
 
 
 @mock.patch('pytest_reportportal.plugin.requests.get', mock.Mock())
@@ -128,17 +134,14 @@ def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
     mocked_config.option.rp_endpoint = None
     mocked_config.getini.return_value = 0
     pytest_configure(mocked_config)
-    assert mocked_config._reportportal_configured is False
+    assert mocked_config._rp_enabled is False
     mocked_log.debug.assert_has_calls(
         [
             mock.call(
-                'One of the following parameters is unset: '
-                'rp_project:{rp_project}, '
-                'rp_endpoint:{rp_endpoint}, '
-                'rp_uuid:{rp_uuid}!'.format(
-                    rp_project=mocked_config.option.rp_project,
-                    rp_endpoint=None,
-                    rp_uuid=mocked_config.option.rp_uuid,
+                MANDATORY_PARAMETER_MISSED_PATTERN.format(
+                    mocked_config.option.rp_project,
+                    None,
+                    mocked_config.option.rp_uuid,
                 )),
             mock.call('Disabling reporting to RP.'),
         ]
@@ -160,17 +163,14 @@ def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
     mocked_config.option.rp_project = None
     mocked_config.getini.return_value = 0
     pytest_configure(mocked_config)
-    assert mocked_config._reportportal_configured is False
+    assert mocked_config._rp_enabled is False
     mocked_log.debug.assert_has_calls(
         [
             mock.call(
-                'One of the following parameters is unset: '
-                'rp_project:{rp_project}, '
-                'rp_endpoint:{rp_endpoint}, '
-                'rp_uuid:{rp_uuid}!'.format(
-                    rp_project=None,
-                    rp_endpoint=mocked_config.option.rp_endpoint,
-                    rp_uuid=mocked_config.option.rp_uuid,
+                MANDATORY_PARAMETER_MISSED_PATTERN.format(
+                    None,
+                    mocked_config.option.rp_endpoint,
+                    mocked_config.option.rp_uuid,
                 )),
             mock.call('Disabling reporting to RP.'),
         ]
@@ -192,17 +192,14 @@ def test_pytest_configure_misssing_rp_uuid(mocked_log, mocked_config):
     mocked_config.option.rp_uuid = None
     mocked_config.getini.return_value = 0
     pytest_configure(mocked_config)
-    assert mocked_config._reportportal_configured is False
+    assert mocked_config._rp_enabled is False
     mocked_log.debug.assert_has_calls(
         [
             mock.call(
-                'One of the following parameters is unset: '
-                'rp_project:{rp_project}, '
-                'rp_endpoint:{rp_endpoint}, '
-                'rp_uuid:{rp_uuid}!'.format(
-                    rp_project=mocked_config.option.rp_project,
-                    rp_endpoint=mocked_config.option.rp_endpoint,
-                    rp_uuid=None,
+                MANDATORY_PARAMETER_MISSED_PATTERN.format(
+                    mocked_config.option.rp_project,
+                    mocked_config.option.rp_endpoint,
+                    None,
                 )),
             mock.call('Disabling reporting to RP.'),
         ]
@@ -225,7 +222,7 @@ def test_pytest_configure_on_conn_error(mocked_get, mocked_config):
     mocked_config.option.rp_enabled = True
     mocked_config.option.rp_skip_connection_test = 'False'
     pytest_configure(mocked_config)
-    assert mocked_config._reportportal_configured is False
+    assert mocked_config._rp_enabled is False
 
 
 @mock.patch('pytest_reportportal.plugin.LAUNCH_WAIT_TIMEOUT', 1)
@@ -251,7 +248,7 @@ def test_pytest_collection_finish(mocked_session):
         assert_called_with(mocked_session)
 
 
-@mock.patch('pytest_reportportal.plugin.is_master', mock.Mock())
+@mock.patch('pytest_reportportal.plugin.is_control', mock.Mock())
 @mock.patch('pytest_reportportal.plugin.wait_launch')
 def test_pytest_sessionstart(mocked_wait, mocked_session):
     """Test session configuration if RP plugin is correctly configured.
@@ -273,7 +270,7 @@ def test_pytest_sessionstart(mocked_wait, mocked_session):
     assert_expectations()
 
 
-@mock.patch('pytest_reportportal.plugin.is_master', mock.Mock())
+@mock.patch('pytest_reportportal.plugin.is_control', mock.Mock())
 @mock.patch('pytest_reportportal.plugin.wait_launch', mock.Mock())
 def test_pytest_sessionstart_with_launch_id(mocked_session):
     """Test session configuration if RP launch ID is set via command-line.
@@ -292,7 +289,7 @@ def test_pytest_sessionstart_with_launch_id(mocked_session):
     assert_expectations()
 
 
-@mock.patch('pytest_reportportal.plugin.is_master', mock.Mock())
+@mock.patch('pytest_reportportal.plugin.is_control', mock.Mock())
 def test_pytest_sessionfinish(mocked_session):
     """Test sessionfinish with the configured RP plugin.
 
@@ -302,17 +299,6 @@ def test_pytest_sessionfinish(mocked_session):
     mocked_session.config._reporter_config.rp_launch_id = None
     pytest_sessionfinish(mocked_session)
     assert mocked_session.config.py_test_service.finish_launch.called
-
-
-def test_pytest_unconfigure(mocked_config):
-    """Test unconfigure with the configured RP plugin.
-
-    :param mocked_config: pytest fixture
-    """
-    mocked_config._reporter = mock.Mock()
-    mocked_config.pluginmanager.unregister = mock.Mock()
-    pytest_unconfigure(mocked_config)
-    assert not hasattr(mocked_config, '_reporter')
 
 
 def test_pytest_addoption_adds_correct_ini_file_arguments():

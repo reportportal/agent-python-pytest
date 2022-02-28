@@ -52,7 +52,7 @@ def mocked_config():
 
     mocked_config._reporter_config = mock.Mock()
     mocked_config.getoption.side_effect = getoption_side_effect
-    mocked_config._reportportal_configured = True
+    mocked_config._rp_enabled = True
     mocked_config.rootdir = py.path.local('/path/to')
     mocked_config.trace = TagTracer().get('root')
     mocked_config.pluginmanager = mock.Mock()
@@ -103,5 +103,5 @@ def rp_service(mocked_config):
     """Prepare instance of the PyTestServiceClass for testing."""
     service = PyTestServiceClass(AgentConfig(mocked_config))
     with mock.patch(REPORT_PORTAL_SERVICE + '.get_project_settings'):
-        service.init_service()
+        service.start()
         return service

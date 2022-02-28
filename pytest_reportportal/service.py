@@ -122,36 +122,6 @@ class PyTestServiceClass(object):
                     self._issue_types[item["shortName"]] = item["locator"]
         return self._issue_types
 
-    def init_service(self):
-        """Update self.rp with the instance of the ReportPortalService."""
-        if self.rp is None:
-            self.parent_item_id = self._config.rp_parent_item_id
-            self.ignored_attributes = list(
-                set(
-                    self._config.rp_ignore_attributes or []
-                ).union({'parametrize'})
-            )
-            log.debug('ReportPortal - Init service: endpoint=%s, '
-                      'project=%s, uuid=%s', self._config.rp_endpoint,
-                      self._config.rp_project, self._config.rp_uuid)
-            self.rp = RPClient(
-                endpoint=self._config.rp_endpoint,
-                project=self._config.rp_project,
-                token=self._config.rp_uuid,
-                is_skipped_an_issue=self._config.rp_is_skipped_an_issue,
-                log_batch_size=self._config.rp_log_batch_size,
-                retries=self._config.rp_retries,
-                verify_ssl=self._config.rp_verify_ssl,
-                launch_id=self._config.rp_launch_id,
-            )
-            self.project_settings = None
-            if self.rp and hasattr(self.rp, "get_project_settings"):
-                self.project_settings = self.rp.get_project_settings()
-            self.rp.start()
-        else:
-            log.debug('The pytest is already initialized')
-        return self.rp
-
     def _get_launch_attributes(self, ini_attrs):
         """Generate launch attributes in the format supported by the client.
 
@@ -768,8 +738,6 @@ class PyTestServiceClass(object):
 
         # To finish launch session str parameter is needed
         self._finish_launch(self._build_finish_launch_rq())
-        self.rp.terminate()
-        self.rp = None
 
     def post_log(self, test_item, message, loglevel='INFO', attachment=None):
         """
@@ -798,3 +766,42 @@ class PyTestServiceClass(object):
             'attachment': attachment
         }
         self.rp.log(**sl_rq)
+
+    def start(self):
+        """
+        Start servicing Report Portal requests.
+        """
+        if self.rp is None:
+            self.parent_item_id = self._config.rp_parent_item_id
+            self.ignored_attributes = list(
+                set(
+                    self._config.rp_ignore_attributes or []
+                ).union({'parametrize'})
+            )
+            log.debug('ReportPortal - Init service: endpoint=%s, '
+                      'project=%s, uuid=%s', self._config.rp_endpoint,
+                      self._config.rp_project, self._config.rp_uuid)
+            self.rp = RPClient(
+                endpoint=self._config.rp_endpoint,
+                project=self._config.rp_project,
+                token=self._config.rp_uuid,
+                is_skipped_an_issue=self._config.rp_is_skipped_an_issue,
+                log_batch_size=self._config.rp_log_batch_size,
+                retries=self._config.rp_retries,
+                verify_ssl=self._config.rp_verify_ssl,
+                launch_id=self._config.rp_launch_id,
+            )
+            self.project_settings = None
+            if self.rp and hasattr(self.rp, "get_project_settings"):
+                self.project_settings = self.rp.get_project_settings()
+        else:
+            log.debug('The Report Portal is already initialized')
+        self.rp.start()
+
+    def stop(self):
+        """
+        Finish servicing Report Portal requests.
+        """
+
+        self.rp.terminate()
+        self.rp = None
