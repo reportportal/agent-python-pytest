@@ -768,9 +768,7 @@ class PyTestServiceClass(object):
         self.rp.log(**sl_rq)
 
     def start(self):
-        """
-        Start servicing Report Portal requests.
-        """
+        """Start servicing Report Portal requests."""
         if self.rp is None:
             self.parent_item_id = self._config.rp_parent_item_id
             self.ignored_attributes = list(
@@ -799,9 +797,6 @@ class PyTestServiceClass(object):
         self.rp.start()
 
     def stop(self):
-        """
-        Finish servicing Report Portal requests.
-        """
-
+        """Finish servicing Report Portal requests."""
         self.rp.terminate()
         self.rp = None
