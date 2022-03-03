@@ -4,9 +4,7 @@ import logging
 # This program is free software: you can redistribute it
 # and/or modify it under the terms of the GPL licence
 import os.path
-import sys
 import time
-import traceback
 
 import _pytest.logging
 import dill as pickle
@@ -20,7 +18,6 @@ from .rp_logging import RPLogHandler, patching_logger_class
 from .service import PyTestServiceClass
 
 log = logging.getLogger(__name__)
-
 
 MANDATORY_PARAMETER_MISSED_PATTERN = \
     'One of the following mandatory parameters is unset: ' + \
@@ -38,7 +35,6 @@ def pytest_configure_node(node):
     if not node.config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
-    print("Dump: " + str(os.getpid()), file=sys.stderr)
     node.workerinput['py_test_service'] = pickle.dumps(
         node.config.py_test_service)
 
@@ -77,10 +73,8 @@ def pytest_sessionstart(session):
         return
 
     try:
-        print("Start: " + str(os.getpid()), file=sys.stderr)
         config.py_test_service.start()
     except ResponseError as response_error:
-        traceback.print_exc(file=sys.stderr)
         log.warning('Failed to initialize reportportal-client service. '
                     'Reporting is disabled.')
         log.debug(str(response_error))
@@ -112,7 +106,6 @@ def pytest_sessionfinish(session):
 
     :param session: Object of the pytest Session class
     """
-    print("Finish: " + str(os.getpid()), file=sys.stderr)
     config = session.config
     if not config._rp_enabled:
         # Stop now if the plugin is not properly configured
@@ -202,21 +195,11 @@ def pytest_configure(config):
     config._reporter_config = agent_config
 
     if is_control(config):
-        print("Configure new: " + str(os.getpid()), file=sys.stderr)
         config.py_test_service = PyTestServiceClass(agent_config)
     else:
-        print("Configure load: " + str(os.getpid()), file=sys.stderr)
         # noinspection PyUnresolvedReferences
         config.py_test_service = pickle.loads(
             config.workerinput['py_test_service'])
-
-
-def pytest_unconfigure(config):
-    """Clear config from reporter.
-
-    :param config: Object of the pytest Config class
-    """
-    print("Unconfigure: " + str(os.getpid()), file=sys.stderr)
 
 
 @pytest.hookimpl(hookwrapper=True)
