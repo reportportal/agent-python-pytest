@@ -4,7 +4,9 @@ import logging
 # This program is free software: you can redistribute it
 # and/or modify it under the terms of the GPL licence
 import os.path
+import sys
 import time
+import traceback
 
 import _pytest.logging
 import dill as pickle
@@ -36,6 +38,7 @@ def pytest_configure_node(node):
     if not node.config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
+    print("Dump: " + str(os.getpid()), file=sys.stderr)
     node.workerinput['py_test_service'] = pickle.dumps(
         node.config.py_test_service)
 
@@ -70,12 +73,25 @@ def pytest_sessionstart(session):
     :param session: Object of the pytest Session class
     """
     config = session.config
-    if not config._rp_enabled or not is_control(config):
+    if not config._rp_enabled:
         return
 
-    if not config._reporter_config.rp_launch_id:
+    try:
+        print("Start: " + str(os.getpid()), file=sys.stderr)
+        config.py_test_service.start()
+    except ResponseError as response_error:
+        traceback.print_exc(file=sys.stderr)
+        log.warning('Failed to initialize reportportal-client service. '
+                    'Reporting is disabled.')
+        log.debug(str(response_error))
+        config.py_test_service.rp = None
+        config._rp_enabled = False
+        return
+
+    if is_control(config) and not config._reporter_config.rp_launch_id:
         config.py_test_service.start_launch()
-        if config.pluginmanager.hasplugin('xdist'):
+        if config.pluginmanager.hasplugin('xdist') \
+                or config.pluginmanager.hasplugin('pytest-parallel'):
             wait_launch(session.config.py_test_service.rp)
 
 
@@ -96,14 +112,18 @@ def pytest_sessionfinish(session):
 
     :param session: Object of the pytest Session class
     """
-    if not session.config._rp_enabled:
+    print("Finish: " + str(os.getpid()), file=sys.stderr)
+    config = session.config
+    if not config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
-    session.config.py_test_service.finish_suites()
-    if is_control(session.config) \
-            and not session.config._reporter_config.rp_launch_id:
-        session.config.py_test_service.finish_launch()
-    session.config.py_test_service.stop()
+
+    config.py_test_service.finish_suites()
+    if is_control(config) \
+            and not config._reporter_config.rp_launch_id:
+        config.py_test_service.finish_launch()
+
+    config.py_test_service.stop()
 
 
 def register_markers(config):
@@ -182,20 +202,21 @@ def pytest_configure(config):
     config._reporter_config = agent_config
 
     if is_control(config):
+        print("Configure new: " + str(os.getpid()), file=sys.stderr)
         config.py_test_service = PyTestServiceClass(agent_config)
     else:
+        print("Configure load: " + str(os.getpid()), file=sys.stderr)
         # noinspection PyUnresolvedReferences
         config.py_test_service = pickle.loads(
             config.workerinput['py_test_service'])
 
-    try:
-        config.py_test_service.start()
-    except ResponseError as response_error:
-        log.warning('Failed to initialize reportportal-client service. '
-                    'Reporting is disabled.')
-        log.debug(str(response_error))
-        config.py_test_service.rp = None
-        config._rp_enabled = False
+
+def pytest_unconfigure(config):
+    """Clear config from reporter.
+
+    :param config: Object of the pytest Config class
+    """
+    print("Unconfigure: " + str(os.getpid()), file=sys.stderr)
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -223,7 +244,6 @@ def pytest_runtest_protocol(item):
         with _pytest.logging.catching_logs(log_handler,
                                            level=log_level):
             yield
-    # Finishing item in RP
     service.finish_pytest_item(item)
 
 
