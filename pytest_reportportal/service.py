@@ -102,6 +102,7 @@ class PyTestServiceClass(object):
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self._start_tracker = set()
+        self._launch_id = None
         self.agent_name = 'pytest-reportportal'
         self.agent_version = get_package_version(self.agent_name)
         self.ignored_attributes = []
@@ -158,11 +159,11 @@ class PyTestServiceClass(object):
             return
         sl_pt = self._build_start_launch_rq()
         log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
-        item_id = self.rp.start_launch(**sl_pt)
-        log.debug('ReportPortal - Launch started: id=%s', item_id)
+        self._launch_id = self.rp.start_launch(**sl_pt)
+        log.debug('ReportPortal - Launch started: id=%s', self._launch_id)
         if not self._skip_analytics:
             send_event(self.agent_name, self.agent_version)
-        return item_id
+        return self._launch_id
 
     def _get_item_dirs(self, item):
         """
@@ -790,31 +791,31 @@ class PyTestServiceClass(object):
 
     def start(self):
         """Start servicing Report Portal requests."""
-        if self.rp is None:
-            self.parent_item_id = self._config.rp_parent_item_id
-            self.ignored_attributes = list(
-                set(
-                    self._config.rp_ignore_attributes or []
-                ).union({'parametrize'})
-            )
-            log.debug('ReportPortal - Init service: endpoint=%s, '
-                      'project=%s, uuid=%s', self._config.rp_endpoint,
-                      self._config.rp_project, self._config.rp_uuid)
-            self.rp = RPClient(
-                endpoint=self._config.rp_endpoint,
-                project=self._config.rp_project,
-                token=self._config.rp_uuid,
-                is_skipped_an_issue=self._config.rp_is_skipped_an_issue,
-                log_batch_size=self._config.rp_log_batch_size,
-                retries=self._config.rp_retries,
-                verify_ssl=self._config.rp_verify_ssl,
-                launch_id=self._config.rp_launch_id,
-            )
-            self.project_settings = None
-            if self.rp and hasattr(self.rp, "get_project_settings"):
-                self.project_settings = self.rp.get_project_settings()
-        else:
-            log.debug('The Report Portal is already initialized')
+        self.parent_item_id = self._config.rp_parent_item_id
+        self.ignored_attributes = list(
+            set(
+                self._config.rp_ignore_attributes or []
+            ).union({'parametrize'})
+        )
+        log.debug('ReportPortal - Init service: endpoint=%s, '
+                  'project=%s, uuid=%s', self._config.rp_endpoint,
+                  self._config.rp_project, self._config.rp_uuid)
+        launch_id = self._launch_id
+        if self._config.rp_launch_id:
+            launch_id = self._config.rp_launch_id
+        self.rp = RPClient(
+            endpoint=self._config.rp_endpoint,
+            project=self._config.rp_project,
+            token=self._config.rp_uuid,
+            is_skipped_an_issue=self._config.rp_is_skipped_an_issue,
+            log_batch_size=self._config.rp_log_batch_size,
+            retries=self._config.rp_retries,
+            verify_ssl=self._config.rp_verify_ssl,
+            launch_id=launch_id,
+        )
+        self.project_settings = None
+        if self.rp and hasattr(self.rp, "get_project_settings"):
+            self.project_settings = self.rp.get_project_settings()
         self.rp.start()
         self._start_tracker.add(os.getpid())
 
