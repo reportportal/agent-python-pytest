@@ -193,7 +193,7 @@ class PyTestServiceClass(object):
         parts.reverse()
         return parts
 
-    def _get_leaf(self, leaf_type, parent_item, item):
+    def _get_leaf(self, leaf_type, parent_item, item, item_id=None):
         """Construct a leaf for the itest tree.
 
         :param leaf_type:   the leaf type
@@ -204,7 +204,7 @@ class PyTestServiceClass(object):
         return {
             'children': {}, 'type': leaf_type, 'item': item,
             'parent': parent_item, 'lock': threading.Lock(),
-            'exec': ExecStatus.CREATED
+            'exec': ExecStatus.CREATED, 'item_id': item_id
         }
 
     def _build_test_tree(self, session):
@@ -213,8 +213,8 @@ class PyTestServiceClass(object):
         :param session: pytest.Session object of the current execution
         :return: a tree of all tests and their suites
         """
-        test_tree = {'children': {}, 'status': 'PASSED', 'type': LeafType.ROOT,
-                     'item_id': self.parent_item_id}
+        test_tree = self._get_leaf(LeafType.ROOT, None, None,
+                                   item_id=self.parent_item_id)
 
         for item in session.items:
             dir_path = self._get_item_dirs(item)
