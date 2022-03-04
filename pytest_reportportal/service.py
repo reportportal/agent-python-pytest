@@ -98,9 +98,10 @@ class PyTestServiceClass(object):
         """Initialize instance attributes."""
         self._config = agent_config
         self._issue_types = {}
-        self._item_parts = {}
+        self._tree_path = {}
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
+        self._start_tracker = set()
         self.agent_name = 'pytest-reportportal'
         self.agent_version = get_package_version(self.agent_name)
         self.ignored_attributes = []
@@ -176,22 +177,22 @@ class PyTestServiceClass(object):
                                drive="")
         return [d for d in rel_dir.parts(reverse=False) if d.basename]
 
-    def _get_item_parts(self, item):
+    def _get_tree_path(self, item):
         """
         Get item of parents.
 
         :param item: pytest.Item
         :return list of parents
         """
-        parts = [item]
+        path = [item]
         parent = item.parent
         while parent is not None and not isinstance(parent, Session):
             if not isinstance(parent, Instance):
-                parts.append(parent)
+                path.append(parent)
             parent = parent.parent
 
-        parts.reverse()
-        return parts
+        path.reverse()
+        return path
 
     def _get_leaf(self, leaf_type, parent_item, item, item_id=None):
         """Construct a leaf for the itest tree.
@@ -218,7 +219,7 @@ class PyTestServiceClass(object):
 
         for item in session.items:
             dir_path = self._get_item_dirs(item)
-            class_path = self._get_item_parts(item)
+            class_path = self._get_tree_path(item)
 
             current_leaf = test_tree
             for i, leaf in enumerate(dir_path + class_path):
@@ -318,7 +319,7 @@ class PyTestServiceClass(object):
                 self._build_item_paths(child_leaf, path)
             path.pop()
         elif leaf['type'] != LeafType.ROOT:
-            self._item_parts[leaf['item']] = path + [leaf]
+            self._tree_path[leaf['item']] = path + [leaf]
 
     def collect_tests(self, session):
         """
@@ -386,16 +387,16 @@ class PyTestServiceClass(object):
                 return func(leaf)
         return func(leaf)
 
-    def _build_start_suite_rq(self, part):
-        code_ref = str(part['item']) if part['type'] == LeafType.DIR \
-            else str(part['item'].fspath)
+    def _build_start_suite_rq(self, leaf):
+        code_ref = str(leaf['item']) if leaf['type'] == LeafType.DIR \
+            else str(leaf['item'].fspath)
         payload = {
-            'name': self._get_item_name(part['name']),
-            'description': self._get_item_description(part['item']),
+            'name': self._get_item_name(leaf['name']),
+            'description': self._get_item_description(leaf['item']),
             'start_time': timestamp(),
             'item_type': 'SUITE',
             'code_ref': code_ref,
-            'parent_item_id': self._lock(part['parent'],
+            'parent_item_id': self._lock(leaf['parent'],
                                          lambda p: p['item_id'])
         }
         return payload
@@ -405,22 +406,22 @@ class PyTestServiceClass(object):
                   suite_rq)
         return self.rp.start_test_item(**suite_rq)
 
-    def _create_suite(self, part):
-        if part['exec'] != ExecStatus.CREATED:
+    def _create_suite(self, leaf):
+        if leaf['exec'] != ExecStatus.CREATED:
             return
-        item_id = self._start_suite(self._build_start_suite_rq(part))
-        part['item_id'] = item_id
-        part['exec'] = ExecStatus.IN_PROGRESS
+        item_id = self._start_suite(self._build_start_suite_rq(leaf))
+        leaf['item_id'] = item_id
+        leaf['exec'] = ExecStatus.IN_PROGRESS
 
     def _create_suite_path(self, item):
         if self.rp is None:
             return
 
-        path = self._item_parts[item]
-        for part in path[1:-1]:
-            if part['exec'] != ExecStatus.CREATED:
+        path = self._tree_path[item]
+        for leaf in path[1:-1]:
+            if leaf['exec'] != ExecStatus.CREATED:
                 continue
-            self._lock(part, lambda p: self._create_suite(p))
+            self._lock(leaf, lambda p: self._create_suite(p))
 
     def _get_code_ref(self, item):
         # Generate script path from work dir, use only backslashes to have the
@@ -439,8 +440,8 @@ class PyTestServiceClass(object):
         class_path = '.'.join(classes)
         return '{0}:{1}'.format(path, class_path)
 
-    def _get_test_case_id(self, mark, part):
-        parameters = part.get('parameters', None)
+    def _get_test_case_id(self, mark, leaf):
+        parameters = leaf.get('parameters', None)
         parameterized = True
         selected_params = None
         if mark is not None:
@@ -459,21 +460,21 @@ class PyTestServiceClass(object):
                 param_list = [str(param) for param in parameters.values()]
             param_str = '[{}]'.format(','.join(sorted(param_list)))
 
-        name_part = part['code_ref']
+        basic_name_part = leaf['code_ref']
         if mark is None:
             if param_str is None:
-                return name_part
+                return basic_name_part
             else:
-                return name_part + param_str
+                return basic_name_part + param_str
         else:
             if mark.args is not None and len(mark.args) > 0:
-                name_part = str(mark.args[0])
+                basic_name_part = str(mark.args[0])
             else:
-                name_part = ""
+                basic_name_part = ""
             if param_str is None:
-                return name_part
+                return basic_name_part
             else:
-                return name_part + param_str
+                return basic_name_part + param_str
 
     def _get_issue_ids(self, mark):
         issue_ids = mark.kwargs.get("issue_id", [])
@@ -536,29 +537,29 @@ class PyTestServiceClass(object):
         """
         return item.callspec.params if hasattr(item, 'callspec') else None
 
-    def _process_attributes(self, part):
+    def _process_attributes(self, leaf):
         """
         Process all types of attributes of item.
 
-        :param part: item context
+        :param leaf: item context
         """
-        item = part['item']
+        item = leaf['item']
 
         parameters = self._get_parameters(item)
-        part['parameters'] = parameters
+        leaf['parameters'] = parameters
 
         code_ref = self._get_code_ref(item)
-        part['code_ref'] = code_ref
+        leaf['code_ref'] = code_ref
 
         attributes = set()
-        for marker in part['item'].iter_markers():
+        for marker in leaf['item'].iter_markers():
             if marker.name == 'tc_id':
-                test_case_id = self._get_test_case_id(marker, part)
-                part['test_case_id'] = test_case_id
+                test_case_id = self._get_test_case_id(marker, leaf)
+                leaf['test_case_id'] = test_case_id
                 continue
             if marker.name == 'issue':
                 issue = self._get_issue(marker)
-                part['issue'] = issue
+                leaf['issue'] = issue
                 if self._config.rp_issue_id_marks:
                     for issue_id in self._get_issue_ids(marker):
                         attributes.add((marker.name, issue_id))
@@ -571,24 +572,24 @@ class PyTestServiceClass(object):
             else:
                 attributes.add((None, marker.name))
 
-        part['attributes'] = [self._to_attribute(attribute)
+        leaf['attributes'] = [self._to_attribute(attribute)
                               for attribute in attributes]
 
-        if 'test_case_id' not in part:
-            part['test_case_id'] = self._get_test_case_id(None, part)
+        if 'test_case_id' not in leaf:
+            leaf['test_case_id'] = self._get_test_case_id(None, leaf)
 
-    def _build_start_step_rq(self, part):
+    def _build_start_step_rq(self, leaf):
         payload = {
-            'attributes': part.get('attributes', None),
-            'name': self._get_item_name(part['name']),
-            'description': self._get_item_description(part['item']),
+            'attributes': leaf.get('attributes', None),
+            'name': self._get_item_name(leaf['name']),
+            'description': self._get_item_description(leaf['item']),
             'start_time': timestamp(),
             'item_type': 'STEP',
-            'code_ref': part.get('code_ref', None),
-            'parameters': part.get('parameters', None),
-            'parent_item_id': self._lock(part['parent'],
+            'code_ref': leaf.get('code_ref', None),
+            'parameters': leaf.get('parameters', None),
+            'parent_item_id': self._lock(leaf['parent'],
                                          lambda p: p['item_id']),
-            'test_case_id': part.get('test_case_id', None)
+            'test_case_id': leaf.get('test_case_id', None)
         }
         return payload
 
@@ -606,16 +607,19 @@ class PyTestServiceClass(object):
         if self.rp is None or test_item is None:
             return
 
+        if os.getpid() not in self._start_tracker:
+            self.start()
+
         self._create_suite_path(test_item)
 
         # Item type should be sent as "STEP" until we upgrade to RPv6.
         # Details at:
         # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
-        current_part = self._item_parts[test_item][-1]
-        self._process_attributes(current_part)
-        item_id = self._start_step(self._build_start_step_rq(current_part))
-        current_part['item_id'] = item_id
-        current_part['exec'] = ExecStatus.IN_PROGRESS
+        current_leaf = self._tree_path[test_item][-1]
+        self._process_attributes(current_leaf)
+        item_id = self._start_step(self._build_start_step_rq(current_leaf))
+        current_leaf['item_id'] = item_id
+        current_leaf['exec'] = ExecStatus.IN_PROGRESS
 
     def process_results(self, test_item, report):
         """
@@ -627,7 +631,7 @@ class PyTestServiceClass(object):
         if report.longrepr:
             self.post_log(test_item, report.longreprtext, loglevel='ERROR')
 
-        leaf = self._item_parts[test_item][-1]
+        leaf = self._tree_path[test_item][-1]
         # Defining test result
         if report.when == 'setup':
             leaf['status'] = 'PASSED'
@@ -640,9 +644,9 @@ class PyTestServiceClass(object):
             if leaf['status'] in (None, 'PASSED'):
                 leaf['status'] = 'SKIPPED'
 
-    def _build_finish_step_rq(self, part):
-        issue = part.get('issue', None)
-        status = part['status']
+    def _build_finish_step_rq(self, leaf):
+        issue = leaf.get('issue', None)
+        status = leaf['status']
         if status == 'SKIPPED' and not self._config.rp_is_skipped_an_issue:
             issue = NOT_ISSUE
         if status == 'PASSED':
@@ -651,7 +655,7 @@ class PyTestServiceClass(object):
             'end_time': timestamp(),
             'status': status,
             'issue': issue,
-            'item_id': part['item_id']
+            'item_id': leaf['item_id']
         }
         return payload
 
@@ -663,34 +667,34 @@ class PyTestServiceClass(object):
         log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
-    def _build_finish_suite_rq(self, part):
+    def _build_finish_suite_rq(self, leaf):
         payload = {
             'end_time': timestamp(),
-            'item_id': part['item_id']
+            'item_id': leaf['item_id']
         }
         return payload
 
-    def _proceed_suite_finish(self, part):
-        if part.get('exec', ExecStatus.FINISHED) == ExecStatus.FINISHED:
+    def _proceed_suite_finish(self, leaf):
+        if leaf.get('exec', ExecStatus.FINISHED) == ExecStatus.FINISHED:
             return
 
-        self._finish_suite(self._build_finish_suite_rq(part))
-        part['exec'] = ExecStatus.FINISHED
+        self._finish_suite(self._build_finish_suite_rq(leaf))
+        leaf['exec'] = ExecStatus.FINISHED
 
-    def _finish_parents(self, part):
-        if part['parent'].get('exec', ExecStatus.FINISHED) == \
+    def _finish_parents(self, leaf):
+        if leaf['parent'].get('exec', ExecStatus.FINISHED) == \
                 ExecStatus.FINISHED:
             return
 
-        for item, child_part in part['parent']['children'].items():
-            current_status = child_part['exec']
+        for item, child_leaf in leaf['parent']['children'].items():
+            current_status = child_leaf['exec']
             if current_status != ExecStatus.FINISHED:
-                current_status = self._lock(child_part, lambda p: p['exec'])
+                current_status = self._lock(child_leaf, lambda p: p['exec'])
                 if current_status != ExecStatus.FINISHED:
                     return
 
-        self._lock(part['parent'], lambda p: self._proceed_suite_finish(p))
-        self._finish_parents(part['parent'])
+        self._lock(leaf['parent'], lambda p: self._proceed_suite_finish(p))
+        self._finish_parents(leaf['parent'])
 
     def finish_pytest_item(self, test_item):
         """
@@ -702,14 +706,14 @@ class PyTestServiceClass(object):
         if self.rp is None:
             return
 
-        parts = self._item_parts[test_item]
-        item_part = parts[-1]
-        self._finish_step(self._build_finish_step_rq(item_part))
-        item_part['exec'] = ExecStatus.FINISHED
-        self._finish_parents(item_part)
+        path = self._tree_path[test_item]
+        leaf = path[-1]
+        self._finish_step(self._build_finish_step_rq(leaf))
+        leaf['exec'] = ExecStatus.FINISHED
+        self._finish_parents(leaf)
 
     def _get_items(self, exec_status):
-        return [k for k, v in self._item_parts.items() if
+        return [k for k, v in self._tree_path.items() if
                 v[-1]['exec'] == exec_status]
 
     def finish_suites(self):
@@ -726,11 +730,11 @@ class PyTestServiceClass(object):
             sleep(0.1)
         skipped_items = self._get_items(ExecStatus.CREATED)
         for item in skipped_items:
-            parts = list(self._item_parts[item])
-            parts.reverse()
-            for part in parts[1:-1]:
-                if part['exec'] == ExecStatus.IN_PROGRESS:
-                    self._lock(part, lambda p: self._proceed_suite_finish(p))
+            path = list(self._tree_path[item])
+            path.reverse()
+            for leaf in path[1:-1]:
+                if leaf['exec'] == ExecStatus.IN_PROGRESS:
+                    self._lock(leaf, lambda p: self._proceed_suite_finish(p))
 
     def _build_finish_launch_rq(self):
         finish_rq = {
@@ -772,7 +776,7 @@ class PyTestServiceClass(object):
             log.warning('Incorrect loglevel = %s. Force set to INFO. '
                         'Available levels: %s.', loglevel, self._loglevels)
             loglevel = 'INFO'
-        item_id = self._item_parts[test_item][-1]['item_id']
+        item_id = self._tree_path[test_item][-1]['item_id']
         sl_rq = {
             'item_id': item_id,
             'time': timestamp(),
@@ -810,8 +814,10 @@ class PyTestServiceClass(object):
         else:
             log.debug('The Report Portal is already initialized')
         self.rp.start()
+        self._start_tracker.add(os.getpid())
 
     def stop(self):
         """Finish servicing Report Portal requests."""
         self.rp.terminate()
         self.rp = None
+        self._start_tracker.remove(os.getpid())
