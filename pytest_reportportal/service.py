@@ -8,11 +8,9 @@ from os import getenv, curdir
 from time import time, sleep
 
 from _pytest.doctest import DoctestItem
-from _pytest.main import Session
-from _pytest.nodes import Item
-from _pytest.warning_types import PytestWarning
 from aenum import auto, Enum, unique
-from pytest import Class, Function, Module, Package
+from pytest import Class, Function, Module, Package, Item, Session, \
+    PytestWarning
 from reportportal_client.core.rp_issues import Issue
 
 try:
@@ -210,7 +208,7 @@ class PyTestServiceClass(object):
         }
 
     def _build_test_tree(self, session):
-        """Construct a tree of tests and their suites
+        """Construct a tree of tests and their suites.
 
         :param session: pytest.Session object of the current execution
         :return: a tree of all tests and their suites
