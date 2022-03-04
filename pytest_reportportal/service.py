@@ -195,7 +195,26 @@ class PyTestServiceClass(object):
         parts.reverse()
         return parts
 
+    def _get_leaf(self, leaf_type, parent_item, item):
+        """Construct a leaf for the itest tree.
+
+        :param leaf_type:   the leaf type
+        :param parent_item: parent pytest.Item of the current leaf
+        :param item:        leaf's pytest.Item
+        :return: a leaf
+        """
+        return {
+            'children': {}, 'type': leaf_type, 'item': item,
+            'parent': parent_item, 'lock': threading.Lock(),
+            'exec': ExecStatus.CREATED
+        }
+
     def _build_test_tree(self, session):
+        """Construct a tree of tests and their suites
+
+        :param session: pytest.Session object of the current execution
+        :return: a tree of all tests and their suites
+        """
         test_tree = {'children': {}, 'status': 'PASSED', 'type': LeafType.ROOT,
                      'item_id': self.parent_item_id}
 
@@ -203,53 +222,51 @@ class PyTestServiceClass(object):
             dir_path = self._get_item_dirs(item)
             class_path = self._get_item_parts(item)
 
-            current_node = test_tree
-            for i, path_part in enumerate(dir_path + class_path):
-                children = current_node['children']
+            current_leaf = test_tree
+            for i, leaf in enumerate(dir_path + class_path):
+                children_leafs = current_leaf['children']
 
-                node_type = LeafType.DIR
+                leaf_type = LeafType.DIR
                 if i >= len(dir_path):
-                    node_type = LeafType.CODE
+                    leaf_type = LeafType.CODE
 
-                if path_part not in children:
-                    children[path_part] = {
-                        'children': {}, 'type': node_type, 'item': path_part,
-                        'parent': current_node, 'lock': threading.Lock(),
-                        'exec': ExecStatus.CREATED
-                    }
-                current_node = children[path_part]
+                if leaf not in children_leafs:
+                    children_leafs[leaf] = self._get_leaf(leaf_type,
+                                                          current_leaf,
+                                                          leaf)
+                current_leaf = children_leafs[leaf]
         return test_tree
 
     def _remove_root_package(self, test_tree):
         if test_tree['type'] == LeafType.ROOT or \
                 test_tree['type'] == LeafType.DIR:
-            for item, child_node in test_tree['children'].items():
-                self._remove_root_package(child_node)
+            for item, child_leaf in test_tree['children'].items():
+                self._remove_root_package(child_leaf)
                 return
         if test_tree['type'] == LeafType.CODE and \
                 isinstance(test_tree['item'], Package) and \
                 test_tree['parent']['type'] == LeafType.DIR:
-            parent_node = test_tree['parent']
+            parent_leaf = test_tree['parent']
             current_item = test_tree['item']
-            del parent_node['children'][current_item]
-            for item, child_node in test_tree['children'].items():
-                parent_node['children'][item] = child_node
-                child_node['parent'] = parent_node
+            del parent_leaf['children'][current_item]
+            for item, child_leaf in test_tree['children'].items():
+                parent_leaf['children'][item] = child_leaf
+                child_leaf['parent'] = parent_leaf
 
     def _remove_root_dirs(self, test_tree, max_dir_level, dir_level=0):
         if test_tree['type'] == LeafType.ROOT:
-            for item, child_node in test_tree['children'].items():
-                self._remove_root_dirs(child_node, max_dir_level, 1)
+            for item, child_leaf in test_tree['children'].items():
+                self._remove_root_dirs(child_leaf, max_dir_level, 1)
                 return
         if test_tree['type'] == LeafType.DIR and dir_level <= max_dir_level:
             new_level = dir_level + 1
-            parent_node = test_tree['parent']
+            parent_leaf = test_tree['parent']
             current_item = test_tree['item']
-            del parent_node['children'][current_item]
-            for item, child_node in test_tree['children'].items():
-                parent_node['children'][item] = child_node
-                child_node['parent'] = parent_node
-                self._remove_root_dirs(child_node, max_dir_level,
+            del parent_leaf['children'][current_item]
+            for item, child_leaf in test_tree['children'].items():
+                parent_leaf['children'][item] = child_leaf
+                child_leaf['parent'] = parent_leaf
+                self._remove_root_dirs(child_leaf, max_dir_level,
                                        new_level)
 
     def _generate_names(self, test_tree):
@@ -269,41 +286,41 @@ class PyTestServiceClass(object):
             else:
                 test_tree['name'] = item.name
 
-        for item, child_node in test_tree['children'].items():
-            self._generate_names(child_node)
+        for item, child_leaf in test_tree['children'].items():
+            self._generate_names(child_leaf)
 
-    def _merge_node_type(self, test_tree, node_type, separator):
+    def _merge_leaf_type(self, test_tree, leaf_type, separator):
         child_items = list(test_tree['children'].items())
-        if test_tree['type'] != node_type:
-            for item, child_node in child_items:
-                self._merge_node_type(child_node, node_type, separator)
+        if test_tree['type'] != leaf_type:
+            for item, child_leaf in child_items:
+                self._merge_leaf_type(child_leaf, leaf_type, separator)
         elif len(test_tree['children'].items()) > 0:
-            parent_node = test_tree['parent']
+            parent_leaf = test_tree['parent']
             current_item = test_tree['item']
             current_name = test_tree['name']
-            del parent_node['children'][current_item]
-            for item, child_node in child_items:
-                parent_node['children'][item] = child_node
-                child_node['parent'] = parent_node
-                child_node['name'] = \
-                    current_name + separator + child_node['name']
-                self._merge_node_type(child_node, node_type, separator)
+            del parent_leaf['children'][current_item]
+            for item, child_leaf in child_items:
+                parent_leaf['children'][item] = child_leaf
+                child_leaf['parent'] = parent_leaf
+                child_leaf['name'] = \
+                    current_name + separator + child_leaf['name']
+                self._merge_leaf_type(child_leaf, leaf_type, separator)
 
     def _merge_dirs(self, test_tree):
-        self._merge_node_type(test_tree, LeafType.DIR,
+        self._merge_leaf_type(test_tree, LeafType.DIR,
                               self._config.rp_dir_path_separator)
 
     def _merge_code(self, test_tree):
-        self._merge_node_type(test_tree, LeafType.CODE, '::')
+        self._merge_leaf_type(test_tree, LeafType.CODE, '::')
 
-    def _build_item_paths(self, node, path):
-        if 'children' in node and len(node['children']) > 0:
-            path.append(node)
-            for name, child_node in node['children'].items():
-                self._build_item_paths(child_node, path)
+    def _build_item_paths(self, leaf, path):
+        if 'children' in leaf and len(leaf['children']) > 0:
+            path.append(leaf)
+            for name, child_leaf in leaf['children'].items():
+                self._build_item_paths(child_leaf, path)
             path.pop()
-        elif node['type'] != LeafType.ROOT:
-            self._item_parts[node['item']] = path + [node]
+        elif leaf['type'] != LeafType.ROOT:
+            self._item_parts[leaf['item']] = path + [leaf]
 
     def collect_tests(self, session):
         """
@@ -337,8 +354,8 @@ class PyTestServiceClass(object):
                    TRUNCATION_STR
             log.warning(
                 PytestWarning(
-                    'Test node ID was truncated to "{}" because of name size '
-                    'constrains on reportportal'.format(name)
+                    'Test leaf ID was truncated to "{}" because of name size '
+                    'constrains on Report Portal'.format(name)
                 )
             )
         return name
@@ -358,18 +375,18 @@ class PyTestServiceClass(object):
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
 
-    def _lock(self, node, func):
+    def _lock(self, leaf, func):
         """
-        Lock test tree node and execute a function, bypass the node to it.
+        Lock test tree leaf and execute a function, bypass the leaf to it.
 
-        :param node: a node to lock
+        :param leaf: a leaf to lock
         :param func: a function to execute
         :return: the result of the function bypassed
         """
-        if 'lock' in node:
-            with node['lock']:
-                return func(node)
-        return func(node)
+        if 'lock' in leaf:
+            with leaf['lock']:
+                return func(leaf)
+        return func(leaf)
 
     def _build_start_suite_rq(self, part):
         code_ref = str(part['item']) if part['type'] == LeafType.DIR \
@@ -612,18 +629,18 @@ class PyTestServiceClass(object):
         if report.longrepr:
             self.post_log(test_item, report.longreprtext, loglevel='ERROR')
 
-        node = self._item_parts[test_item][-1]
+        leaf = self._item_parts[test_item][-1]
         # Defining test result
         if report.when == 'setup':
-            node['status'] = 'PASSED'
+            leaf['status'] = 'PASSED'
 
         if report.failed:
-            node['status'] = 'FAILED'
+            leaf['status'] = 'FAILED'
             return
 
         if report.skipped:
-            if node['status'] in (None, 'PASSED'):
-                node['status'] = 'SKIPPED'
+            if leaf['status'] in (None, 'PASSED'):
+                leaf['status'] = 'SKIPPED'
 
     def _build_finish_step_rq(self, part):
         issue = part.get('issue', None)
