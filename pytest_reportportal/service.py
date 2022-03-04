@@ -683,6 +683,7 @@ class PyTestServiceClass(object):
 
     def _finish_parents(self, leaf):
         if 'parent' not in leaf or leaf['parent'] is None \
+                or leaf['parent']['type'] is LeafType.ROOT \
                 or leaf['parent'].get('exec', ExecStatus.FINISHED) == \
                 ExecStatus.FINISHED:
             return
