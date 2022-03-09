@@ -378,10 +378,22 @@ def pytest_addoption(parser):
         help='URL to get issue description. Issue id '
              'from pytest mark will be added to this URL')
     parser.addini(
+        'rp_bts_project',
+        default='',
+        help='Bug-tracking system project as it configured on Report Portal '
+             'server. To enable runtime external issue reporting you need to '
+             'specify this and "rp_bts_url" property.')
+    parser.addini(
+        'rp_bts_url',
+        default='',
+        help='URL of bug-tracking system as it configured on Report Portal '
+             'server. To enable runtime external issue reporting you need to '
+             'specify this and "rp_bts_project" property.')
+    parser.addini(
         'rp_verify_ssl',
-        default=True,
-        type='bool',
-        help='Verify HTTPS calls')
+        default='True',
+        help='True/False - verify HTTPS calls, or path to a CA_BUNDLE or '
+             'directory with certificates of trusted CAs.')
     parser.addini(
         'rp_issue_id_marks',
         type='bool',

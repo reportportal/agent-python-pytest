@@ -38,6 +38,8 @@ class AgentConfig(object):
                                                   'rp_issue_id_marks')
         self.rp_issue_system_url = self.find_option(pytest_config,
                                                     'rp_issue_system_url')
+        self.rp_bts_project = self.find_option(pytest_config, 'rp_bts_project')
+        self.rp_bts_url = self.find_option(pytest_config, 'rp_bts_url')
         self.rp_launch = self.find_option(pytest_config, 'rp_launch')
         self.rp_launch_id = self.find_option(pytest_config, 'rp_launch_id')
         self.rp_launch_attributes = self.find_option(pytest_config,

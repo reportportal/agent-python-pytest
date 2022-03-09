@@ -3,8 +3,7 @@ from typing import Text
 
 import pytest
 
-from .config import AgentConfig as AgentConfig
-from .listener import RPReportListener as RPReportListener
+from .config import AgentConfig
 from .service import PyTestServiceClass as PyTestServiceClass
 from _pytest.config import Config as Config
 from _pytest.config.argparsing import Parser as Parser
