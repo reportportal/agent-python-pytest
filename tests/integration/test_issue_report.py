@@ -25,6 +25,8 @@ from tests.helpers import utils
 ISSUE_PLACEHOLDER = '{issue_id}'
 ISSUE_URL_PATTERN = 'https://bugzilla.some.com/show_bug.cgi?id=' + \
                     ISSUE_PLACEHOLDER
+BTS_PROJECT = 'RP-TEST'
+BTS_URL = 'https://bugzilla.some.com'
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -134,11 +136,79 @@ def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
         variables['rp_is_skipped_an_issue'] = flag_value
     variables.update(utils.DEFAULT_VARIABLES.items())
 
-    result = utils.run_pytest_tests(tests=['examples/test_simple_skip.py'],
-                                    variables=variables)
+    result = utils.run_pytest_tests(
+        tests=['examples/skip/test_simple_skip.py'],
+        variables=variables
+    )
 
     assert int(result) == 0, 'Exit code should be 0 (no failures)'
     call_args = mock_client.finish_test_item.call_args_list
     finish_test_step = call_args[0][1]
     actual_issue = finish_test_step.get('issue', None)
     assert actual_issue == expected_issue
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_skipped_custom_issue(mock_client_init):
+    """Verify skipped test with issue decorator handling.
+
+    :param mock_client_init: mocked Report Portal client Pytest fixture
+    """
+    mock_client = mock_client_init.return_value
+    mock_client.start_test_item.side_effect = utils.item_id_gen
+    mock_client.get_project_settings.side_effect = utils.project_settings
+
+    variables = dict()
+    variables['rp_is_skipped_an_issue'] = True
+    variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
+    variables.update(utils.DEFAULT_VARIABLES.items())
+
+    result = utils.run_pytest_tests(tests=['examples/skip/test_skip_issue.py'],
+                                    variables=variables)
+
+    assert int(result) == 0, 'Exit code should be 0 (no failures)'
+    call_args = mock_client.finish_test_item.call_args_list
+    finish_test_step = call_args[0][1]
+    actual_issue = finish_test_step.get('issue', None)
+    assert isinstance(actual_issue, Issue)
+    expect(actual_issue.issue_type == 'pb001')
+    expect(actual_issue.comment is not None)
+    assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_external_issue(mock_client_init):
+    """Verify skipped test with issue decorator handling.
+
+    :param mock_client_init: mocked Report Portal client Pytest fixture
+    """
+    mock_client = mock_client_init.return_value
+    mock_client.start_test_item.side_effect = utils.item_id_gen
+    mock_client.get_project_settings.side_effect = utils.project_settings
+
+    variables = dict()
+    variables['rp_bts_project'] = BTS_PROJECT
+    variables['rp_bts_url'] = BTS_URL
+    variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
+    variables.update(utils.DEFAULT_VARIABLES.items())
+
+    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'],
+                                    variables=variables)
+
+    assert int(result) == 1, 'Exit code should be 1 (test failed)'
+    call_args = mock_client.finish_test_item.call_args_list
+    finish_test_step = call_args[0][1]
+    actual_issue = finish_test_step.get('issue', None)
+    assert isinstance(actual_issue, Issue)
+    expect(actual_issue.issue_type == 'pb001')
+    expect(actual_issue.comment is not None)
+    external_issues = actual_issue._external_issues
+    expect(len(external_issues) == 1)
+    assert_expectations()
+    external_issue = external_issues[0]
+    expect(external_issue['btsUrl'] == BTS_URL)
+    expect(external_issue['btsProject'] == BTS_PROJECT)
+    expect(external_issue['ticketId'] == test_issue_id.ID)
+    expect(external_issue['url'] ==
+           ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID))
+    assert_expectations()

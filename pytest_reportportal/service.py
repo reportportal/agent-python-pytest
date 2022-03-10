@@ -1,17 +1,17 @@
 """This module includes Service functions for work with pytest agent."""
-
 import logging
 import os.path
 import sys
 import threading
 from os import getenv, curdir
 from time import time, sleep
+from typing import List
 
 from _pytest.doctest import DoctestItem
 from aenum import auto, Enum, unique
 from pytest import Class, Function, Module, Package, Item, Session, \
     PytestWarning
-from reportportal_client.core.rp_issues import Issue
+from reportportal_client.core.rp_issues import Issue, ExternalIssue
 
 try:
     from pytest import Instance
@@ -34,6 +34,9 @@ TRUNCATION_STR = '...'
 ROOT_DIR = str(os.path.abspath(curdir))
 PYTEST_MARKS_IGNORE = {'parametrize', 'usefixtures', 'filterwarnings'}
 NOT_ISSUE = Issue('NOT_ISSUE')
+ISSUE_DESCRIPTION_LINE_TEMPLATE = '* {}:{}'
+ISSUE_DESCRIPTION_URL_TEMPLATE = ' [{issue_id}]({url})'
+ISSUE_DESCRIPTION_ID_TEMPLATE = ' {issue_id}'
 
 
 def timestamp():
@@ -102,6 +105,7 @@ class PyTestServiceClass(object):
         self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self._start_tracker = set()
+        self._process_level_lock = threading.Lock()
         self._launch_id = None
         self.agent_name = 'pytest-reportportal'
         self.agent_version = get_package_version(self.agent_name)
@@ -479,26 +483,33 @@ class PyTestServiceClass(object):
 
     def _get_issue_ids(self, mark):
         issue_ids = mark.kwargs.get("issue_id", [])
-        if not isinstance(issue_ids, list):
+        if not isinstance(issue_ids, List):
             issue_ids = [issue_ids]
         return issue_ids
+
+    def _get_issue_urls(self, mark, default_url):
+        issue_ids = self._get_issue_ids(mark)
+        if not issue_ids:
+            return None
+        mark_url = mark.kwargs.get("url", None) or default_url
+        return [mark_url.format(issue_id=issue_id) if mark_url else None
+                for issue_id in issue_ids]
 
     def _get_issue_description_line(self, mark, default_url):
         issue_ids = self._get_issue_ids(mark)
         if not issue_ids:
             return mark.kwargs["reason"]
 
-        mark_url = mark.kwargs.get("url", None) or default_url
+        issue_urls = self._get_issue_urls(mark, default_url)
         reason = mark.kwargs.get("reason", mark.name)
         issues = ""
-        for issue_id in issue_ids:
-            issue_url = mark_url.format(issue_id=issue_id) if \
-                mark_url else None
-            template = " [{issue_id}]({url})" if issue_url \
-                else " {issue_id}"
+        for i, issue_id in enumerate(issue_ids):
+            issue_url = issue_urls[i]
+            template = ISSUE_DESCRIPTION_URL_TEMPLATE if issue_url \
+                else ISSUE_DESCRIPTION_ID_TEMPLATE
             issues += template.format(issue_id=issue_id,
                                       url=issue_url)
-        return "* {}:{}".format(reason, issues)
+        return ISSUE_DESCRIPTION_LINE_TEMPLATE.format(reason, issues)
 
     def _get_issue(self, mark):
         """Add issues description and issue_type to the test item.
@@ -506,6 +517,7 @@ class PyTestServiceClass(object):
         :param mark: pytest mark
         """
         default_url = self._config.rp_issue_system_url
+
         issue_description_line = \
             self._get_issue_description_line(mark, default_url)
 
@@ -519,9 +531,21 @@ class PyTestServiceClass(object):
             issue_short_name
 
         registered_issues = self.issue_types
+        issue = None
         if issue_short_name in registered_issues:
-            return Issue(registered_issues[issue_short_name],
-                         issue_description_line)
+            issue = Issue(registered_issues[issue_short_name],
+                          issue_description_line)
+
+        if issue and self._config.rp_bts_project and self._config.rp_bts_url:
+            issue_ids = self._get_issue_ids(mark)
+            issue_urls = self._get_issue_urls(mark, default_url)
+            for issue_id, issue_url in zip(issue_ids, issue_urls):
+                issue.external_issue_add(
+                    ExternalIssue(bts_url=self._config.rp_bts_url,
+                                  bts_project=self._config.rp_bts_project,
+                                  ticket_id=issue_id, url=issue_url)
+                )
+        return issue
 
     def _to_attribute(self, attribute_tuple):
         if attribute_tuple[0]:
@@ -609,7 +633,9 @@ class PyTestServiceClass(object):
             return
 
         if os.getpid() not in self._start_tracker:
-            self.start()
+            with self._process_level_lock:
+                if os.getpid() not in self._start_tracker:
+                    self.start()
 
         self._create_suite_path(test_item)
 
@@ -813,7 +839,6 @@ class PyTestServiceClass(object):
             verify_ssl=self._config.rp_verify_ssl,
             launch_id=launch_id,
         )
-        self.project_settings = None
         if self.rp and hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()
         self.rp.start()
@@ -824,3 +849,4 @@ class PyTestServiceClass(object):
         self.rp.terminate()
         self.rp = None
         self._start_tracker.remove(os.getpid())
+        print("Stopped for pid: " + str(os.getpid()), file=sys.stderr)
