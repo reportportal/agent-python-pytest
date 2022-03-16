@@ -102,7 +102,7 @@ class PyTestServiceClass(object):
         self._config = agent_config
         self._issue_types = {}
         self._tree_path = {}
-        self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
+        self._log_levels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self._start_tracker = set()
         self._process_level_lock = threading.Lock()
@@ -622,6 +622,12 @@ class PyTestServiceClass(object):
         log.debug('ReportPortal - Start TestItem: request_body=%s', step_rq)
         return self.rp.start_test_item(**step_rq)
 
+    def __unique_id(self):
+        return str(os.getpid()) + '-' + str(threading.current_thread().ident)
+
+    def __started(self):
+        return self.__unique_id() in self._start_tracker
+
     def start_pytest_item(self, test_item=None):
         """
         Start pytest_item.
@@ -632,10 +638,8 @@ class PyTestServiceClass(object):
         if self.rp is None or test_item is None:
             return
 
-        if os.getpid() not in self._start_tracker:
-            with self._process_level_lock:
-                if os.getpid() not in self._start_tracker:
-                    self.start()
+        if not self.__started():
+            self.start()
 
         self._create_suite_path(test_item)
 
@@ -656,7 +660,7 @@ class PyTestServiceClass(object):
         :param report:    pytest's result report
         """
         if report.longrepr:
-            self.post_log(test_item, report.longreprtext, loglevel='ERROR')
+            self.post_log(test_item, report.longreprtext, log_level='ERROR')
 
         leaf = self._tree_path[test_item][-1]
         # Defining test result
@@ -787,13 +791,13 @@ class PyTestServiceClass(object):
         # To finish launch session str parameter is needed
         self._finish_launch(self._build_finish_launch_rq())
 
-    def post_log(self, test_item, message, loglevel='INFO', attachment=None):
+    def post_log(self, test_item, message, log_level='INFO', attachment=None):
         """
         Send a log message to the Report Portal.
 
         :param test_item: pytest.Item
         :param message:    message in log body
-        :param loglevel:   a level of a log entry (ERROR, WARN, INFO, DEBUG,
+        :param log_level:   a level of a log entry (ERROR, WARN, INFO, DEBUG,
         TRACE, FATAL, UNKNOWN)
         :param attachment: attachment file
         :return: None
@@ -801,16 +805,15 @@ class PyTestServiceClass(object):
         if self.rp is None:
             return
 
-        if loglevel not in self._loglevels:
+        if log_level not in self._log_levels:
             log.warning('Incorrect loglevel = %s. Force set to INFO. '
-                        'Available levels: %s.', loglevel, self._loglevels)
-            loglevel = 'INFO'
+                        'Available levels: %s.', log_level, self._log_levels)
         item_id = self._tree_path[test_item][-1]['item_id']
         sl_rq = {
             'item_id': item_id,
             'time': timestamp(),
             'message': message,
-            'level': loglevel,
+            'level': log_level,
             'attachment': attachment
         }
         self.rp.log(**sl_rq)
@@ -842,11 +845,11 @@ class PyTestServiceClass(object):
         if self.rp and hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()
         self.rp.start()
-        self._start_tracker.add(os.getpid())
+        self._start_tracker.add(self.__unique_id())
 
     def stop(self):
         """Finish servicing Report Portal requests."""
         self.rp.terminate()
         self.rp = None
-        self._start_tracker.remove(os.getpid())
+        self._start_tracker.remove(self.__unique_id())
         print("Stopped for pid: " + str(os.getpid()), file=sys.stderr)

@@ -144,7 +144,7 @@ class RPLogHandler(logging.Handler):
                 return self.py_test_service.post_log(
                     self.item,
                     msg,
-                    loglevel=self._loglevel_map[level],
+                    log_level=self._loglevel_map[level],
                     attachment=record.__dict__.get('attachment', None)
                 )
 
