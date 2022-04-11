@@ -45,7 +45,7 @@ def test_is_control(mocked_config):
     assert_expectations()
 
 
-@mock.patch('pytest_reportportal.RPLogger.handle')
+@mock.patch('reportportal_client.logs.RPLogger.handle')
 @pytest.mark.parametrize('log_level', ('info', 'debug', 'warning', 'error'))
 def test_logger_handle_attachment(mock_handler, logger, log_level):
     """Test logger call for different log levels with some text attachment."""
@@ -59,7 +59,7 @@ def test_logger_handle_attachment(mock_handler, logger, log_level):
     assert_expectations()
 
 
-@mock.patch('pytest_reportportal.RPLogger.handle')
+@mock.patch('reportportal_client.logs.RPLogger.handle')
 @pytest.mark.parametrize('log_level', ('info', 'debug', 'warning', 'error'))
 def test_logger_handle_no_attachment(mock_handler, logger, log_level):
     """Test logger call for different log levels without any attachment."""
@@ -327,6 +327,8 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_hierarchy_dirs',
         'rp_hierarchy_dir_path_separator',
         'rp_issue_system_url',
+        'rp_bts_project',
+        'rp_bts_url',
         'rp_verify_ssl',
         'rp_issue_id_marks',
         'retries',
