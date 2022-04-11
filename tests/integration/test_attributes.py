@@ -105,7 +105,8 @@ def test_skip_attribute(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
-    result = utils.run_pytest_tests(tests=['examples/test_simple_skip.py'])
+    result = utils.run_pytest_tests(
+        tests=['examples/skip/test_simple_skip.py'])
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
     mock_client = mock_client_init.return_value
