@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from functools import wraps
 from reportportal_client import RPLogger
 
+
 @contextmanager
 def patching_logger_class():
     """
