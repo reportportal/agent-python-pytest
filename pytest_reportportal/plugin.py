@@ -10,11 +10,12 @@ import _pytest.logging
 import dill as pickle
 import pytest
 import requests
+from reportportal_client import RPLogHandler
 from reportportal_client.errors import ResponseError
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from .config import AgentConfig
-from .rp_logging import RPLogHandler, patching_logger_class
+from .rp_logging import patching_logger_class
 from .service import PyTestServiceClass
 
 log = logging.getLogger(__name__)
@@ -219,13 +220,13 @@ def pytest_runtest_protocol(item):
     agent_config = config._reporter_config
     service.start_pytest_item(item)
     log_level = agent_config.rp_log_level or logging.NOTSET
-    log_handler = RPLogHandler(
-        item, service, level=log_level,
-        filter_client_logs=True, endpoint=agent_config.rp_endpoint
-    )
+    log_handler = RPLogHandler(level=log_level,
+                               filter_client_logs=True,
+                               endpoint=agent_config.rp_endpoint,
+                               ignored_record_names=('reportportal_client',
+                                                     'pytest_reportportal'))
     with patching_logger_class():
-        with _pytest.logging.catching_logs(log_handler,
-                                           level=log_level):
+        with _pytest.logging.catching_logs(log_handler, level=log_level):
             yield
     service.finish_pytest_item(item)
 

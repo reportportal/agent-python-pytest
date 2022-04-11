@@ -852,4 +852,3 @@ class PyTestServiceClass(object):
         self.rp.terminate()
         self.rp = None
         self._start_tracker.remove(self.__unique_id())
-        print("Stopped for pid: " + str(os.getpid()), file=sys.stderr)
