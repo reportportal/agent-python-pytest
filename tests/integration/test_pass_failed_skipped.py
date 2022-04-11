@@ -23,7 +23,7 @@ from tests.helpers import utils
                           'expected_item_status'), [
                              ('examples/test_simple.py', 0, 'PASSED'),
                              ('examples/test_simple_fail.py', 1, 'FAILED'),
-                             ('examples/test_simple_skip.py', 0, 'SKIPPED')
+                             ('examples/skip/test_simple_skip.py', 0, 'SKIPPED')
                          ])
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_simple_tests(mock_client_init, test, expected_run_status,
