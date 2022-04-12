@@ -13,42 +13,25 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from six.moves import mock
-
 import py
 from _pytest.config import Config
 from _pytest.main import Session
-from pytest import fixture
 from pluggy._tracing import TagTracer
+from pytest import fixture, Module
+from six.moves import mock
 
-from pytest_reportportal import RPLogger
-from pytest_reportportal.listener import RPReportListener
+from reportportal_client import RPLogger
+from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.service import PyTestServiceClass
+from tests import REPORT_PORTAL_SERVICE
+
+ITEM_PATH = py.path.local('examples/test_simple.py')
 
 
 @fixture
 def logger():
     """Prepare instance of the RPLogger for testing."""
     return RPLogger('pytest_reportportal.test')
-
-
-@fixture()
-def mocked_item(mocked_session, mocked_module):
-    """Mock Pytest item for testing."""
-    test_item = mock.Mock()
-    test_item.session = mocked_session
-    test_item.fspath = py.path.local('/path/to/test')
-    test_item.name = 'test_item'
-    test_item.parent = mocked_module
-    return test_item
-
-
-@fixture()
-def mocked_module(mocked_session):
-    """Mock Pytest Module for testing."""
-    mocked_module = mock.Mock()
-    mocked_module.parent = mocked_session
-    return mocked_module
 
 
 @fixture()
@@ -59,7 +42,7 @@ def mocked_config():
     mocked_config.getoption_side_effects = {
         '--collect-only': False,
         '--setup-plan': False,
-        'rp_log_level': 'debug',
+        'rp_log_level': 'debug'
     }
 
     def getoption_side_effect(name, default=None):
@@ -69,7 +52,7 @@ def mocked_config():
 
     mocked_config._reporter_config = mock.Mock()
     mocked_config.getoption.side_effect = getoption_side_effect
-    mocked_config._reportportal_configured = True
+    mocked_config._rp_enabled = True
     mocked_config.rootdir = py.path.local('/path/to')
     mocked_config.trace = TagTracer().get('root')
     mocked_config.pluginmanager = mock.Mock()
@@ -79,6 +62,8 @@ def mocked_config():
     mocked_config.option.rp_uuid = mock.sentinel.rp_uuid
     mocked_config.option.rp_log_batch_size = -1
     mocked_config.option.retries = -1
+    mocked_config.option.rp_hierarchy_dirs_level = '0'
+    mocked_config.option.rp_rerun = False
     return mocked_config
 
 
@@ -91,16 +76,32 @@ def mocked_session(mocked_config):
 
 
 @fixture()
-def rp_listener(rp_service):
-    """Prepare instance of the RPReportListener for testing."""
-    return RPReportListener(rp_service)
+def mocked_module(mocked_session):
+    """Mock Pytest Module for testing."""
+    mocked_module = mock.create_autospec(Module)
+    mocked_module.parent = mocked_session
+    mocked_module.name = 'module'
+    mocked_module.fspath = ITEM_PATH
+    return mocked_module
 
 
 @fixture()
-def rp_service():
+def mocked_item(mocked_session, mocked_module):
+    """Mock Pytest item for testing."""
+    test_item = mock.Mock()
+    test_item.session = mocked_session
+    test_item.fspath = ITEM_PATH
+    name = 'test_item'
+    test_item.name = name
+    test_item.originalname = name
+    test_item.parent = mocked_module
+    return test_item
+
+
+@fixture()
+def rp_service(mocked_config):
     """Prepare instance of the PyTestServiceClass for testing."""
-    service = PyTestServiceClass()
-    with mock.patch('reportportal_client.service.'
-                    'ReportPortalService.get_project_settings'):
-        service.init_service("endpoint", "project", "uuid", 20, False, [])
+    service = PyTestServiceClass(AgentConfig(mocked_config))
+    with mock.patch(REPORT_PORTAL_SERVICE + '.get_project_settings'):
+        service.start()
         return service

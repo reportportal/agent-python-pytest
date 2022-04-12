@@ -1,4 +1,3 @@
-"""Simple example test."""
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -12,7 +11,13 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import pytest
 
-def test_simple():
-    """Simple example test."""
+ID = 'ABC-1234'
+REASON = 'some_bug'
+TYPE = 'PB'
+
+
+@pytest.mark.issue(issue_id=ID, reason=REASON, issue_type=TYPE)
+def test_issue_id():
     assert True

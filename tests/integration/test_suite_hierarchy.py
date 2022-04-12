@@ -17,9 +17,9 @@ import pytest
 from delayed_assert import expect, assert_expectations
 from six.moves import mock
 
-from tests.integration import HIERARCHY_TEST_PARAMETERS
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
+from tests.integration import HIERARCHY_TEST_PARAMETERS
 
 
 def verify_start_item_parameters(mock_client, expected_items):

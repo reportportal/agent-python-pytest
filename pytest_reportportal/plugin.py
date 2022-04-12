@@ -1,53 +1,50 @@
 """This module contains changed pytest for report-portal."""
 
+import logging
 # This program is free software: you can redistribute it
 # and/or modify it under the terms of the GPL licence
-
-import dill as pickle
-import logging
+import os.path
 import time
 
+import _pytest.logging
+import dill as pickle
 import pytest
 import requests
+from reportportal_client import RPLogHandler
+from reportportal_client.errors import ResponseError
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
-from reportportal_client.errors import ResponseError
-from reportportal_client.helpers import gen_attributes
-
 from .config import AgentConfig
-from .listener import RPReportListener
+from .rp_logging import patching_logger_class
 from .service import PyTestServiceClass
-
 
 log = logging.getLogger(__name__)
 
+MANDATORY_PARAMETER_MISSED_PATTERN = \
+    'One of the following mandatory parameters is unset: ' + \
+    'rp_project: {}, ' + \
+    'rp_endpoint: {}, ' + \
+    'rp_uuid: {}'
 
-def check_connection(aconf):
-    """Check connection to RP using provided options.
 
-    If connection is not successful, then we update _reportportal_configured
-    attribute of the Config object to False.
-    :param aconf: Instance of the AgentConfig class
+@pytest.mark.optionalhook
+def pytest_configure_node(node):
+    """Configure xdist node controller.
+
+    :param node: Object of the xdist WorkerController class
     """
-    if aconf.pconfig._reportportal_configured and \
-            aconf.rp_ignore_errors:
-        url = '{0}/api/v1/project/{1}'.format(aconf.rp_endpoint,
-                                              aconf.rp_project)
-        headers = {'Authorization': 'bearer {0}'.format(aconf.rp_uuid)}
-        try:
-            resp = requests.get(url, headers=headers,
-                                verify=aconf.rp_verify_ssl)
-            resp.raise_for_status()
-        except requests.exceptions.RequestException as exc:
-            log.exception(exc)
-            aconf.pconfig._reportportal_configured = False
+    if not node.config._rp_enabled:
+        # Stop now if the plugin is not properly configured
+        return
+    node.workerinput['py_test_service'] = pickle.dumps(
+        node.config.py_test_service)
 
 
-def is_master(config):
+def is_control(config):
     """Validate workerinput attribute of the Config object.
 
     True if the code, running the given pytest.config object,
-    is running as the xdist master node or not running xdist at all.
+    is running as the xdist control node or not running xdist at all.
     """
     return not hasattr(config, 'workerinput')
 
@@ -64,65 +61,33 @@ def wait_launch(rp_client):
         time.sleep(1)
 
 
-@pytest.mark.optionalhook
-def pytest_configure_node(node):
-    """Configure xdist node controller.
-
-    :param node: Object of the xdist WorkerController class
-    """
-    if node.config._reportportal_configured is False:
-        # Stop now if the plugin is not properly configured
-        return
-    node.workerinput['py_test_service'] = pickle.dumps(
-        node.config.py_test_service)
-
-
 def pytest_sessionstart(session):
-    """Start test session.
+    """Start Report Portal launch.
 
+    This method is called every time on control or worker process start, it
+    analyses from which process it is called and starts a Report Portal launch
+    if it's a control process.
     :param session: Object of the pytest Session class
     """
-    if session.config._reportportal_configured is False:
-        # Stop now if the plugin is not properly configured
+    config = session.config
+    if not config._rp_enabled:
         return
-    if is_master(session.config):
-        config = session.config
-        try:
-            config.py_test_service.init_service(
-                project=config._reporter_config.rp_project,
-                endpoint=config._reporter_config.rp_endpoint,
-                uuid=config._reporter_config.rp_uuid,
-                log_batch_size=config._reporter_config.rp_log_batch_size,
-                is_skipped_an_issue=config._reporter_config.
-                rp_is_skipped_an_issue,
-                ignore_errors=config._reporter_config.rp_ignore_errors,
-                custom_launch=config._reporter_config.rp_launch_id,
-                ignored_attributes=config._reporter_config.
-                rp_ignore_attributes,
-                verify_ssl=config._reporter_config.rp_verify_ssl,
-                retries=config._reporter_config.rp_retries,
-                parent_item_id=config._reporter_config.rp_parent_item_id,
-            )
-        except ResponseError as response_error:
-            log.warning('Failed to initialize reportportal-client service. '
-                        'Reporting is disabled.')
-            log.debug(str(response_error))
-            config.py_test_service.rp = None
-            return
-        rp_launch_attributes = config._reporter_config.rp_launch_attributes
-        attributes = gen_attributes(rp_launch_attributes) \
-            if rp_launch_attributes else None
-        if not config._reporter_config.rp_launch_id:
-            config.py_test_service.start_launch(
-                config._reporter_config.rp_launch,
-                mode=config._reporter_config.rp_mode,
-                attributes=attributes,
-                description=config._reporter_config.rp_launch_description,
-                rerun=config._reporter_config.rp_rerun,
-                rerun_of=config._reporter_config.rp_rerun_of
-            )
-            if config.pluginmanager.hasplugin('xdist'):
-                wait_launch(session.config.py_test_service.rp)
+
+    try:
+        config.py_test_service.start()
+    except ResponseError as response_error:
+        log.warning('Failed to initialize reportportal-client service. '
+                    'Reporting is disabled.')
+        log.debug(str(response_error))
+        config.py_test_service.rp = None
+        config._rp_enabled = False
+        return
+
+    if is_control(config) and not config._reporter_config.rp_launch_id:
+        config.py_test_service.start_launch()
+        if config.pluginmanager.hasplugin('xdist') \
+                or config.pluginmanager.hasplugin('pytest-parallel'):
+            wait_launch(session.config.py_test_service.rp)
 
 
 def pytest_collection_finish(session):
@@ -130,7 +95,7 @@ def pytest_collection_finish(session):
 
     :param session: Object of the pytest Session class
     """
-    if session.config._reportportal_configured is False:
+    if not session.config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
 
@@ -142,12 +107,58 @@ def pytest_sessionfinish(session):
 
     :param session: Object of the pytest Session class
     """
-    if session.config._reportportal_configured is False:
+    config = session.config
+    if not config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
-    if is_master(session.config):
-        if not session.config._reporter_config.rp_launch_id:
-            session.config.py_test_service.finish_launch()
+
+    config.py_test_service.finish_suites()
+    if is_control(config) \
+            and not config._reporter_config.rp_launch_id:
+        config.py_test_service.finish_launch()
+
+    config.py_test_service.stop()
+
+
+def register_markers(config):
+    """Register plugin's markers, to avoid declaring them in `pytest.ini`.
+
+    :param config: Object of the pytest Config class
+    """
+    config.addinivalue_line(
+        "markers", "issue(issue_id, reason, issue_type, url): mark test with "
+                   "information about skipped or failed result"
+    )
+    config.addinivalue_line(
+        "markers", "tc_id(id, parameterized, params): report the test"
+                   "case with a custom Test Case ID. Parameters: \n"
+                   "parameterized [True / False] - use parameter values in "
+                   "Test Case ID generation \n"
+                   "params [parameter names as list] - use only specified"
+                   "parameters"
+    )
+
+
+def check_connection(agent_config):
+    """Check connection to RP using provided options.
+
+    If connection is successful returns True either False.
+    :param agent_config: Instance of the AgentConfig class
+    :return True on successful connection check, either False
+    """
+    url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint,
+                                          agent_config.rp_project)
+    headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_uuid)}
+    try:
+        resp = requests.get(url, headers=headers,
+                            verify=agent_config.rp_verify_ssl)
+        resp.raise_for_status()
+        return True
+    except requests.exceptions.RequestException as exc:
+        log.exception(exc)
+        log.error("Unable to connect to Report Portal, the launch won't be"
+                  " reported")
+        return False
 
 
 def pytest_configure(config):
@@ -155,58 +166,87 @@ def pytest_configure(config):
 
     :param config: Object of the pytest Config class
     """
-    skip = (config.getoption('--collect-only', default=False) or
+    register_markers(config)
+
+    config._rp_enabled = not (
+            config.getoption('--collect-only', default=False) or
             config.getoption('--setup-plan', default=False) or
             not config.option.rp_enabled)
-    if skip:
-        config._reportportal_configured = False
+    if not config._rp_enabled:
         return
 
     agent_config = AgentConfig(config)
+
     cond = (agent_config.rp_project, agent_config.rp_endpoint,
             agent_config.rp_uuid)
-    config._reportportal_configured = all(cond)
-    if config._reportportal_configured is False:
-        log.debug('One of the following parameters is unset: rp_project:{}, '
-                  'rp_endpoint:{}, rp_uuid:{}!'.format(*cond))
+    config._rp_enabled = all(cond)
+    if not config._rp_enabled:
+        log.debug(MANDATORY_PARAMETER_MISSED_PATTERN.format(*cond))
         log.debug('Disabling reporting to RP.')
         return
 
-    check_connection(agent_config)
-    if config._reportportal_configured is False:
+    if not agent_config.rp_skip_connection_test:
+        config._rp_enabled = check_connection(agent_config)
+
+    if not config._rp_enabled:
         log.debug('Failed to establish connection with RP. '
                   'Disabling reporting.')
         return
 
     config._reporter_config = agent_config
 
-    if is_master(config):
-        config.py_test_service = PyTestServiceClass()
+    if is_control(config):
+        config.py_test_service = PyTestServiceClass(agent_config)
     else:
+        # noinspection PyUnresolvedReferences
         config.py_test_service = pickle.loads(
             config.workerinput['py_test_service'])
 
-    config._reporter = RPReportListener(
-        config.py_test_service,
-        log_level=agent_config.rp_log_level or logging.NOTSET,
-        endpoint=agent_config.rp_endpoint)
-    if hasattr(config, '_reporter'):
-        config.pluginmanager.register(config._reporter)
 
-
-def pytest_unconfigure(config):
-    """Clear config from reporter.
-
-    :param config: Object of the pytest Config class
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_protocol(item):
     """
-    if getattr(config, '_reportportal_configured', False) is False:
-        # Stop now if the plugin is not properly configured
+    Control start and finish of pytest items.
+
+    :param item: Pytest.Item
+    :return:     generator object
+    """
+    config = item.config
+    if not config._rp_enabled:
+        yield
         return
-    if hasattr(config, '_reporter'):
-        reporter = config._reporter
-        del config._reporter
-        config.pluginmanager.unregister(reporter)
-        log.debug('RP is unconfigured.')
+
+    service = config.py_test_service
+    agent_config = config._reporter_config
+    service.start_pytest_item(item)
+    log_level = agent_config.rp_log_level or logging.NOTSET
+    log_handler = RPLogHandler(level=log_level,
+                               filter_client_logs=True,
+                               endpoint=agent_config.rp_endpoint,
+                               ignored_record_names=('reportportal_client',
+                                                     'pytest_reportportal'))
+    with patching_logger_class():
+        with _pytest.logging.catching_logs(log_handler, level=log_level):
+            yield
+    service.finish_pytest_item(item)
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_runtest_makereport(item):
+    """
+        Change runtest_makereport function.
+
+    :param item: pytest.Item
+    :return: None
+    """
+    config = item.config
+    if not config._rp_enabled:
+        yield
+        return
+
+    report = (yield).get_result()
+    service = item.config.py_test_service
+    service.process_results(item, report)
 
 
 def pytest_addoption(parser):
@@ -307,11 +347,6 @@ def pytest_addoption(parser):
         default='20',
         help='Size of batch log requests in async mode')
     parser.addini(
-        'rp_ignore_errors',
-        default=False,
-        type='bool',
-        help='Ignore Report Portal errors (exit otherwise)')
-    parser.addini(
         'rp_ignore_attributes',
         type='args',
         help='Ignore specified pytest markers, i.e parametrize')
@@ -321,8 +356,13 @@ def pytest_addoption(parser):
         type='bool',
         help='Treat skipped tests as required investigation')
     parser.addini(
+        'rp_hierarchy_code',
+        default=False,
+        type='bool',
+        help='Enables hierarchy for code')
+    parser.addini(
         'rp_hierarchy_dirs_level',
-        default=0,
+        default='0',
         help='Directory starting hierarchy level')
     parser.addini(
         'rp_hierarchy_dirs',
@@ -330,55 +370,42 @@ def pytest_addoption(parser):
         type='bool',
         help='Enables hierarchy for directories')
     parser.addini(
-        'rp_hierarchy_module',
-        default=True,
-        type='bool',
-        help='Enables hierarchy for module')
-    parser.addini(
-        'rp_hierarchy_class',
-        default=True,
-        type='bool',
-        help='Enables hierarchy for class')
-    parser.addini(
-        'rp_hierarchy_parametrize',
-        default=False,
-        type='bool',
-        help='Enables hierarchy for parametrized tests')
-    parser.addini(
-        'rp_issue_marks',
-        type='args',
-        default='',
-        help='Pytest marks to get issue information')
+        'rp_hierarchy_dir_path_separator',
+        default=os.path.sep,
+        help='Path separator to display directories in test hierarchy')
     parser.addini(
         'rp_issue_system_url',
         default='',
         help='URL to get issue description. Issue id '
              'from pytest mark will be added to this URL')
     parser.addini(
-        'rp_verify_ssl',
-        default=True,
-        type='bool',
-        help='Verify HTTPS calls')
+        'rp_bts_project',
+        default='',
+        help='Bug-tracking system project as it configured on Report Portal '
+             'server. To enable runtime external issue reporting you need to '
+             'specify this and "rp_bts_url" property.')
     parser.addini(
-        'rp_display_suite_test_file',
-        default=True,
-        type='bool',
-        help="In case of True, include the suite's relative"
-             " file path in the launch name as a convention of "
-             "'<RELATIVE_FILE_PATH>::<SUITE_NAME>'. "
-             "In case of False, set the launch name to be the suite name "
-             "only - this flag is relevant only when"
-             " 'rp_hierarchy_module' flag is set to False")
+        'rp_bts_url',
+        default='',
+        help='URL of bug-tracking system as it configured on Report Portal '
+             'server. To enable runtime external issue reporting you need to '
+             'specify this and "rp_bts_project" property.')
+    parser.addini(
+        'rp_verify_ssl',
+        default='True',
+        help='True/False - verify HTTPS calls, or path to a CA_BUNDLE or '
+             'directory with certificates of trusted CAs.')
     parser.addini(
         'rp_issue_id_marks',
         type='bool',
         default=True,
-        help='Adding tag with issue id to the test')
+        help='Add tag with issue id to the test')
     parser.addini(
         'retries',
         default='0',
         help='Amount of retries for performing REST calls to RP server')
     parser.addini(
-        'rp_hierarchy_dir_path_separator',
-        default='',
-        help='Path separator to display directories in test hierarchy')
+        'rp_skip_connection_test',
+        default=False,
+        type='bool',
+        help='Skip Report Portal connection test')

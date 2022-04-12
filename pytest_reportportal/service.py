@@ -1,35 +1,42 @@
 """This module includes Service functions for work with pytest agent."""
-
 import logging
+import os.path
 import sys
-from os import getenv
-from time import time
+import threading
+from os import getenv, curdir
+from time import time, sleep
+from typing import List
 
-import pkg_resources
 from _pytest.doctest import DoctestItem
-from _pytest.main import Session
-from _pytest.nodes import File, Item
-from _pytest.unittest import TestCaseFunction, UnitTestCase
-from _pytest.warning_types import PytestWarning
-from pytest import Class, Function, Module
+from aenum import auto, Enum, unique
+from pytest import Class, Function, Module, Package, Item, Session, \
+    PytestWarning
+from reportportal_client.core.rp_issues import Issue, ExternalIssue
 
 try:
     from pytest import Instance
 except ImportError:
     # in pytest >= 7.0 this type was removed
     Instance = type('dummy', (), {})
-from reportportal_client import ReportPortalService
+from reportportal_client.client import RPClient
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
     gen_attributes,
     get_launch_sys_attrs,
     get_package_version
 )
-
 from reportportal_client.service import _dict_to_payload
-from six import with_metaclass
 
 log = logging.getLogger(__name__)
+
+MAX_ITEM_NAME_LENGTH = 256
+TRUNCATION_STR = '...'
+ROOT_DIR = str(os.path.abspath(curdir))
+PYTEST_MARKS_IGNORE = {'parametrize', 'usefixtures', 'filterwarnings'}
+NOT_ISSUE = Issue('NOT_ISSUE')
+ISSUE_DESCRIPTION_LINE_TEMPLATE = '* {}:{}'
+ISSUE_DESCRIPTION_URL_TEMPLATE = ' [{issue_id}]({url})'
+ISSUE_DESCRIPTION_ID_TEMPLATE = ' {issue_id}'
 
 
 def timestamp():
@@ -69,47 +76,44 @@ def trim_docstring(docstring):
     return '\n'.join(trimmed)
 
 
-class Singleton(type):
-    """Class Singleton pattern."""
+@unique
+class LeafType(Enum):
+    """This class stores test item path types."""
 
-    _instances = {}
-
-    def __call__(cls, *args, **kwargs):
-        """Redefine call method.
-
-        :param args:   list of additional params
-        :param kwargs: dict of additional params
-        """
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(
-                *args, **kwargs)
-        return cls._instances[cls]
+    DIR = auto()
+    CODE = auto()
+    ROOT = auto()
 
 
-class PyTestServiceClass(with_metaclass(Singleton, object)):
+@unique
+class ExecStatus(Enum):
+    """This class stores test item path types."""
+
+    CREATED = auto()
+    IN_PROGRESS = auto()
+    FINISHED = auto()
+
+
+class PyTestServiceClass(object):
     """Pytest service class for reporting test results to the Report Portal."""
 
-    def __init__(self):
+    def __init__(self, agent_config):
         """Initialize instance attributes."""
-        self._hier_parts = {}
+        self._config = agent_config
         self._issue_types = {}
-        self._item_parts = {}
-        self._loglevels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
+        self._tree_path = {}
+        self._log_levels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
         self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
+        self._start_tracker = set()
+        self._process_level_lock = threading.Lock()
+        self._launch_id = None
         self.agent_name = 'pytest-reportportal'
         self.agent_version = get_package_version(self.agent_name)
-        self.ignore_errors = True
         self.ignored_attributes = []
         self.log_batch_size = 20
-        self.log_item_id = None
         self.parent_item_id = None
         self.rp = None
-        self.rp_supports_parameters = True
         self.project_settings = {}
-        try:
-            pkg_resources.get_distribution('reportportal_client >= 3.2.0')
-        except pkg_resources.VersionConflict:
-            self.rp_supports_parameters = False
 
     @property
     def issue_types(self):
@@ -117,473 +121,10 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
         if not self._issue_types:
             if not self.project_settings:
                 return self._issue_types
-            for item_type in ("AUTOMATION_BUG", "PRODUCT_BUG", "SYSTEM_ISSUE",
-                              "NO_DEFECT", "TO_INVESTIGATE"):
-                for item in self.project_settings["subTypes"][item_type]:
+            for values in self.project_settings["subTypes"].values():
+                for item in values:
                     self._issue_types[item["shortName"]] = item["locator"]
         return self._issue_types
-
-    def init_service(self,
-                     endpoint,
-                     project,
-                     uuid,
-                     log_batch_size,
-                     ignore_errors,
-                     ignored_attributes,
-                     custom_launch=None,
-                     is_skipped_an_issue=True,
-                     verify_ssl=True,
-                     parent_item_id=None,
-                     retries=0):
-        """Update self.rp with the instance of the ReportPortalService."""
-        if self.rp is None:
-            self.ignore_errors = ignore_errors
-            self.ignored_attributes = ignored_attributes or []
-            self.parent_item_id = parent_item_id
-            if self.rp_supports_parameters:
-                self.ignored_attributes = list(
-                    set(self.ignored_attributes).union({'parametrize'}))
-            self.log_batch_size = log_batch_size
-            log.debug('ReportPortal - Init service: endpoint=%s, '
-                      'project=%s, uuid=%s', endpoint, project, uuid)
-            self.rp = ReportPortalService(
-                endpoint=endpoint,
-                project=project,
-                token=uuid,
-                is_skipped_an_issue=is_skipped_an_issue,
-                log_batch_size=log_batch_size,
-                retries=retries,
-                verify_ssl=verify_ssl,
-                launch_id=custom_launch,
-            )
-            self.project_settings = None
-            if self.rp and hasattr(self.rp, "get_project_settings"):
-                self.project_settings = self.rp.get_project_settings()
-        else:
-            log.debug('The pytest is already initialized')
-        return self.rp
-
-    def start_launch(self,
-                     launch_name,
-                     mode=None,
-                     description=None,
-                     attributes=None,
-                     rerun=False,
-                     rerun_of=None,
-                     **kwargs):
-        """
-        Launch test items.
-
-        :param launch_name: name of the launch
-        :param mode:        mode
-        :param description: description of launch test
-        :param kwargs:      additional params
-        :return: item ID
-        """
-        if self.rp is None:
-            return
-
-        sl_pt = {
-            'attributes': self._get_launch_attributes(attributes),
-            'name': launch_name,
-            'start_time': timestamp(),
-            'description': description,
-            'mode': mode,
-            'rerun': rerun,
-            'rerunOf': rerun_of
-        }
-        log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
-        item_id = self.rp.start_launch(**sl_pt)
-        log.debug('ReportPortal - Launch started: id=%s', item_id)
-        if not self._skip_analytics:
-            send_event(self.agent_name, self.agent_version)
-        return item_id
-
-    def collect_tests(self, session):
-        """
-        Collect all tests.
-
-        :param session: pytest.Session
-        """
-        if self.rp is None:
-            return
-
-        hier_dirs = False
-        hier_module = False
-        hier_class = False
-        hier_param = False
-        display_suite_file_name = True
-
-        if not hasattr(session.config, 'workerinput'):
-            hier_dirs = session.config.getini('rp_hierarchy_dirs')
-            hier_module = session.config.getini('rp_hierarchy_module')
-            hier_class = session.config.getini('rp_hierarchy_class')
-            hier_param = session.config.getini('rp_hierarchy_parametrize')
-            display_suite_file_name = session.config.getini(
-                'rp_display_suite_test_file')
-
-        try:
-            hier_dirs_level = int(
-                session.config.getini('rp_hierarchy_dirs_level'))
-        except ValueError:
-            hier_dirs_level = 0
-
-        dir_path_separator = \
-            session.config._reporter_config.rp_hierarchy_dir_path_separator
-
-        tests_parts = {}
-
-        for item in session.items:
-            # Start collecting test item parts
-            parts = []
-
-            # Hierarchy for directories
-            rp_name = self._add_item_hier_parts_dirs(item, hier_dirs,
-                                                     hier_dirs_level, parts)
-
-            # Hierarchy for Module and Class/UnitTestCase
-            item_parts = self._get_item_parts(item)
-            rp_name = self._add_item_hier_parts_other(item_parts, item, Module,
-                                                      hier_module, parts,
-                                                      rp_name,
-                                                      dir_path_separator)
-            rp_name = self._add_item_hier_parts_other(item_parts, item, Class,
-                                                      hier_class, parts,
-                                                      rp_name,
-                                                      dir_path_separator)
-            rp_name = self._add_item_hier_parts_other(item_parts, item,
-                                                      UnitTestCase, hier_class,
-                                                      parts, rp_name,
-                                                      dir_path_separator)
-
-            # Hierarchy for parametrized tests
-            if hier_param:
-                rp_name = self._add_item_hier_parts_parametrize(item, parts,
-                                                                tests_parts,
-                                                                rp_name)
-
-            # Hierarchy for test itself (Function/TestCaseFunction)
-            item._rp_name = rp_name + ("::" if rp_name else "") + item.name
-
-            # Result initialization
-            for part in parts:
-                part._rp_result = "PASSED"
-
-            self._item_parts[item] = parts
-            for part in parts:
-                if '_pytest.python.Class' in str(type(
-                        part)) and not display_suite_file_name and not \
-                        hier_module:
-                    part._rp_name = part._rp_name.split("::")[-1]
-                if part not in self._hier_parts:
-                    self._hier_parts[part] = {"finish_counter": 1,
-                                              "start_flag": False}
-                else:
-                    self._hier_parts[part]["finish_counter"] += 1
-
-    def start_pytest_item(self, test_item=None):
-        """
-        Start pytest_item.
-
-        :param test_item: pytest.Item
-        :return: item ID
-        """
-        if self.rp is None:
-            return
-
-        parent_item_id = self.parent_item_id
-        for part in self._item_parts[test_item]:
-            if self._hier_parts[part]["start_flag"]:
-                parent_item_id = self._hier_parts[part]["item_id"]
-                continue
-            self._hier_parts[part]["start_flag"] = True
-            payload = {
-                'name': self._get_item_name(part),
-                'description': self._get_item_description(part),
-                'start_time': timestamp(),
-                'item_type': 'SUITE',
-                'parent_item_id': parent_item_id,
-                'code_ref': str(test_item.fspath)
-            }
-            log.debug('ReportPortal - Start Suite: request_body=%s', payload)
-            item_id = self.rp.start_test_item(**payload)
-            self.log_item_id = item_id
-            parent_item_id = item_id
-            self._hier_parts[part]["item_id"] = item_id
-
-        # Item type should be sent as "STEP" until we upgrade to RPv6.
-        # Details at:
-        # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
-        start_rq = {
-            'attributes': self._get_item_markers(test_item),
-            'name': self._get_item_name(test_item),
-            'description': self._get_item_description(test_item),
-            'start_time': timestamp(),
-            'item_type': 'STEP',
-            'parent_item_id': parent_item_id,
-            'code_ref': '{0}:{1}'.format(test_item.fspath, test_item.name)
-        }
-        if self.rp_supports_parameters:
-            start_rq['parameters'] = self._get_parameters(test_item)
-
-        log.debug('ReportPortal - Start TestItem: request_body=%s', start_rq)
-        self.log_item_id = item_id = self.rp.start_test_item(**start_rq)
-        return item_id
-
-    def finish_pytest_item(self, test_item, item_id, status, issue=None):
-        """
-        Finish pytest_item.
-
-        :param test_item: test_item
-        :param item_id:   Pytest.Item
-        :param status:    an item finish status (PASSED, FAILED, STOPPED,
-        SKIPPED, RESETED, CANCELLED, INFO, WARN)
-        :param issue:     an external system issue reference
-        :return: None
-        """
-        if self.rp is None:
-            return
-
-        fta_rq = {
-            'end_time': timestamp(),
-            'status': status,
-            'issue': issue,
-            'item_id': item_id
-        }
-
-        log.debug('ReportPortal - Finish TestItem: request_body=%s', fta_rq)
-
-        parts = self._item_parts[test_item]
-        self.rp.finish_test_item(**fta_rq)
-        while len(parts) > 0:
-            part = parts.pop()
-            if status == "FAILED":
-                part._rp_result = status
-            self._hier_parts[part]["finish_counter"] -= 1
-            if self._hier_parts[part]["finish_counter"] > 0:
-                continue
-            payload = {
-                'end_time': timestamp(),
-                'issue': issue,
-                'item_id': self._hier_parts[part]["item_id"],
-                'status': part._rp_result
-            }
-            log.debug('ReportPortal - End TestSuite: request_body=%s', payload)
-            self.rp.finish_test_item(**payload)
-
-    def finish_launch(self, status=None, **kwargs):
-        """
-        Finish tests launch.
-
-        :param status: an launch status (PASSED, FAILED, STOPPED, SKIPPED,
-        INTERRUPTED, CANCELLED, INFO, WARN)
-        :param kwargs: additional params
-        :return: None
-        """
-        if self.rp is None:
-            return
-
-        # To finish launch session str parameter is needed
-        fl_rq = {
-            'end_time': timestamp(),
-            'status': status
-        }
-        log.debug('ReportPortal - Finish launch: request_body=%s', fl_rq)
-        self.rp.finish_launch(**fl_rq)
-        self.rp = None
-
-    def post_log(self, message, loglevel='INFO', attachment=None):
-        """
-        Send a log message to the Report Portal.
-
-        :param message:    message in log body
-        :param loglevel:   a level of a log entry (ERROR, WARN, INFO, DEBUG,
-        TRACE, FATAL, UNKNOWN)
-        :param attachment: attachment file
-        :return: None
-        """
-        if self.rp is None:
-            return
-
-        if loglevel not in self._loglevels:
-            log.warning('Incorrect loglevel = %s. Force set to INFO. '
-                        'Available levels: %s.', loglevel, self._loglevels)
-            loglevel = 'INFO'
-
-        sl_rq = {
-            'item_id': self.log_item_id,
-            'time': timestamp(),
-            'message': message,
-            'level': loglevel,
-            'attachment': attachment
-        }
-        self.rp.log(**sl_rq)
-
-    @staticmethod
-    def _add_item_hier_parts_dirs(item, hier_flag, dirs_level, report_parts):
-        """
-        Add item to hierarchy of parents located in directory.
-
-        :param item:         Pytest.Item
-        :param hier_flag:    flag
-        :param dirs_level:   int value of level
-        :param report_parts: ''
-        :return: str rp_name
-        """
-        parts_dirs = PyTestServiceClass._get_item_dirs(item)
-        root_path = item.session.config.rootdir
-        dir_path = root_path.new()
-        rp_name_path = ""
-        dirs_parts = {}
-
-        for dir_name in parts_dirs[dirs_level:]:
-            dir_path = dir_path.join(dir_name)
-            path = str(dir_path.relto(root_path))
-
-            if hier_flag:
-                if path in dirs_parts:
-                    item_dir = dirs_parts[path]
-                else:
-                    if hasattr(Item, "from_parent"):
-                        item_dir = File.from_parent(parent=item,
-                                                    fspath=dir_path,
-                                                    nodeid=dir_name)
-                    else:
-                        item_dir = File(dir_path, nodeid=dir_name,
-                                        session=item.session,
-                                        config=item.session.config)
-                    item_dir._rp_name = dir_name
-                    dirs_parts[path] = item_dir
-
-                report_parts.append(item_dir)
-            else:
-                rp_name_path = path
-
-        if not hier_flag:
-            return rp_name_path
-
-        return ""
-
-    @staticmethod
-    def _add_item_hier_parts_parametrize(item, report_parts, tests_parts,
-                                         rp_name=""):
-        """
-        Add item to hierarchy of parents with params.
-
-        :param item:         pytest.Item
-        :param report_parts: Parent reports
-        :param tests_parts:  test item parts
-        :param rp_name:      name of report
-        :return: str rp_name
-        """
-        for mark in item.own_markers:
-            if mark.name == 'parametrize':
-                ch_index = item.nodeid.find("[")
-                test_fullname = item.nodeid[
-                                :ch_index if ch_index > 0 else len(
-                                    item.nodeid)]
-                test_name = item.originalname
-
-                rp_name += ("::" if rp_name else "") + test_name
-
-                if test_fullname in tests_parts:
-                    item_test = tests_parts[test_fullname]
-                else:
-                    if hasattr(Item, "from_parent"):
-                        item_test = Item.from_parent(parent=item,
-                                                     name=test_fullname,
-                                                     nodeid=test_fullname)
-                    else:
-                        item_test = Item(test_fullname, nodeid=test_fullname,
-                                         session=item.session,
-                                         config=item.session.config)
-                    item_test._rp_name = rp_name
-                    item_test.obj = item.obj
-                    item_test.keywords = item.keywords
-                    item_test.own_markers = item.own_markers
-                    item_test.parent = item.parent
-
-                    tests_parts[test_fullname] = item_test
-
-                rp_name = ""
-                report_parts.append(item_test)
-                break
-
-        return rp_name
-
-    @staticmethod
-    def _add_item_hier_parts_other(item_parts, item, item_type, hier_flag,
-                                   report_parts, rp_name="", dir_separator=""):
-        """
-        Add item to hierarchy of parents.
-
-        :param item_parts:  Parent_items
-        :param item:        pytest.Item
-        :param item_type:   (SUITE, STORY, TEST, SCENARIO, STEP, BEFORE_CLASS,
-         BEFORE_GROUPS, BEFORE_METHOD, BEFORE_SUITE, BEFORE_TEST, AFTER_CLASS,
-        AFTER_GROUPS, AFTER_METHOD, AFTER_SUITE, AFTER_TEST)
-        :param hier_flag:    bool state
-        :param report_parts: list of parent reports
-        :param rp_name:      report name
-        :return: str rp_name
-        """
-        for part in item_parts:
-            if type(part) is item_type:
-
-                if item_type is Module:
-                    module_path = \
-                        item.fspath.new(dirname=rp_name,
-                                        basename=part.fspath.basename,
-                                        drive="")
-                    if dir_separator:
-                        module_path_str = dir_separator.join(
-                            [p.basename for p in module_path.parts(
-                                reverse=False) if p.basename])
-                    else:
-                        module_path_str = str(module_path)
-                    rp_name = module_path_str
-                elif item_type in (Class, Function, UnitTestCase,
-                                   TestCaseFunction):
-                    rp_name += ("::" if rp_name else "") + part.name
-
-                if hier_flag:
-                    part._rp_name = rp_name
-                    rp_name = ""
-                    report_parts.append(part)
-
-        return rp_name
-
-    @staticmethod
-    def _get_item_parts(item):
-        """
-        Get item of parents.
-
-        :param item: pytest.Item
-        :return list of parents
-        """
-        parts = []
-        parent = item.parent
-        while parent is not None and not isinstance(parent, Session):
-            if not isinstance(parent, Instance):
-                parts.append(parent)
-            parent = parent.parent
-
-        parts.reverse()
-        return parts
-
-    @staticmethod
-    def _get_item_dirs(item):
-        """
-        Get directory of item.
-
-        :param item: pytest.Item
-        :return: list of dirs
-        """
-        root_path = item.session.config.rootdir.strpath
-        dir_path = item.fspath.new(basename="")
-        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
-                               drive="")
-        return [d.basename for d in rel_dir.parts(reverse=False) if d.basename]
 
     def _get_launch_attributes(self, ini_attrs):
         """Generate launch attributes in the format supported by the client.
@@ -596,82 +137,234 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
             '{}-{}'.format(self.agent_name, self.agent_version))
         return attributes + _dict_to_payload(system_attributes)
 
-    def _get_item_markers(self, item):
+    def _build_start_launch_rq(self):
+        rp_launch_attributes = self._config.rp_launch_attributes
+        attributes = gen_attributes(rp_launch_attributes) \
+            if rp_launch_attributes else None
+
+        start_rq = {
+            'attributes': self._get_launch_attributes(attributes),
+            'name': self._config.rp_launch,
+            'start_time': timestamp(),
+            'description': self._config.rp_launch_description,
+            'mode': self._config.rp_mode,
+            'rerun': self._config.rp_rerun,
+            'rerun_of': self._config.rp_rerun_of
+        }
+        return start_rq
+
+    def start_launch(self):
         """
-        Get attributes of item.
+        Launch test items.
+
+        :return: item ID
+        """
+        if self.rp is None:
+            return
+        sl_pt = self._build_start_launch_rq()
+        log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
+        self._launch_id = self.rp.start_launch(**sl_pt)
+        log.debug('ReportPortal - Launch started: id=%s', self._launch_id)
+        if not self._skip_analytics:
+            send_event(self.agent_name, self.agent_version)
+        return self._launch_id
+
+    def _get_item_dirs(self, item):
+        """
+        Get directory of item.
 
         :param item: pytest.Item
-        :return: list of tags
+        :return: list of dirs
         """
-        # Try to extract names of @pytest.mark.* decorators used for test item
-        # and exclude those which present in rp_ignore_attributes parameter
-        def get_marker_value(item, keyword):
-            try:
-                marker = item.get_closest_marker(keyword)
-            except AttributeError:
-                # pytest < 3.6
-                marker = item.keywords.get(keyword)
+        root_path = item.session.config.rootdir.strpath
+        dir_path = item.fspath.new(basename="")
+        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
+                               drive="")
+        return [d for d in rel_dir.parts(reverse=False) if d.basename]
 
-            marker_values = []
-            if marker and marker.args:
-                for arg in marker.args:
-                    marker_values.append("{}:{}".format(keyword, arg))
+    def _get_tree_path(self, item):
+        """
+        Get item of parents.
+
+        :param item: pytest.Item
+        :return list of parents
+        """
+        path = [item]
+        parent = item.parent
+        while parent is not None and not isinstance(parent, Session):
+            if not isinstance(parent, Instance):
+                path.append(parent)
+            parent = parent.parent
+
+        path.reverse()
+        return path
+
+    def _get_leaf(self, leaf_type, parent_item, item, item_id=None):
+        """Construct a leaf for the itest tree.
+
+        :param leaf_type:   the leaf type
+        :param parent_item: parent pytest.Item of the current leaf
+        :param item:        leaf's pytest.Item
+        :return: a leaf
+        """
+        return {
+            'children': {}, 'type': leaf_type, 'item': item,
+            'parent': parent_item, 'lock': threading.Lock(),
+            'exec': ExecStatus.CREATED, 'item_id': item_id
+        }
+
+    def _build_test_tree(self, session):
+        """Construct a tree of tests and their suites.
+
+        :param session: pytest.Session object of the current execution
+        :return: a tree of all tests and their suites
+        """
+        test_tree = self._get_leaf(LeafType.ROOT, None, None,
+                                   item_id=self.parent_item_id)
+
+        for item in session.items:
+            dir_path = self._get_item_dirs(item)
+            class_path = self._get_tree_path(item)
+
+            current_leaf = test_tree
+            for i, leaf in enumerate(dir_path + class_path):
+                children_leafs = current_leaf['children']
+
+                leaf_type = LeafType.DIR
+                if i >= len(dir_path):
+                    leaf_type = LeafType.CODE
+
+                if leaf not in children_leafs:
+                    children_leafs[leaf] = self._get_leaf(leaf_type,
+                                                          current_leaf,
+                                                          leaf)
+                current_leaf = children_leafs[leaf]
+        return test_tree
+
+    def _remove_root_package(self, test_tree):
+        if test_tree['type'] == LeafType.ROOT or \
+                test_tree['type'] == LeafType.DIR:
+            for item, child_leaf in test_tree['children'].items():
+                self._remove_root_package(child_leaf)
+                return
+        if test_tree['type'] == LeafType.CODE and \
+                isinstance(test_tree['item'], Package) and \
+                test_tree['parent']['type'] == LeafType.DIR:
+            parent_leaf = test_tree['parent']
+            current_item = test_tree['item']
+            del parent_leaf['children'][current_item]
+            for item, child_leaf in test_tree['children'].items():
+                parent_leaf['children'][item] = child_leaf
+                child_leaf['parent'] = parent_leaf
+
+    def _remove_root_dirs(self, test_tree, max_dir_level, dir_level=0):
+        if test_tree['type'] == LeafType.ROOT:
+            for item, child_leaf in test_tree['children'].items():
+                self._remove_root_dirs(child_leaf, max_dir_level, 1)
+                return
+        if test_tree['type'] == LeafType.DIR and dir_level <= max_dir_level:
+            new_level = dir_level + 1
+            parent_leaf = test_tree['parent']
+            current_item = test_tree['item']
+            del parent_leaf['children'][current_item]
+            for item, child_leaf in test_tree['children'].items():
+                parent_leaf['children'][item] = child_leaf
+                child_leaf['parent'] = parent_leaf
+                self._remove_root_dirs(child_leaf, max_dir_level,
+                                       new_level)
+
+    def _generate_names(self, test_tree):
+        if test_tree['type'] == LeafType.ROOT:
+            test_tree['name'] = 'root'
+
+        if test_tree['type'] == LeafType.DIR:
+            test_tree['name'] = test_tree['item'].basename
+
+        if test_tree['type'] == LeafType.CODE:
+            item = test_tree['item']
+            if isinstance(item, Package):
+                test_tree['name'] = \
+                    os.path.split(os.path.split(str(item.fspath))[0])[1]
+            elif isinstance(item, Module):
+                test_tree['name'] = os.path.split(str(item.fspath))[1]
             else:
-                marker_values.append(keyword)
-            # returns a list of strings to accommodate multiple values
-            return marker_values
+                test_tree['name'] = item.name
 
-        try:
-            get_marker = getattr(item, "get_closest_marker")
-        except AttributeError:
-            get_marker = getattr(item, "get_marker")
+        for item, child_leaf in test_tree['children'].items():
+            self._generate_names(child_leaf)
 
-        raw_attrs = []
-        for k in item.keywords:
-            if get_marker(k) is not None and k not in self.ignored_attributes:
-                raw_attrs.extend(get_marker_value(item, k))
-        # When we have custom markers with different values, append the
-        # raw_attrs with the markers which were missed initially.
-        # Adds supports to have two attributes with same keys.
-        for cust_marker in item.own_markers:
-            for arg in cust_marker.args:
-                custom_arg = "{0}:{1}".format(cust_marker.name, arg)
-                if not (custom_arg in raw_attrs) and \
-                        cust_marker.name not in self.ignored_attributes:
-                    raw_attrs.append(custom_arg)
-        raw_attrs.extend(item.session.config.getini('rp_tests_attributes'))
-        return gen_attributes(raw_attrs)
+    def _merge_leaf_type(self, test_tree, leaf_type, separator):
+        child_items = list(test_tree['children'].items())
+        if test_tree['type'] != leaf_type:
+            for item, child_leaf in child_items:
+                self._merge_leaf_type(child_leaf, leaf_type, separator)
+        elif len(test_tree['children'].items()) > 0:
+            parent_leaf = test_tree['parent']
+            current_item = test_tree['item']
+            current_name = test_tree['name']
+            del parent_leaf['children'][current_item]
+            for item, child_leaf in child_items:
+                parent_leaf['children'][item] = child_leaf
+                child_leaf['parent'] = parent_leaf
+                child_leaf['name'] = \
+                    current_name + separator + child_leaf['name']
+                self._merge_leaf_type(child_leaf, leaf_type, separator)
 
-    def _get_parameters(self, item):
+    def _merge_dirs(self, test_tree):
+        self._merge_leaf_type(test_tree, LeafType.DIR,
+                              self._config.rp_dir_path_separator)
+
+    def _merge_code(self, test_tree):
+        self._merge_leaf_type(test_tree, LeafType.CODE, '::')
+
+    def _build_item_paths(self, leaf, path):
+        if 'children' in leaf and len(leaf['children']) > 0:
+            path.append(leaf)
+            for name, child_leaf in leaf['children'].items():
+                self._build_item_paths(child_leaf, path)
+            path.pop()
+        elif leaf['type'] != LeafType.ROOT:
+            self._tree_path[leaf['item']] = path + [leaf]
+
+    def collect_tests(self, session):
         """
-        Get params of item.
+        Collect all tests.
 
-        :param item: Pytest.Item
-        :return: dict of params
+        :param session: pytest.Session
         """
-        return item.callspec.params if hasattr(item, 'callspec') else None
+        if self.rp is None:
+            return
 
-    @staticmethod
-    def _get_item_name(test_item):
+        # Create a test tree to be able to apply mutations
+        test_tree = self._build_test_tree(session)
+        self._remove_root_package(test_tree)
+        self._remove_root_dirs(test_tree, self._config.rp_dir_level)
+        self._generate_names(test_tree)
+        if not self._config.rp_hierarchy_dirs:
+            self._merge_dirs(test_tree)
+        if not self._config.rp_hierarchy_code:
+            self._merge_code(test_tree)
+        self._build_item_paths(test_tree, [])
+
+    def _get_item_name(self, name):
         """
         Get name of item.
 
-        :param test_item: pytest.Item
+        :param name: Item name
         :return: name
         """
-        name = test_item._rp_name
-        if len(name) > 256:
-            name = name[:256]
-            test_item.warn(
+        if len(name) > MAX_ITEM_NAME_LENGTH:
+            name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + \
+                   TRUNCATION_STR
+            log.warning(
                 PytestWarning(
-                    'Test node ID was truncated to "{}" because of name size '
-                    'constrains on reportportal'.format(name)
+                    'Test leaf ID was truncated to "{}" because of name size '
+                    'constrains on Report Portal'.format(name)
                 )
             )
         return name
 
-    @staticmethod
-    def _get_item_description(test_item):
+    def _get_item_description(self, test_item):
         """
         Get description of item.
 
@@ -685,3 +378,477 @@ class PyTestServiceClass(with_metaclass(Singleton, object)):
                     return trim_docstring(doc)
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
+
+    def _lock(self, leaf, func):
+        """
+        Lock test tree leaf and execute a function, bypass the leaf to it.
+
+        :param leaf: a leaf to lock
+        :param func: a function to execute
+        :return: the result of the function bypassed
+        """
+        if 'lock' in leaf:
+            with leaf['lock']:
+                return func(leaf)
+        return func(leaf)
+
+    def _build_start_suite_rq(self, leaf):
+        code_ref = str(leaf['item']) if leaf['type'] == LeafType.DIR \
+            else str(leaf['item'].fspath)
+        payload = {
+            'name': self._get_item_name(leaf['name']),
+            'description': self._get_item_description(leaf['item']),
+            'start_time': timestamp(),
+            'item_type': 'SUITE',
+            'code_ref': code_ref,
+            'parent_item_id': self._lock(leaf['parent'],
+                                         lambda p: p['item_id'])
+        }
+        return payload
+
+    def _start_suite(self, suite_rq):
+        log.debug('ReportPortal - Start Suite: request_body=%s',
+                  suite_rq)
+        return self.rp.start_test_item(**suite_rq)
+
+    def _create_suite(self, leaf):
+        if leaf['exec'] != ExecStatus.CREATED:
+            return
+        item_id = self._start_suite(self._build_start_suite_rq(leaf))
+        leaf['item_id'] = item_id
+        leaf['exec'] = ExecStatus.IN_PROGRESS
+
+    def _create_suite_path(self, item):
+        if self.rp is None:
+            return
+
+        path = self._tree_path[item]
+        for leaf in path[1:-1]:
+            if leaf['exec'] != ExecStatus.CREATED:
+                continue
+            self._lock(leaf, lambda p: self._create_suite(p))
+
+    def _get_code_ref(self, item):
+        # Generate script path from work dir, use only backslashes to have the
+        # same path on different systems and do not affect Test Case ID on
+        # different systems
+        path = os.path.relpath(str(item.fspath), ROOT_DIR).replace('\\', '/')
+        method_name = item.originalname if item.originalname is not None \
+            else item.name
+        parent = item.parent
+        classes = [method_name]
+        while not isinstance(parent, Module):
+            if not isinstance(parent, Instance):
+                classes.append(parent.name)
+            parent = parent.parent
+        classes.reverse()
+        class_path = '.'.join(classes)
+        return '{0}:{1}'.format(path, class_path)
+
+    def _get_test_case_id(self, mark, leaf):
+        parameters = leaf.get('parameters', None)
+        parameterized = True
+        selected_params = None
+        if mark is not None:
+            parameterized = mark.kwargs.get('parameterized', False)
+            selected_params = mark.kwargs.get('params', None)
+        if selected_params is not None and not isinstance(selected_params,
+                                                          list):
+            selected_params = [selected_params]
+
+        param_str = None
+        if parameterized and parameters is not None and len(parameters) > 0:
+            if selected_params is not None and len(selected_params) > 0:
+                param_list = [str(parameters.get(param, None)) for param in
+                              selected_params]
+            else:
+                param_list = [str(param) for param in parameters.values()]
+            param_str = '[{}]'.format(','.join(sorted(param_list)))
+
+        basic_name_part = leaf['code_ref']
+        if mark is None:
+            if param_str is None:
+                return basic_name_part
+            else:
+                return basic_name_part + param_str
+        else:
+            if mark.args is not None and len(mark.args) > 0:
+                basic_name_part = str(mark.args[0])
+            else:
+                basic_name_part = ""
+            if param_str is None:
+                return basic_name_part
+            else:
+                return basic_name_part + param_str
+
+    def _get_issue_ids(self, mark):
+        issue_ids = mark.kwargs.get("issue_id", [])
+        if not isinstance(issue_ids, List):
+            issue_ids = [issue_ids]
+        return issue_ids
+
+    def _get_issue_urls(self, mark, default_url):
+        issue_ids = self._get_issue_ids(mark)
+        if not issue_ids:
+            return None
+        mark_url = mark.kwargs.get("url", None) or default_url
+        return [mark_url.format(issue_id=issue_id) if mark_url else None
+                for issue_id in issue_ids]
+
+    def _get_issue_description_line(self, mark, default_url):
+        issue_ids = self._get_issue_ids(mark)
+        if not issue_ids:
+            return mark.kwargs["reason"]
+
+        issue_urls = self._get_issue_urls(mark, default_url)
+        reason = mark.kwargs.get("reason", mark.name)
+        issues = ""
+        for i, issue_id in enumerate(issue_ids):
+            issue_url = issue_urls[i]
+            template = ISSUE_DESCRIPTION_URL_TEMPLATE if issue_url \
+                else ISSUE_DESCRIPTION_ID_TEMPLATE
+            issues += template.format(issue_id=issue_id,
+                                      url=issue_url)
+        return ISSUE_DESCRIPTION_LINE_TEMPLATE.format(reason, issues)
+
+    def _get_issue(self, mark):
+        """Add issues description and issue_type to the test item.
+
+        :param mark: pytest mark
+        """
+        default_url = self._config.rp_issue_system_url
+
+        issue_description_line = \
+            self._get_issue_description_line(mark, default_url)
+
+        # Set issue_type only for first issue mark
+        issue_short_name = None
+        if "issue_type" in mark.kwargs:
+            issue_short_name = mark.kwargs["issue_type"]
+
+        # default value
+        issue_short_name = "TI" if issue_short_name is None else \
+            issue_short_name
+
+        registered_issues = self.issue_types
+        issue = None
+        if issue_short_name in registered_issues:
+            issue = Issue(registered_issues[issue_short_name],
+                          issue_description_line)
+
+        if issue and self._config.rp_bts_project and self._config.rp_bts_url:
+            issue_ids = self._get_issue_ids(mark)
+            issue_urls = self._get_issue_urls(mark, default_url)
+            for issue_id, issue_url in zip(issue_ids, issue_urls):
+                issue.external_issue_add(
+                    ExternalIssue(bts_url=self._config.rp_bts_url,
+                                  bts_project=self._config.rp_bts_project,
+                                  ticket_id=issue_id, url=issue_url)
+                )
+        return issue
+
+    def _to_attribute(self, attribute_tuple):
+        if attribute_tuple[0]:
+            return {'key': attribute_tuple[0], 'value': attribute_tuple[1]}
+        else:
+            return {'value': attribute_tuple[1]}
+
+    def _get_parameters(self, item):
+        """
+        Get params of item.
+
+        :param item: Pytest.Item
+        :return: dict of params
+        """
+        return item.callspec.params if hasattr(item, 'callspec') else None
+
+    def _process_attributes(self, leaf):
+        """
+        Process all types of attributes of item.
+
+        :param leaf: item context
+        """
+        item = leaf['item']
+
+        parameters = self._get_parameters(item)
+        leaf['parameters'] = parameters
+
+        code_ref = self._get_code_ref(item)
+        leaf['code_ref'] = code_ref
+
+        attributes = set()
+        for marker in leaf['item'].iter_markers():
+            if marker.name == 'tc_id':
+                test_case_id = self._get_test_case_id(marker, leaf)
+                leaf['test_case_id'] = test_case_id
+                continue
+            if marker.name == 'issue':
+                issue = self._get_issue(marker)
+                leaf['issue'] = issue
+                if self._config.rp_issue_id_marks:
+                    for issue_id in self._get_issue_ids(marker):
+                        attributes.add((marker.name, issue_id))
+                continue
+            if marker.name in self._config.rp_ignore_attributes \
+                    or marker.name in PYTEST_MARKS_IGNORE:
+                continue
+            if len(marker.args) > 0:
+                attributes.add((marker.name, str(marker.args[0])))
+            else:
+                attributes.add((None, marker.name))
+
+        leaf['attributes'] = [self._to_attribute(attribute)
+                              for attribute in attributes]
+
+        if 'test_case_id' not in leaf:
+            leaf['test_case_id'] = self._get_test_case_id(None, leaf)
+
+    def _build_start_step_rq(self, leaf):
+        payload = {
+            'attributes': leaf.get('attributes', None),
+            'name': self._get_item_name(leaf['name']),
+            'description': self._get_item_description(leaf['item']),
+            'start_time': timestamp(),
+            'item_type': 'STEP',
+            'code_ref': leaf.get('code_ref', None),
+            'parameters': leaf.get('parameters', None),
+            'parent_item_id': self._lock(leaf['parent'],
+                                         lambda p: p['item_id']),
+            'test_case_id': leaf.get('test_case_id', None)
+        }
+        return payload
+
+    def _start_step(self, step_rq):
+        log.debug('ReportPortal - Start TestItem: request_body=%s', step_rq)
+        return self.rp.start_test_item(**step_rq)
+
+    def __unique_id(self):
+        return str(os.getpid()) + '-' + str(threading.current_thread().ident)
+
+    def __started(self):
+        return self.__unique_id() in self._start_tracker
+
+    def start_pytest_item(self, test_item=None):
+        """
+        Start pytest_item.
+
+        :param test_item: pytest.Item
+        :return: item ID
+        """
+        if self.rp is None or test_item is None:
+            return
+
+        if not self.__started():
+            self.start()
+
+        self._create_suite_path(test_item)
+
+        # Item type should be sent as "STEP" until we upgrade to RPv6.
+        # Details at:
+        # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
+        current_leaf = self._tree_path[test_item][-1]
+        self._process_attributes(current_leaf)
+        item_id = self._start_step(self._build_start_step_rq(current_leaf))
+        current_leaf['item_id'] = item_id
+        current_leaf['exec'] = ExecStatus.IN_PROGRESS
+
+    def process_results(self, test_item, report):
+        """
+        Save test item results after execution.
+
+        :param test_item: pytest.Item
+        :param report:    pytest's result report
+        """
+        if report.longrepr:
+            self.post_log(test_item, report.longreprtext, log_level='ERROR')
+
+        leaf = self._tree_path[test_item][-1]
+        # Defining test result
+        if report.when == 'setup':
+            leaf['status'] = 'PASSED'
+
+        if report.failed:
+            leaf['status'] = 'FAILED'
+            return
+
+        if report.skipped:
+            if leaf['status'] in (None, 'PASSED'):
+                leaf['status'] = 'SKIPPED'
+
+    def _build_finish_step_rq(self, leaf):
+        issue = leaf.get('issue', None)
+        status = leaf['status']
+        if status == 'SKIPPED' and not self._config.rp_is_skipped_an_issue:
+            issue = NOT_ISSUE
+        if status == 'PASSED':
+            issue = None
+        payload = {
+            'end_time': timestamp(),
+            'status': status,
+            'issue': issue,
+            'item_id': leaf['item_id']
+        }
+        return payload
+
+    def _finish_step(self, finish_rq):
+        log.debug('ReportPortal - Finish TestItem: request_body=%s', finish_rq)
+        self.rp.finish_test_item(**finish_rq)
+
+    def _finish_suite(self, finish_rq):
+        log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
+        self.rp.finish_test_item(**finish_rq)
+
+    def _build_finish_suite_rq(self, leaf):
+        payload = {
+            'end_time': timestamp(),
+            'item_id': leaf['item_id']
+        }
+        return payload
+
+    def _proceed_suite_finish(self, leaf):
+        if leaf.get('exec', ExecStatus.FINISHED) == ExecStatus.FINISHED:
+            return
+
+        self._finish_suite(self._build_finish_suite_rq(leaf))
+        leaf['exec'] = ExecStatus.FINISHED
+
+    def _finish_parents(self, leaf):
+        if 'parent' not in leaf or leaf['parent'] is None \
+                or leaf['parent']['type'] is LeafType.ROOT \
+                or leaf['parent'].get('exec', ExecStatus.FINISHED) == \
+                ExecStatus.FINISHED:
+            return
+
+        for item, child_leaf in leaf['parent']['children'].items():
+            current_status = child_leaf['exec']
+            if current_status != ExecStatus.FINISHED:
+                current_status = self._lock(child_leaf, lambda p: p['exec'])
+                if current_status != ExecStatus.FINISHED:
+                    return
+
+        self._lock(leaf['parent'], lambda p: self._proceed_suite_finish(p))
+        self._finish_parents(leaf['parent'])
+
+    def finish_pytest_item(self, test_item):
+        """
+        Finish pytest_item.
+
+        :param test_item: pytest.Item
+        :return: None
+        """
+        if self.rp is None:
+            return
+
+        path = self._tree_path[test_item]
+        leaf = path[-1]
+        self._finish_step(self._build_finish_step_rq(leaf))
+        leaf['exec'] = ExecStatus.FINISHED
+        self._finish_parents(leaf)
+
+    def _get_items(self, exec_status):
+        return [k for k, v in self._tree_path.items() if
+                v[-1]['exec'] == exec_status]
+
+    def finish_suites(self):
+        """
+        Finish all suites in run with status calculations.
+
+        If an execution passes in multiprocessing mode we don't know which and
+        how many items will be passed to our process. Because of that we don't
+        finish suites until the very last step. And after that we finish them
+        at once.
+        """
+        # Ensure there is no running items
+        while len(self._get_items(ExecStatus.IN_PROGRESS)) > 0:
+            sleep(0.1)
+        skipped_items = self._get_items(ExecStatus.CREATED)
+        for item in skipped_items:
+            path = list(self._tree_path[item])
+            path.reverse()
+            for leaf in path[1:-1]:
+                if leaf['exec'] == ExecStatus.IN_PROGRESS:
+                    self._lock(leaf, lambda p: self._proceed_suite_finish(p))
+
+    def _build_finish_launch_rq(self):
+        finish_rq = {
+            'end_time': timestamp()
+        }
+        return finish_rq
+
+    def _finish_launch(self, finish_rq):
+        log.debug('ReportPortal - Finish launch: request_body=%s', finish_rq)
+        self.rp.finish_launch(**finish_rq)
+
+    def finish_launch(self):
+        """
+        Finish tests launch.
+
+        :return: None
+        """
+        if self.rp is None:
+            return
+
+        # To finish launch session str parameter is needed
+        self._finish_launch(self._build_finish_launch_rq())
+
+    def post_log(self, test_item, message, log_level='INFO', attachment=None):
+        """
+        Send a log message to the Report Portal.
+
+        :param test_item: pytest.Item
+        :param message:    message in log body
+        :param log_level:   a level of a log entry (ERROR, WARN, INFO, DEBUG,
+        TRACE, FATAL, UNKNOWN)
+        :param attachment: attachment file
+        :return: None
+        """
+        if self.rp is None:
+            return
+
+        if log_level not in self._log_levels:
+            log.warning('Incorrect loglevel = %s. Force set to INFO. '
+                        'Available levels: %s.', log_level, self._log_levels)
+        item_id = self._tree_path[test_item][-1]['item_id']
+        sl_rq = {
+            'item_id': item_id,
+            'time': timestamp(),
+            'message': message,
+            'level': log_level,
+            'attachment': attachment
+        }
+        self.rp.log(**sl_rq)
+
+    def start(self):
+        """Start servicing Report Portal requests."""
+        self.parent_item_id = self._config.rp_parent_item_id
+        self.ignored_attributes = list(
+            set(
+                self._config.rp_ignore_attributes or []
+            ).union({'parametrize'})
+        )
+        log.debug('ReportPortal - Init service: endpoint=%s, '
+                  'project=%s, uuid=%s', self._config.rp_endpoint,
+                  self._config.rp_project, self._config.rp_uuid)
+        launch_id = self._launch_id
+        if self._config.rp_launch_id:
+            launch_id = self._config.rp_launch_id
+        self.rp = RPClient(
+            endpoint=self._config.rp_endpoint,
+            project=self._config.rp_project,
+            token=self._config.rp_uuid,
+            is_skipped_an_issue=self._config.rp_is_skipped_an_issue,
+            log_batch_size=self._config.rp_log_batch_size,
+            retries=self._config.rp_retries,
+            verify_ssl=self._config.rp_verify_ssl,
+            launch_id=launch_id,
+        )
+        if self.rp and hasattr(self.rp, "get_project_settings"):
+            self.project_settings = self.rp.get_project_settings()
+        self.rp.start()
+        self._start_tracker.add(self.__unique_id())
+
+    def stop(self):
+        """Finish servicing Report Portal requests."""
+        self.rp.terminate()
+        self.rp = None
+        self._start_tracker.remove(self.__unique_id())

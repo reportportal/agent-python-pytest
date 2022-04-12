@@ -1,4 +1,3 @@
-"""Simple example test."""
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -12,7 +11,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import pytest
 
-def test_simple():
-    """Simple example test."""
+
+@pytest.mark.scope("smoke")
+@pytest.mark.scope("regression")
+def test_custom_attributes_report():
+    """
+    This is a test with multiple custom markers which shall appear on
+    ReportPortal on test's item as different attributes
+    """
     assert True

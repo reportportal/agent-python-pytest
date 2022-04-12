@@ -13,6 +13,7 @@ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License
 """
+import os
 import random
 import time
 
@@ -23,7 +24,7 @@ DEFAULT_VARIABLES = {
     'rp_endpoint': 'http://localhost:8080',
     'rp_project': 'default_personal',
     'rp_uuid': 'test_uuid',
-    'rp_hierarchy_dir_path_separator': '/'
+    'rp_skip_connection_test': 'True'
 }
 
 DEFAULT_PROJECT_SETTINGS = {
@@ -83,17 +84,20 @@ DEFAULT_PROJECT_SETTINGS = {
 }
 
 
-def run_pytest_tests(tests=None, variables=None):
+def run_pytest_tests(tests, args=None, variables=None):
     """Run specific pytest tests.
 
     :param tests:     a list of tests to run
-    :param variables: parameter  variables which will be passed to pytest
+    :param args:      command line arguments which will be passed to pytest
+    :param variables: parameter variables which will be passed to pytest
     :return: exit code
     """
+    if args is None:
+        args = []
     if variables is None:
         variables = DEFAULT_VARIABLES
 
-    arguments = ['--reportportal']
+    arguments = ['--reportportal'] + args
     for k, v in variables.items():
         arguments.append('-o')
         arguments.append('{0}={1}'.format(k, str(v)))
@@ -102,7 +106,13 @@ def run_pytest_tests(tests=None, variables=None):
         for t in tests:
             arguments.append(t)
 
-    return pytest.main(arguments)
+    # Workaround collisions with parent test
+    current_test = os.environ['PYTEST_CURRENT_TEST']
+    del os.environ['PYTEST_CURRENT_TEST']
+    result = pytest.main(arguments)
+    os.environ['PYTEST_CURRENT_TEST'] = current_test
+
+    return result
 
 
 def item_id_gen(**kwargs):
@@ -112,3 +122,13 @@ def item_id_gen(**kwargs):
 
 def project_settings(**kwargs):
     return DEFAULT_PROJECT_SETTINGS
+
+
+def attributes_to_tuples(attributes):
+    result = set()
+    for attribute in attributes:
+        if 'key' in attribute:
+            result.add((attribute['key'], attribute['value']))
+        else:
+            result.add((None, attribute['value']))
+    return result

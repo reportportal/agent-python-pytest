@@ -1,4 +1,4 @@
-"""Simple example test."""
+"""A simple example test with Test Case ID decorator no arguments."""
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -12,7 +12,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+import pytest
 
-def test_simple():
-    """Simple example test."""
+
+@pytest.mark.parametrize(('param1', 'param2'), [('value1', 'value2')])
+@pytest.mark.tc_id
+def test_case_id_decorator(param1, param2):
     assert True

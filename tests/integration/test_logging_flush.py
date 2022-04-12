@@ -13,11 +13,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+from multiprocessing.pool import ThreadPool
+
 from six.moves import mock
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
-from multiprocessing.pool import ThreadPool
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -26,7 +27,11 @@ def test_logging_flushing(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
+    mock_client = mock_client_init.return_value
+
     def run_test():
+        from reportportal_client._local import set_current
+        set_current(mock_client)
         return utils.run_pytest_tests(['examples/test_rp_logging.py'])
 
     pool = ThreadPool(processes=1)
@@ -35,7 +40,5 @@ def test_logging_flushing(mock_client_init):
     pool.terminate()
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
-
-    mock_client = mock_client_init.return_value
     assert mock_client.terminate.call_count == 1, \
         '"terminate" method was not called at the end of the test'
