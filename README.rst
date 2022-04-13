@@ -128,7 +128,7 @@ in conftest.py:
 
     import pytest
 
-    from pytest_reportportal import RPLogger, RPLogHandler
+    from reportportal_client import RPLogger, RPLogHandler
 
 
     @pytest.fixture(scope="session")
@@ -238,6 +238,15 @@ Send attachement (screenshots)
 
 https://github.com/reportportal/client-Python#send-attachement-screenshots
 
+Test internal steps, aka "Nested steps"
+---------------------------------------
+
+To implement Nested steps reporting please follow our guide: https://github.com/reportportal/client-Python/wiki/Nested-steps
+
+Also there are examples of usage:
+
+* https://github.com/reportportal/examples-python/blob/master/pytest/tests/test_nested_steps.py
+* https://github.com/reportportal/examples-python/blob/master/pytest/tests/test_nested_steps_ui.py
 
 Troubleshooting
 ~~~~~~~~~~~~~~~
