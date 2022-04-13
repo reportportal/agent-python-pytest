@@ -128,7 +128,7 @@ in conftest.py:
 
     import pytest
 
-    from reportportal_client import RPLogger, RPLogHandler
+    from reportportal_client import RPLogger
 
 
     @pytest.fixture(scope="session")
