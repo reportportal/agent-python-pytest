@@ -1,24 +1,114 @@
 name: Release Pytest agent
 
 on:
-  release:
-    types: [published]
+  push:
+    branches: ['master']
+    paths-ignore:
+      - '.github/**'
+      - CHANGELOG.md
+      - README.rst
+      - CONTRIBUTING.rst
+
+env:
+  VERSION_FILE: setup.py
+  VERSION_EXTRACT_PATTERN: "__version__\s*=\s*'([^']+)"
+  VERSION_REPLACE_PATTERN: "__version__ = '\1'"
+  TMP_SUFFIX: _updated
+  CHANGE_LOG_FILE: CHANGELOG.md
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.6'
-    - name: Install dependencies
-      run: python -m pip install --upgrade pip setuptools wheel
-    - name: Build package
-      run: python setup.py sdist bdist_wheel
-    - name: Publish package
-      uses: pypa/gh-action-pypi-publish@release/v1
-      with:
-        user: ${{ secrets.PYPI_USERNAME }}
-        password: ${{ secrets.PYPI_PASSWORD }}
+      - uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip setuptools wheel
+
+      - name: Build package
+        run: python setup.py sdist bdist_wheel
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_PASSWORD }}
+
+      - name: Setup git credentials
+        uses: oleksiyrudenko/gha-git-credentials@v2
+        with:
+          name: 'reportportal.io'
+          email: 'support@reportportal.io'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate versions
+        uses: HardNorth/github-version-generate@v1.1.2
+        with:
+          version-source: file
+          version-file: ${{ env.VERSION_FILE }}
+          version-file-extraction-pattern: ${{ env.VERSION_EXTRACT_PATTERN }}
+
+      - name: Update CHANGELOG.md
+        id: changelogUpdate
+        run: |
+          sed '/\[Unreleased\]/q' ${{ env.CHANGE_LOG_FILE }} >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
+          sed -E '1,/#?#\s*\[Unreleased\]/d' ${{ env.CHANGE_LOG_FILE }} | sed -E '/#?#\s*\[/q' | \
+          { echo -e '\n## [${{ env.RELEASE_VERSION }}]'; sed '$d'; } >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
+          grep -E '#?#\s*\[[0-9]' ${{ env.CHANGE_LOG_FILE }} | head -n1 >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
+          sed -E '1,/#?#\s*\[[0-9]/d' ${{ env.CHANGE_LOG_FILE }} >> ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }}
+          rm ${{ env.CHANGE_LOG_FILE }}
+          mv ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }} ${{ env.CHANGE_LOG_FILE }}
+          git add ${{ env.CHANGE_LOG_FILE }}
+          git commit -m "Changelog update"
+          git push
+
+      - name: Read changelog Entry
+        id: readChangelogEntry
+        uses: mindsers/changelog-reader-action@v1.3.1
+        with:
+          version: ${{ env.RELEASE_VERSION }}
+          path: ./${{ env.CHANGE_LOG_FILE }}
+
+      - name: Create Release
+        id: createRelease
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.RELEASE_VERSION }}
+          release_name: Release ${{ env.RELEASE_VERSION }}
+          body: ${{ steps.readChangelogEntry.outputs.log_entry }}
+          draft: false
+          prerelease: false
+
+      - name: Checkout develop branch
+        if: ${{ github.ref }} == 'master'
+        uses: actions/checkout@v2
+        with:
+          ref: 'develop'
+          fetch-depth: 0
+
+      - name: Merge release branch into develop
+        id: mergeIntoDevelop
+        if: ${{ github.ref }} == 'master'
+        run: |
+          git merge -m 'Merge master branch into develop after a release' origin/master
+          git status | (! grep -Fq 'both modified:') || git status | grep -F 'both modified:' \
+          | { echo -e 'Unable to merge master into develop, merge conflicts:'; (! grep -Eo '[^ ]+$') }
+
+      - name: Update version file
+        id: versionFileUpdate
+        run: |
+          export CURRENT_VERSION_VALUE=`echo '${{ env.CURRENT_VERSION }}' | sed -E 's/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/'`
+          export NEXT_VERSION_VALUE=`echo '${{ env.NEXT_VERSION }}' | sed -E 's/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/'`
+          sed "s/${CURRENT_VERSION_VALUE}/${NEXT_VERSION_VALUE}/g" ${{ env.VERSION_FILE }} > ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }}
+          rm ${{ env.VERSION_FILE }}
+          mv ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }} ${{ env.VERSION_FILE }}
+          git add ${{ env.VERSION_FILE }}
+          git commit -m "Version update"
+          git push origin develop
