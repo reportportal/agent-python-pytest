@@ -7,4 +7,4 @@ SSL certificate flag handling issue, by @HardNorth
 
 ## [5.1.0]
 ### Changed
-- Agent complete rewrite, by @HardNorth 
+- Agent complete rewrite, by @HardNorth
