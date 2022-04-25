@@ -24,6 +24,26 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - name: Generate versions
+        uses: HardNorth/github-version-generate@v1.1.2
+        with:
+          version-source: file
+          version-file: ${{ env.VERSION_FILE }}
+          version-file-extraction-pattern: ${{ env.VERSION_EXTRACT_PATTERN }}
+
+      - name: Setup git credentials
+        uses: oleksiyrudenko/gha-git-credentials@v2
+        with:
+          name: 'reportportal.io'
+          email: 'support@reportportal.io'
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Tagging new version
+        id: newVersionTag
+        run: |
+          git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
+          git push --tags
+
       - name: Set up Python
         uses: actions/setup-python@v2
         with:
@@ -40,20 +60,6 @@ jobs:
         with:
           user: ${{ secrets.PYPI_USERNAME }}
           password: ${{ secrets.PYPI_PASSWORD }}
-
-      - name: Setup git credentials
-        uses: oleksiyrudenko/gha-git-credentials@v2
-        with:
-          name: 'reportportal.io'
-          email: 'support@reportportal.io'
-          token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Generate versions
-        uses: HardNorth/github-version-generate@v1.1.2
-        with:
-          version-source: file
-          version-file: ${{ env.VERSION_FILE }}
-          version-file-extraction-pattern: ${{ env.VERSION_EXTRACT_PATTERN }}
 
       - name: Update CHANGELOG.md
         id: changelogUpdate
