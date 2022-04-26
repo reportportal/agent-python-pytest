@@ -1,5 +1,6 @@
 """This module contains class that stores RP agent configuration data."""
 
+from distutils.util import strtobool
 from os import getenv
 
 try:
@@ -64,7 +65,11 @@ class AgentConfig(object):
                                            'true', '1', 'yes', 'y')
         self.rp_uuid = getenv('RP_UUID') or self.find_option(pytest_config,
                                                              'rp_uuid')
-        self.rp_verify_ssl = self.find_option(pytest_config, 'rp_verify_ssl')
+        rp_verify_ssl = self.find_option(pytest_config, 'rp_verify_ssl', True)
+        try:
+            self.rp_verify_ssl = bool(strtobool(rp_verify_ssl))
+        except (ValueError, AttributeError):
+            self.rp_verify_ssl = rp_verify_ssl
 
     # noinspection PyMethodMayBeStatic
     def find_option(self, pytest_config, option_name, default=None):
@@ -85,4 +90,6 @@ class AgentConfig(object):
                 getattr(pytest_config.option, option_name, None) or
                 pytest_config.getini(option_name)
         )
+        if isinstance(value, bool):
+            return value
         return value if value else default
