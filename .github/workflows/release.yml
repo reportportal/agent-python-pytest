@@ -61,6 +61,12 @@ jobs:
           user: ${{ secrets.PYPI_USERNAME }}
           password: ${{ secrets.PYPI_PASSWORD }}
 
+      - name: Checkout develop branch
+        uses: actions/checkout@v2
+        with:
+          ref: 'develop'
+          fetch-depth: 0
+
       - name: Update CHANGELOG.md
         id: changelogUpdate
         run: |
@@ -73,7 +79,6 @@ jobs:
           mv ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }} ${{ env.CHANGE_LOG_FILE }}
           git add ${{ env.CHANGE_LOG_FILE }}
           git commit -m "Changelog update"
-          git push
 
       - name: Read changelog Entry
         id: readChangelogEntry
@@ -94,12 +99,6 @@ jobs:
           draft: false
           prerelease: false
 
-      - name: Checkout develop branch
-        uses: actions/checkout@v2
-        with:
-          ref: 'develop'
-          fetch-depth: 0
-
       - name: Merge release branch into develop
         id: mergeIntoDevelop
         run: |
@@ -117,4 +116,4 @@ jobs:
           mv ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }} ${{ env.VERSION_FILE }}
           git add ${{ env.VERSION_FILE }}
           git commit -m "Version update"
-          git push origin develop
+          git push
