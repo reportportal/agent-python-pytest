@@ -7,11 +7,11 @@ agent-python-pytest
     :alt: Latest Version
 .. image:: https://img.shields.io/pypi/pyversions/pytest-reportportal.svg
     :target: https://pypi.org/project/pytest-reportportal
+.. image:: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml/badge.svg
+    :target: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml
+    :alt: Test status
 .. image:: https://codecov.io/gh/reportportal/agent-python-pytest/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/reportportal/agent-python-pytest
-.. image:: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml/badge.svg
-    :target: https://github.com/reportportal/agent-python-pytest
-
 
 Pytest plugin for reporting test results of the Pytest to the Reportal Portal.
 
