@@ -203,7 +203,6 @@ Test issue info
 ~~~~~~~~~~~~~~~
 
 Some pytest marks could be used to specify information about skipped or failed test result.
-List of this marks should be specified in pytest ini file (see :code:`rp_issue_marks`).
 
 The following mark fields are used to get information about test issue:
 
