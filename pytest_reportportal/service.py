@@ -21,11 +21,11 @@ except ImportError:
 from reportportal_client.client import RPClient
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
+    dict_to_payload,
     gen_attributes,
     get_launch_sys_attrs,
     get_package_version
 )
-from reportportal_client.helpers import dict_to_payload
 
 log = logging.getLogger(__name__)
 
