@@ -25,7 +25,7 @@ from reportportal_client.helpers import (
     get_launch_sys_attrs,
     get_package_version
 )
-from reportportal_client.service import _dict_to_payload
+from reportportal_client.helpers import dict_to_payload
 
 log = logging.getLogger(__name__)
 
@@ -135,7 +135,7 @@ class PyTestServiceClass(object):
         system_attributes = get_launch_sys_attrs()
         system_attributes['agent'] = (
             '{}-{}'.format(self.agent_name, self.agent_version))
-        return attributes + _dict_to_payload(system_attributes)
+        return attributes + dict_to_payload(system_attributes)
 
     def _build_start_launch_rq(self):
         rp_launch_attributes = self._config.rp_launch_attributes
