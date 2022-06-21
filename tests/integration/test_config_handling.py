@@ -17,6 +17,8 @@ from six.moves import mock
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
+TEST_LAUNCH_ID = 'test_launch_id'
+
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_rp_launch_id(mock_client_init):
@@ -25,12 +27,15 @@ def test_rp_launch_id(mock_client_init):
     :param mock_client_init: Pytest fixture
     """
     variables = dict()
-    variables['rp_launch_id'] = "test_launch_id"
+    variables['rp_launch_id'] = TEST_LAUNCH_ID
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=['examples/test_simple.py'],
                                     variables=variables)
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    expect(
+        mock_client_init.call_args_list[0][1]['launch_id'] == TEST_LAUNCH_ID)
 
     mock_client = mock_client_init.return_value
     expect(mock_client.start_launch.call_count == 0,
