@@ -100,6 +100,8 @@ The following parameters are optional:
   by pytest --rp-launch-description option, default value is '')
 
 - :code:`rp_log_batch_size = 20` - size of batch log request
+- :code:`rp_log_level = INFO` - The log level that will be reported
+- :code:`rp_log_format = [%(levelname)7s] (%(name)s) %(message)s (%(filename)s:%(lineno)s)` - Format string to be used for logs sent to the service.
 - :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers
 - :code:`rp_is_skipped_an_issue = False` - Treat skipped tests as required investigation. Default is True.
 - :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
