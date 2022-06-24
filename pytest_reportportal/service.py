@@ -21,11 +21,11 @@ except ImportError:
 from reportportal_client.client import RPClient
 from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
+    dict_to_payload,
     gen_attributes,
     get_launch_sys_attrs,
     get_package_version
 )
-from reportportal_client.service import _dict_to_payload
 
 log = logging.getLogger(__name__)
 
@@ -135,7 +135,7 @@ class PyTestServiceClass(object):
         system_attributes = get_launch_sys_attrs()
         system_attributes['agent'] = (
             '{}-{}'.format(self.agent_name, self.agent_version))
-        return attributes + _dict_to_payload(system_attributes)
+        return attributes + dict_to_payload(system_attributes)
 
     def _build_start_launch_rq(self):
         rp_launch_attributes = self._config.rp_launch_attributes
@@ -841,6 +841,7 @@ class PyTestServiceClass(object):
             retries=self._config.rp_retries,
             verify_ssl=self._config.rp_verify_ssl,
             launch_id=launch_id,
+            log_batch_payload_size=self._config.rp_log_batch_payload_size
         )
         if self.rp and hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()

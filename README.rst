@@ -7,11 +7,11 @@ agent-python-pytest
     :alt: Latest Version
 .. image:: https://img.shields.io/pypi/pyversions/pytest-reportportal.svg
     :target: https://pypi.org/project/pytest-reportportal
+.. image:: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml/badge.svg
+    :target: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml
+    :alt: Test status
 .. image:: https://codecov.io/gh/reportportal/agent-python-pytest/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/reportportal/agent-python-pytest
-.. image:: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml/badge.svg
-    :target: https://github.com/reportportal/agent-python-pytest
-
 
 Pytest plugin for reporting test results of the Pytest to the Reportal Portal.
 
@@ -100,6 +100,9 @@ The following parameters are optional:
   by pytest --rp-launch-description option, default value is '')
 
 - :code:`rp_log_batch_size = 20` - size of batch log request
+- :code:`rp_log_batch_payload_size = 65000000` - maximum payload size in bytes of async batch log requests
+- :code:`rp_log_level = INFO` - The log level that will be reported
+- :code:`rp_log_format = [%(levelname)7s] (%(name)s) %(message)s (%(filename)s:%(lineno)s)` - Format string to be used for logs sent to the service.
 - :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers
 - :code:`rp_is_skipped_an_issue = False` - Treat skipped tests as required investigation. Default is True.
 - :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
@@ -204,7 +207,6 @@ Test issue info
 ~~~~~~~~~~~~~~~
 
 Some pytest marks could be used to specify information about skipped or failed test result.
-List of this marks should be specified in pytest ini file (see :code:`rp_issue_marks`).
 
 The following mark fields are used to get information about test issue:
 

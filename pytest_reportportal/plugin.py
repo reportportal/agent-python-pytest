@@ -11,6 +11,7 @@ import dill as pickle
 import pytest
 import requests
 from reportportal_client import RPLogHandler
+from reportportal_client.core.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.errors import ResponseError
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
@@ -225,6 +226,9 @@ def pytest_runtest_protocol(item):
                                endpoint=agent_config.rp_endpoint,
                                ignored_record_names=('reportportal_client',
                                                      'pytest_reportportal'))
+    log_format = agent_config.rp_log_format
+    if log_format:
+        log_handler.setFormatter(logging.Formatter(log_format))
     with patching_logger_class():
         with _pytest.logging.catching_logs(log_handler, level=log_level):
             yield
@@ -310,6 +314,10 @@ def pytest_addoption(parser):
         help='Logging level for automated log records reporting',
     )
     add_shared_option(
+        name='rp_log_format',
+        help='Logging format for automated log records reporting',
+    )
+    add_shared_option(
         name='rp_rerun',
         help='Marks the launch as a rerun',
         default=False,
@@ -346,6 +354,10 @@ def pytest_addoption(parser):
         'rp_log_batch_size',
         default='20',
         help='Size of batch log requests in async mode')
+    parser.addini(
+        'rp_log_batch_payload_size',
+        default=str(MAX_LOG_BATCH_PAYLOAD_SIZE),
+        help='Maximum payload size in bytes of async batch log requests')
     parser.addini(
         'rp_ignore_attributes',
         type='args',

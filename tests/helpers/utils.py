@@ -16,6 +16,7 @@ limitations under the License
 import os
 import random
 import time
+from multiprocessing.pool import ThreadPool
 
 import pytest
 
@@ -131,4 +132,18 @@ def attributes_to_tuples(attributes):
             result.add((attribute['key'], attribute['value']))
         else:
             result.add((None, attribute['value']))
+    return result
+
+
+# noinspection PyProtectedMember
+def run_tests_with_client(client, tests, args=None, variables=None):
+    def test_func():
+        from reportportal_client._local import set_current
+        set_current(client)
+        return run_pytest_tests(tests, args, variables)
+
+    pool = ThreadPool(processes=1)
+    async_result = pool.apply_async(test_func)
+    result = async_result.get()
+    pool.terminate()
     return result
