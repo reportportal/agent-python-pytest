@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.1.2]
 ### Added
 - `rp_log_batch_payload_size` parameter, by @HardNorth
 ### Changed
