@@ -100,6 +100,7 @@ The following parameters are optional:
   by pytest --rp-launch-description option, default value is '')
 
 - :code:`rp_log_batch_size = 20` - size of batch log request
+- :code:`rp_log_batch_payload_size = 65000000` - maximum payload size in bytes of async batch log requests
 - :code:`rp_log_level = INFO` - The log level that will be reported
 - :code:`rp_log_format = [%(levelname)7s] (%(name)s) %(message)s (%(filename)s:%(lineno)s)` - Format string to be used for logs sent to the service.
 - :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers

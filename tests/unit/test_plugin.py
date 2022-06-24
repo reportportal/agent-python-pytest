@@ -321,6 +321,7 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_launch_attributes',
         'rp_tests_attributes',
         'rp_log_batch_size',
+        'rp_log_batch_payload_size',
         'rp_ignore_attributes',
         'rp_is_skipped_an_issue',
         'rp_hierarchy_code',

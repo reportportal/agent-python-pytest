@@ -3,6 +3,8 @@
 from distutils.util import strtobool
 from os import getenv
 
+from reportportal_client.core.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
+
 try:
     # This try/except can go away once we support pytest >= 5.4.0
     from _pytest.logging import get_actual_log_level
@@ -49,6 +51,12 @@ class AgentConfig(object):
                                                       'rp_launch_description')
         self.rp_log_batch_size = int(self.find_option(pytest_config,
                                                       'rp_log_batch_size'))
+        batch_payload_size = self.find_option(
+            pytest_config, 'rp_log_batch_payload_size')
+        if batch_payload_size:
+            self.rp_log_batch_payload_size = int(batch_payload_size)
+        else:
+            self.rp_log_batch_payload_size = MAX_LOG_BATCH_PAYLOAD_SIZE
         self.rp_log_level = get_actual_log_level(pytest_config, 'rp_log_level')
         self.rp_log_format = self.find_option(pytest_config, 'rp_log_format')
         self.rp_mode = self.find_option(pytest_config, 'rp_mode')

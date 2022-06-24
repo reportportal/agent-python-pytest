@@ -14,6 +14,7 @@
 from delayed_assert import expect, assert_expectations
 from six.moves import mock
 
+from examples.test_rp_logging import LOG_MESSAGE
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
@@ -106,4 +107,41 @@ def test_rp_parent_item_id_and_rp_launch_id(mock_client_init):
 
     expect(len(start_call_args) == len(finish_call_args))
     expect(start_call_args[0][1]["parent_item_id"] == parent_id)
+    assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_log_format(mock_client_init):
+    log_format = '(%(name)s) %(message)s (%(filename)s:%(lineno)s)'
+    variables = {'rp_log_format': log_format}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+
+    mock_client = mock_client_init.return_value
+    result = utils.run_tests_with_client(
+        mock_client, ['examples/test_rp_logging.py'], variables=variables)
+
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    expect(mock_client.log.call_count == 1)
+    message = mock_client.log.call_args_list[0][0][1]
+    expect(len(message) > 0)
+    expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
+           ' (test_rp_logging.py:24)')
+    assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_log_batch_payload_size(mock_client_init):
+    log_size = 123456
+    variables = {'rp_log_batch_payload_size': log_size}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                    variables=variables)
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    expect(mock_client_init.call_count == 1)
+
+    constructor_args = mock_client_init.call_args_list[0][1]
+    expect(constructor_args['log_batch_payload_size'] == log_size)
     assert_expectations()

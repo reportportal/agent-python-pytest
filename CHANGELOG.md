@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `rp_log_batch_payload_size` parameter, by @HardNorth
 ### Changed
 - Feature [#311](https://github.com/reportportal/agent-python-pytest/issues/311):
 Adding log format config option, by @dagansandler
