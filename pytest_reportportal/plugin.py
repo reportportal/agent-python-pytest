@@ -220,11 +220,13 @@ def pytest_runtest_protocol(item):
     agent_config = config._reporter_config
     service.start_pytest_item(item)
     log_level = agent_config.rp_log_level or logging.NOTSET
+    log_format = agent_config.rp_log_format
     log_handler = RPLogHandler(level=log_level,
                                filter_client_logs=True,
                                endpoint=agent_config.rp_endpoint,
                                ignored_record_names=('reportportal_client',
                                                      'pytest_reportportal'))
+    log_handler.setFormatter(logging.Formatter(log_format))
     with patching_logger_class():
         with _pytest.logging.catching_logs(log_handler, level=log_level):
             yield
@@ -308,6 +310,10 @@ def pytest_addoption(parser):
     add_shared_option(
         name='rp_log_level',
         help='Logging level for automated log records reporting',
+    )
+    add_shared_option(
+        name='rp_log_format',
+        help='Logging format for automated log records reporting',
     )
     add_shared_option(
         name='rp_rerun',

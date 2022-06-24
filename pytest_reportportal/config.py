@@ -50,6 +50,7 @@ class AgentConfig(object):
         self.rp_log_batch_size = int(self.find_option(pytest_config,
                                                       'rp_log_batch_size'))
         self.rp_log_level = get_actual_log_level(pytest_config, 'rp_log_level')
+        self.rp_log_format = self.find_option(pytest_config, 'rp_log_format')
         self.rp_mode = self.find_option(pytest_config, 'rp_mode')
         self.rp_parent_item_id = self.find_option(pytest_config,
                                                   'rp_parent_item_id')

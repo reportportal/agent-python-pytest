@@ -1,6 +1,9 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Feature [#311](https://github.com/reportportal/agent-python-pytest/issues/311):
+Adding log format config option, by @dagansandler
 
 ## [5.1.1]
 ### Fixed
