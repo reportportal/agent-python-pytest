@@ -21,7 +21,7 @@ Pytest plugin for reporting test results of the Pytest to the Reportal Portal.
 * Contribution
 * Examples
 * Launching
-* Send attachement (screenshots)
+* Send attachment (screenshots)
 * Troubleshooting
 * Integration with GA
 * Copyright Notice
@@ -223,10 +223,10 @@ Example:
         assert False
 
 
-Send attachement (screenshots)
+Send attachment (screenshots)
 ------------------------------
 
-https://github.com/reportportal/client-Python#send-attachement-screenshots
+https://github.com/reportportal/client-Python#send-attachment-screenshots
 
 Test internal steps, aka "Nested steps"
 ---------------------------------------
