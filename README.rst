@@ -113,6 +113,7 @@ The following parameters are optional:
 - :code:`rp_issue_id_marks = True` - Enables adding marks for issue ids (e.g. "issue:123456")
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
 - :code:`rp_mode = DEFAULT` - DEBUG or DEFAULT launch mode. DEBUG launches are displayed in a separate tab and not visible to anyone except owner
+- :code:`rp_thread_logging` - EXPERIMENTAL - Enables support for reporting logs from threads by patching the builtin Thread class. Use with caution.
 
 
 If you like to override the above parameters from command line, or from CI environment based on your build, then pass
