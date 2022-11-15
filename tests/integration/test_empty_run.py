@@ -34,9 +34,9 @@ def test_empty_run(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
-    result = utils.run_pytest_tests(tests=['examples/epmty/'])
+    result = utils.run_pytest_tests(tests=['examples/empty/'])
 
-    assert int(result) == 4, 'Exit code should be 4 (no tests)'
+    assert int(result) == 5, 'Exit code should be 5 (no tests)'
 
     mock_client = mock_client_init.return_value
     expect(mock_client.start_launch.call_count == 1,
