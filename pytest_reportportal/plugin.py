@@ -16,7 +16,7 @@ from reportportal_client.errors import ResponseError
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from .config import AgentConfig
-from .rp_logging import patching_logger_class
+from .rp_logging import patching_logger_class, patching_thread_class
 from .service import PyTestServiceClass
 
 log = logging.getLogger(__name__)
@@ -205,6 +205,24 @@ def pytest_configure(config):
 
 
 @pytest.hookimpl(hookwrapper=True)
+def pytest_runtestloop(session):
+    """
+    Control start and finish of all test items in the session.
+
+    :param session: pytest.Session
+    :return:     generator object
+    """
+    config = session.config
+    if not config._rp_enabled:
+        yield
+        return
+
+    agent_config = config._reporter_config
+    with patching_thread_class(agent_config):
+        yield
+
+
+@pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item):
     """
     Control start and finish of pytest items.
@@ -340,6 +358,14 @@ def pytest_addoption(parser):
         name='rp_mode',
         help='Visibility of current launch [DEFAULT, DEBUG]',
         default='DEFAULT'
+    )
+    add_shared_option(
+        name='rp_thread_logging',
+        help='EXPERIMENTAL: Report logs from threads. '
+             'This option applies a patch to the builtin Thread class, '
+             'and so it is turned off by default. Use with caution.',
+        default=False,
+        action='store_true'
     )
 
     parser.addini(
