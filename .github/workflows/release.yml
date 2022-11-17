@@ -32,7 +32,7 @@ jobs:
           version-file-extraction-pattern: ${{ env.VERSION_EXTRACT_PATTERN }}
 
       - name: Setup git credentials
-        uses: oleksiyrudenko/gha-git-credentials@v2
+        uses: oleksiyrudenko/gha-git-credentials@v2.1
         with:
           name: 'reportportal.io'
           email: 'support@reportportal.io'
@@ -62,7 +62,7 @@ jobs:
           password: ${{ secrets.PYPI_PASSWORD }}
 
       - name: Checkout develop branch
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           ref: 'develop'
           fetch-depth: 0
@@ -82,22 +82,18 @@ jobs:
 
       - name: Read changelog Entry
         id: readChangelogEntry
-        uses: mindsers/changelog-reader-action@v1.3.1
+        uses: mindsers/changelog-reader-action@v2
         with:
           version: ${{ env.RELEASE_VERSION }}
           path: ./${{ env.CHANGE_LOG_FILE }}
 
       - name: Create Release
         id: createRelease
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: ncipollo/release-action@v1
         with:
-          tag_name: ${{ env.RELEASE_VERSION }}
-          release_name: Release ${{ env.RELEASE_VERSION }}
-          body: ${{ steps.readChangelogEntry.outputs.log_entry }}
-          draft: false
-          prerelease: false
+          tag: ${{ env.RELEASE_VERSION }}
+          name: Release ${{ env.RELEASE_VERSION }}
+          body: ${{ steps.readChangelogEntry.outputs.changes }}
 
       - name: Merge release branch into develop
         id: mergeIntoDevelop
