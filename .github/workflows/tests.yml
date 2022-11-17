@@ -32,4 +32,3 @@ jobs:
           files: coverage.xml
           flags: unittests
           name: codecov-client-reportportal
-          path_to_write_report: codecov_report.txt
