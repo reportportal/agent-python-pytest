@@ -2,7 +2,7 @@ name: Release Pytest agent
 
 on:
   push:
-    branches: ['master']
+    branches: [ 'master' ]
     paths-ignore:
       - '.github/**'
       - CHANGELOG.md
@@ -32,7 +32,7 @@ jobs:
           version-file-extraction-pattern: ${{ env.VERSION_EXTRACT_PATTERN }}
 
       - name: Setup git credentials
-        uses: oleksiyrudenko/gha-git-credentials@v2.1
+        uses: oleksiyrudenko/gha-git-credentials@v2.1.1
         with:
           name: 'reportportal.io'
           email: 'support@reportportal.io'
