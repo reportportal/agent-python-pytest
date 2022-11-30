@@ -318,6 +318,7 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_uuid',
         'rp_endpoint',
         'rp_mode',
+        'rp_thread_logging',
         'rp_launch_attributes',
         'rp_tests_attributes',
         'rp_log_batch_size',
@@ -361,7 +362,8 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         '--rp-parent-item-id',
         '--rp-uuid',
         '--rp-endpoint',
-        '--rp-mode'
+        '--rp-mode',
+        '--rp-thread-logging'
     )
     mock_parser = mock.MagicMock(spec=Parser)
     mock_reporting_group = mock_parser.getgroup.return_value
