@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.1.3]
 ### Added
 - Support for thread logs and `rp_thread_logging` flag, by @dagansandler
 
