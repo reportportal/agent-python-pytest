@@ -13,7 +13,7 @@ agent-python-pytest
 .. image:: https://codecov.io/gh/reportportal/agent-python-pytest/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/reportportal/agent-python-pytest
 
-Pytest plugin for reporting test results of the Pytest to the Reportal Portal.
+Pytest plugin for reporting test results of the Pytest to the Report Portal.
 
 * Usage
 * Installation
@@ -70,7 +70,7 @@ any one using pytest command line option:
 The :code:`pytest.ini` file should have next mandatory fields:
 
 - :code:`rp_uuid` - value could be found in the User Profile section
-- :code:`rp_project` - name of project in Report Potal
+- :code:`rp_project` - name of project in Report Portal
 - :code:`rp_endpoint` - address of Report Portal Server
 
 Example of :code:`pytest.ini`:
