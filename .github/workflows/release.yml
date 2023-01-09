@@ -33,9 +33,27 @@ env:
 
 jobs:
   deploy:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.8'
+
+      - name: Install dependencies
+        run: python -m pip install --upgrade pip setuptools wheel
+
+      - name: Build package
+        run: python setup.py sdist bdist_wheel
+
+      - name: Publish package
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          user: ${{ secrets.PYPI_USERNAME }}
+          password: ${{ secrets.PYPI_PASSWORD }}
 
       - name: Generate versions
         uses: HardNorth/github-version-generate@v1
@@ -56,29 +74,6 @@ jobs:
         run: |
           git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
           git push --tags
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.6'
-
-      - name: Install dependencies
-        run: python -m pip install --upgrade pip setuptools wheel
-
-      - name: Build package
-        run: python setup.py sdist bdist_wheel
-
-      - name: Publish package
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: ${{ secrets.PYPI_USERNAME }}
-          password: ${{ secrets.PYPI_PASSWORD }}
-
-      - name: Checkout develop branch
-        uses: actions/checkout@v3
-        with:
-          ref: 'develop'
-          fetch-depth: 0
 
       - name: Update CHANGELOG.md
         id: changelogUpdate
@@ -107,6 +102,12 @@ jobs:
           tag: ${{ env.RELEASE_VERSION }}
           name: Release ${{ env.RELEASE_VERSION }}
           body: ${{ steps.readChangelogEntry.outputs.changes }}
+
+      - name: Checkout develop branch
+        uses: actions/checkout@v3
+        with:
+          ref: 'develop'
+          fetch-depth: 0
 
       - name: Merge release branch into develop
         id: mergeIntoDevelop
