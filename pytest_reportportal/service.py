@@ -683,6 +683,7 @@ class PyTestServiceClass(object):
         if status == 'PASSED':
             issue = None
         payload = {
+            'attributes': leaf.get('attributes', None),
             'end_time': timestamp(),
             'status': status,
             'issue': issue,
@@ -741,6 +742,7 @@ class PyTestServiceClass(object):
 
         path = self._tree_path[test_item]
         leaf = path[-1]
+        self._process_attributes(leaf)
         self._finish_step(self._build_finish_step_rq(leaf))
         leaf['exec'] = ExecStatus.FINISHED
         self._finish_parents(leaf)
