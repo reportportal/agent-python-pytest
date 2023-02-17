@@ -64,6 +64,7 @@ def mocked_config():
     mocked_config.option.retries = -1
     mocked_config.option.rp_hierarchy_dirs_level = '0'
     mocked_config.option.rp_rerun = False
+    mocked_config.option.rp_launch_timeout = -1
     return mocked_config
 
 
