@@ -120,3 +120,41 @@ def test_skip_attribute(mock_client_init):
     assert utils.attributes_to_tuples(actual_attributes) == {
         (None, 'skip')
     }
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_custom_runtime_attribute_report(mock_client_init):
+    """Verify custom attribute is reported.
+
+    :param mock_client_init: Pytest fixture
+    """
+    variables = {
+        'markers': 'scope: to which test scope a test relates\n'
+                   'runtime: runtime attribute mark'
+    }
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(
+        tests=['examples/attributes/test_runtime_attribute.py'],
+        variables=variables
+    )
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    mock_client = mock_client_init.return_value
+    assert mock_client.start_test_item.call_count > 0, \
+        '"start_test_item" called incorrect number of times'
+    assert mock_client.finish_test_item.call_count > 0, \
+        '"finish_test_item" called incorrect number of times'
+
+    start_call_args = mock_client.start_test_item.call_args_list
+    start_step_call_args = start_call_args[-1][1]
+    assert start_step_call_args['attributes'] == [
+        {'key': 'scope', 'value': 'smoke'}
+    ]
+
+    finish_call_args = mock_client.finish_test_item.call_args_list
+    finish_step_call_args = finish_call_args[-1][1]
+    actual_attributes = finish_step_call_args['attributes']
+    attribute_tuple_list = [(kv.get('key'), kv['value'])
+                            for kv in actual_attributes]
+
+    assert set(attribute_tuple_list) == {('scope', 'smoke'), (None, 'runtime')}

@@ -15,9 +15,12 @@ import pytest
 
 
 @pytest.mark.scope("smoke")
-def test_custom_attributes_report():
+def test_custom_attributes_report(request):
     """
-    This is a test with one custom marker which shall appear on
-    ReportPortal on test's item
+    This is a test with one custom marker as a decorator and one custom marker
+    added at runtime which shall both appear on  ReportPortal on test's item
     """
+    request.node.add_marker(
+        pytest.mark.runtime()
+    )
     assert True
