@@ -447,3 +447,9 @@ def pytest_addoption(parser):
         default=False,
         type='bool',
         help='Skip Report Portal connection test')
+    parser.addini(
+        'rp_launch_timeout',
+        default=86400,
+        help='Maximum time to wait for child processes finish, default value: '
+             '86400 seconds (1 day)'
+    )

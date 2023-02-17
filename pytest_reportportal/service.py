@@ -791,7 +791,9 @@ class PyTestServiceClass(object):
         at once.
         """
         # Ensure there is no running items
-        while len(self._get_items(ExecStatus.IN_PROGRESS)) > 0:
+        finish_time = time()
+        while len(self._get_items(ExecStatus.IN_PROGRESS)) > 0 \
+                and time() - finish_time <= self._config.rp_launch_timeout:
             sleep(0.1)
         skipped_items = self._get_items(ExecStatus.CREATED)
         for item in skipped_items:

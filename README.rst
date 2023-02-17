@@ -120,6 +120,8 @@ The following parameters are optional:
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
 - :code:`rp_mode = DEFAULT` - DEBUG or DEFAULT launch mode. DEBUG launches are displayed in a separate tab and not visible to anyone except owner
 - :code:`rp_thread_logging` - EXPERIMENTAL - Enables support for reporting logs from threads by patching the builtin Thread class. Use with caution.
+- :code:`rp_launch_timeout = 86400` - Maximum time to wait for child processes finish, default value: 86400 seconds (1 day)
+
 
 
 If you like to override the above parameters from command line, or from CI environment based on your build, then pass
