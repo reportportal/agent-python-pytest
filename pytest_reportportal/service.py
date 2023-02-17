@@ -576,14 +576,14 @@ class PyTestServiceClass(object):
 
         return self._get_test_case_id(None, leaf)
 
-    def _process_issue(self, leaf):
+    def _process_issue(self, item):
         """
         Process Issue if set.
 
-        :param leaf: item context
+        :param item: Pytest.Item
         :return: Issue
         """
-        for marker in leaf['item'].iter_markers():
+        for marker in item.iter_markers():
             if marker.name == 'issue':
                 return self._get_issue(marker)
 
@@ -622,6 +622,7 @@ class PyTestServiceClass(object):
         leaf['parameters'] = self._get_parameters(item)
         leaf['code_ref'] = self._get_code_ref(item)
         leaf['test_case_id'] = self._process_test_case_id(leaf)
+        leaf['issue'] = self._process_issue(item)
         leaf['attributes'] = self._process_attributes(item)
 
     def _process_metadata_item_finish(self, leaf):
