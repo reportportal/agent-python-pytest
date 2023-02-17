@@ -7,13 +7,19 @@ agent-python-pytest
     :alt: Latest Version
 .. image:: https://img.shields.io/pypi/pyversions/pytest-reportportal.svg
     :target: https://pypi.org/project/pytest-reportportal
+    :alt: Supported python versions
 .. image:: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml/badge.svg
     :target: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml
     :alt: Test status
 .. image:: https://codecov.io/gh/reportportal/agent-python-pytest/branch/master/graph/badge.svg
     :target: https://codecov.io/gh/reportportal/agent-python-pytest
+    :alt: Test coverage
+.. image:: https://slack.epmrpp.reportportal.io/badge.svg
+    :target: https://slack.epmrpp.reportportal.io/
+    :alt: Join Slack chat!
 
-Pytest plugin for reporting test results of the Pytest to the Reportal Portal.
+
+Pytest plugin for reporting test results of the Pytest to the Report Portal.
 
 * Usage
 * Installation
@@ -70,7 +76,7 @@ any one using pytest command line option:
 The :code:`pytest.ini` file should have next mandatory fields:
 
 - :code:`rp_uuid` - value could be found in the User Profile section
-- :code:`rp_project` - name of project in Report Potal
+- :code:`rp_project` - name of project in Report Portal
 - :code:`rp_endpoint` - address of Report Portal Server
 
 Example of :code:`pytest.ini`:
@@ -114,6 +120,8 @@ The following parameters are optional:
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
 - :code:`rp_mode = DEFAULT` - DEBUG or DEFAULT launch mode. DEBUG launches are displayed in a separate tab and not visible to anyone except owner
 - :code:`rp_thread_logging` - EXPERIMENTAL - Enables support for reporting logs from threads by patching the builtin Thread class. Use with caution.
+- :code:`rp_launch_timeout = 86400` - Maximum time to wait for child processes finish, default value: 86400 seconds (1 day)
+
 
 
 If you like to override the above parameters from command line, or from CI environment based on your build, then pass

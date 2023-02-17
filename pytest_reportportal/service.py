@@ -515,6 +515,7 @@ class PyTestServiceClass(object):
         """Add issues description and issue_type to the test item.
 
         :param mark: pytest mark
+        :return: Issue object
         """
         default_url = self._config.rp_issue_system_url
 
@@ -562,29 +563,40 @@ class PyTestServiceClass(object):
         """
         return item.callspec.params if hasattr(item, 'callspec') else None
 
-    def _process_attributes(self, leaf):
+    def _process_test_case_id(self, leaf):
         """
-        Process all types of attributes of item.
+        Process Test Case ID if set.
 
         :param leaf: item context
+        :return: Test Case ID string
         """
-        item = leaf['item']
-
-        parameters = self._get_parameters(item)
-        leaf['parameters'] = parameters
-
-        code_ref = self._get_code_ref(item)
-        leaf['code_ref'] = code_ref
-
-        attributes = set()
         for marker in leaf['item'].iter_markers():
             if marker.name == 'tc_id':
-                test_case_id = self._get_test_case_id(marker, leaf)
-                leaf['test_case_id'] = test_case_id
-                continue
+                return self._get_test_case_id(marker, leaf)
+
+        return self._get_test_case_id(None, leaf)
+
+    def _process_issue(self, item):
+        """
+        Process Issue if set.
+
+        :param item: Pytest.Item
+        :return: Issue
+        """
+        for marker in item.iter_markers():
             if marker.name == 'issue':
-                issue = self._get_issue(marker)
-                leaf['issue'] = issue
+                return self._get_issue(marker)
+
+    def _process_attributes(self, item):
+        """
+        Process attributes of item.
+
+        :param item: Pytest.Item
+        :return: a set of attributes
+        """
+        attributes = set()
+        for marker in item.iter_markers():
+            if marker.name == 'issue':
                 if self._config.rp_issue_id_marks:
                     for issue_id in self._get_issue_ids(marker):
                         attributes.add((marker.name, issue_id))
@@ -597,11 +609,29 @@ class PyTestServiceClass(object):
             else:
                 attributes.add((None, marker.name))
 
-        leaf['attributes'] = [self._to_attribute(attribute)
-                              for attribute in attributes]
+        return [self._to_attribute(attribute)
+                for attribute in attributes]
 
-        if 'test_case_id' not in leaf:
-            leaf['test_case_id'] = self._get_test_case_id(None, leaf)
+    def _process_metadata_item_start(self, leaf):
+        """
+        Process all types of item metadata for its start event.
+
+        :param leaf: item context
+        """
+        item = leaf['item']
+        leaf['parameters'] = self._get_parameters(item)
+        leaf['code_ref'] = self._get_code_ref(item)
+        leaf['test_case_id'] = self._process_test_case_id(leaf)
+        leaf['issue'] = self._process_issue(item)
+        leaf['attributes'] = self._process_attributes(item)
+
+    def _process_metadata_item_finish(self, leaf):
+        """
+        Process all types of item metadata for its finish event.
+
+        :param leaf: item context
+        """
+        leaf['attributes'] = self._process_attributes(leaf['item'])
 
     def _build_start_step_rq(self, leaf):
         payload = {
@@ -647,7 +677,7 @@ class PyTestServiceClass(object):
         # Details at:
         # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
         current_leaf = self._tree_path[test_item][-1]
-        self._process_attributes(current_leaf)
+        self._process_metadata_item_start(current_leaf)
         item_id = self._start_step(self._build_start_step_rq(current_leaf))
         current_leaf['item_id'] = item_id
         current_leaf['exec'] = ExecStatus.IN_PROGRESS
@@ -683,6 +713,7 @@ class PyTestServiceClass(object):
         if status == 'PASSED':
             issue = None
         payload = {
+            'attributes': leaf.get('attributes', None),
             'end_time': timestamp(),
             'status': status,
             'issue': issue,
@@ -741,6 +772,7 @@ class PyTestServiceClass(object):
 
         path = self._tree_path[test_item]
         leaf = path[-1]
+        self._process_metadata_item_finish(leaf)
         self._finish_step(self._build_finish_step_rq(leaf))
         leaf['exec'] = ExecStatus.FINISHED
         self._finish_parents(leaf)
@@ -759,7 +791,9 @@ class PyTestServiceClass(object):
         at once.
         """
         # Ensure there is no running items
-        while len(self._get_items(ExecStatus.IN_PROGRESS)) > 0:
+        finish_time = time()
+        while len(self._get_items(ExecStatus.IN_PROGRESS)) > 0 \
+                and time() - finish_time <= self._config.rp_launch_timeout:
             sleep(0.1)
         skipped_items = self._get_items(ExecStatus.CREATED)
         for item in skipped_items:

@@ -82,6 +82,8 @@ class AgentConfig(object):
             self.rp_verify_ssl = bool(strtobool(rp_verify_ssl))
         except (ValueError, AttributeError):
             self.rp_verify_ssl = rp_verify_ssl
+        self.rp_launch_timeout = int(
+            self.find_option(pytest_config, 'rp_launch_timeout'))
 
     # noinspection PyMethodMayBeStatic
     def find_option(self, pytest_config, option_name, default=None):
