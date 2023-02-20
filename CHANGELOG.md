@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 ### Added
+- Support of runtime issue adding, by @HardNorth
+
+## [5.1.4]
+### Added
 - Feature [#325](https://github.com/reportportal/agent-python-pytest/issues/325) Support of runtime attribute adding, by @yakovbabich, @HardNorth
 - `rp_launch_timeout` parameter to limit test execution in case of process hanging, by @HardNorth
 

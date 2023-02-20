@@ -570,10 +570,9 @@ class PyTestServiceClass(object):
         :param leaf: item context
         :return: Test Case ID string
         """
-        for marker in leaf['item'].iter_markers():
-            if marker.name == 'tc_id':
-                return self._get_test_case_id(marker, leaf)
-
+        tc_ids = [m for m in leaf['item'].iter_markers() if m.name == 'tc_id']
+        if len(tc_ids) > 0:
+            return self._get_test_case_id(tc_ids[0], leaf)
         return self._get_test_case_id(None, leaf)
 
     def _process_issue(self, item):
@@ -583,9 +582,9 @@ class PyTestServiceClass(object):
         :param item: Pytest.Item
         :return: Issue
         """
-        for marker in item.iter_markers():
-            if marker.name == 'issue':
-                return self._get_issue(marker)
+        issues = [m for m in item.iter_markers() if m.name == 'issue']
+        if len(issues) > 0:
+            return self._get_issue(issues[0])
 
     def _process_attributes(self, item):
         """
@@ -631,7 +630,9 @@ class PyTestServiceClass(object):
 
         :param leaf: item context
         """
-        leaf['attributes'] = self._process_attributes(leaf['item'])
+        item = leaf['item']
+        leaf['attributes'] = self._process_attributes(item)
+        leaf['issue'] = self._process_issue(item)
 
     def _build_start_step_rq(self, leaf):
         payload = {
