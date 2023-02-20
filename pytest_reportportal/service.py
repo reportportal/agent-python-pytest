@@ -570,7 +570,7 @@ class PyTestServiceClass(object):
         :param leaf: item context
         :return: Test Case ID string
         """
-        tc_ids = [m.name == 'tc_id' for m in leaf['item'].iter_markers()]
+        tc_ids = [m for m in leaf['item'].iter_markers() if m.name == 'tc_id']
         if len(tc_ids) > 0:
             return self._get_test_case_id(tc_ids[0], leaf)
         return self._get_test_case_id(None, leaf)
@@ -582,7 +582,7 @@ class PyTestServiceClass(object):
         :param item: Pytest.Item
         :return: Issue
         """
-        issues = [m.name == 'issue' for m in item.iter_markers()]
+        issues = [m for m in item.iter_markers() if m.name == 'issue']
         if len(issues) > 0:
             return self._get_issue(issues[0])
 
