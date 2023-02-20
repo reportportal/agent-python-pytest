@@ -631,7 +631,8 @@ class PyTestServiceClass(object):
 
         :param leaf: item context
         """
-        leaf['attributes'] = self._process_attributes(leaf['item'])
+        item = leaf['item']
+        leaf['attributes'] = self._process_attributes(item)
         leaf['issue'] = self._process_issue(item)
 
     def _build_start_step_rq(self, leaf):
