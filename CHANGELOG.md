@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Support of runtime issue adding, by @HardNorth
 
 ## [5.1.4]
 ### Added
