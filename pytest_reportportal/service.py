@@ -570,11 +570,9 @@ class PyTestServiceClass(object):
         :param leaf: item context
         :return: Test Case ID string
         """
-        tc_id = next(
-            filter(lambda m: m.name == 'tc_id', leaf['item'].iter_markers()),
-            None)
-        if tc_id:
-            return self._get_test_case_id(tc_id, leaf)
+        tc_ids = [m.name == 'tc_id' for m in leaf['item'].iter_markers()]
+        if len(tc_ids) > 0:
+            return self._get_test_case_id(tc_ids[0], leaf)
         return self._get_test_case_id(None, leaf)
 
     def _process_issue(self, item):
@@ -584,11 +582,9 @@ class PyTestServiceClass(object):
         :param item: Pytest.Item
         :return: Issue
         """
-        issue = next(
-            filter(lambda m: m.name == 'issue', item.iter_markers()),
-            None)
-        if issue:
-            return self._get_issue(issue)
+        issues = [m.name == 'issue' for m in item.iter_markers()]
+        if len(issues) > 0:
+            return self._get_issue(issues[0])
 
     def _process_attributes(self, item):
         """
