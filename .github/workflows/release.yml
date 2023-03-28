@@ -75,6 +75,19 @@ jobs:
           git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
           git push --tags
 
+      - name: Checkout develop branch
+        uses: actions/checkout@v3
+        with:
+          ref: 'develop'
+          fetch-depth: 0
+
+      - name: Merge release branch into develop
+        id: mergeIntoDevelop
+        run: |
+          git merge -m 'Merge master branch into develop after a release' origin/master
+          git status | (! grep -Fq 'both modified:') || git status | grep -F 'both modified:' \
+          | { echo -e 'Unable to merge master into develop, merge conflicts:'; (! grep -Eo '[^ ]+$') }
+
       - name: Update CHANGELOG.md
         id: changelogUpdate
         run: |
@@ -87,7 +100,6 @@ jobs:
           mv ${{ env.CHANGE_LOG_FILE }}${{ env.TMP_SUFFIX }} ${{ env.CHANGE_LOG_FILE }}
           git add ${{ env.CHANGE_LOG_FILE }}
           git commit -m "Changelog update"
-          git push
 
       - name: Read changelog Entry
         id: readChangelogEntry
@@ -103,19 +115,6 @@ jobs:
           tag: ${{ env.RELEASE_VERSION }}
           name: Release ${{ env.RELEASE_VERSION }}
           body: ${{ steps.readChangelogEntry.outputs.changes }}
-
-      - name: Checkout develop branch
-        uses: actions/checkout@v3
-        with:
-          ref: 'develop'
-          fetch-depth: 0
-
-      - name: Merge release branch into develop
-        id: mergeIntoDevelop
-        run: |
-          git merge -m 'Merge master branch into develop after a release' origin/master
-          git status | (! grep -Fq 'both modified:') || git status | grep -F 'both modified:' \
-          | { echo -e 'Unable to merge master into develop, merge conflicts:'; (! grep -Eo '[^ ]+$') }
 
       - name: Update version file
         id: versionFileUpdate
