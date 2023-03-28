@@ -19,7 +19,6 @@ except ImportError:
     # in pytest >= 7.0 this type was removed
     Instance = type('dummy', (), {})
 from reportportal_client.client import RPClient
-from reportportal_client.external.google_analytics import send_event
 from reportportal_client.helpers import (
     dict_to_payload,
     gen_attributes,
@@ -134,7 +133,7 @@ class PyTestServiceClass(object):
         attributes = ini_attrs or []
         system_attributes = get_launch_sys_attrs()
         system_attributes['agent'] = (
-            '{}-{}'.format(self.agent_name, self.agent_version))
+            '{}|{}'.format(self.agent_name, self.agent_version))
         return attributes + dict_to_payload(system_attributes)
 
     def _build_start_launch_rq(self):
@@ -165,8 +164,6 @@ class PyTestServiceClass(object):
         log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
         self._launch_id = self.rp.start_launch(**sl_pt)
         log.debug('ReportPortal - Launch started: id=%s', self._launch_id)
-        if not self._skip_analytics:
-            send_event(self.agent_name, self.agent_version)
         return self._launch_id
 
     def _get_item_dirs(self, item):
@@ -878,9 +875,10 @@ class PyTestServiceClass(object):
             launch_id=launch_id,
             log_batch_payload_size=self._config.rp_log_batch_payload_size
         )
-        if self.rp and hasattr(self.rp, "get_project_settings"):
+        if hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()
         self.rp.start()
+        # noinspection PyUnresolvedReferences
         self._start_tracker.add(self.__unique_id())
 
     def stop(self):
