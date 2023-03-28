@@ -11,8 +11,8 @@ import dill as pickle
 import pytest
 import requests
 from reportportal_client import RPLogHandler
-from reportportal_client.core.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.errors import ResponseError
+from reportportal_client.logs.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from .config import AgentConfig
@@ -34,6 +34,7 @@ def pytest_configure_node(node):
 
     :param node: Object of the xdist WorkerController class
     """
+    # noinspection PyProtectedMember
     if not node.config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
@@ -62,6 +63,7 @@ def wait_launch(rp_client):
         time.sleep(1)
 
 
+# noinspection PyProtectedMember
 def pytest_sessionstart(session):
     """Start Report Portal launch.
 
@@ -96,6 +98,7 @@ def pytest_collection_finish(session):
 
     :param session: Object of the pytest Session class
     """
+    # noinspection PyProtectedMember
     if not session.config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
@@ -103,6 +106,7 @@ def pytest_collection_finish(session):
     session.config.py_test_service.collect_tests(session)
 
 
+# noinspection PyProtectedMember
 def pytest_sessionfinish(session):
     """Finish current test session.
 
@@ -162,6 +166,7 @@ def check_connection(agent_config):
         return False
 
 
+# noinspection PyProtectedMember
 def pytest_configure(config):
     """Update Config object with attributes required for reporting to RP.
 
@@ -204,6 +209,7 @@ def pytest_configure(config):
             config.workerinput['py_test_service'])
 
 
+# noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtestloop(session):
     """
@@ -222,6 +228,7 @@ def pytest_runtestloop(session):
         yield
 
 
+# noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item):
     """
@@ -253,6 +260,7 @@ def pytest_runtest_protocol(item):
     service.finish_pytest_item(item)
 
 
+# noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item):
     """
@@ -278,28 +286,28 @@ def pytest_addoption(parser):
     """
     group = parser.getgroup('reporting')
 
-    def add_shared_option(name, help, default=None, action='store'):
+    def add_shared_option(name, help_str, default=None, action='store'):
         """
         Add an option to both the command line and the .ini file.
 
         This function modifies `parser` and `group` from the outer scope.
 
         :param name:     name of the option
-        :param help:     help message
+        :param help_str: help message
         :param default:  default value
         :param action:   `group.addoption` action
         """
         parser.addini(
             name=name,
             default=default,
-            help=help,
+            help=help_str,
         )
         group.addoption(
             '--{0}'.format(name.replace('_', '-')),
             action=action,
             dest=name,
             help='{help} (overrides {name} config option)'.format(
-                help=help,
+                help=help_str,
                 name=name,
             ),
         )
@@ -313,57 +321,57 @@ def pytest_addoption(parser):
     )
     add_shared_option(
         name='rp_launch',
-        help='Launch name',
+        help_str='Launch name',
         default='Pytest Launch',
     )
     add_shared_option(
         name='rp_launch_id',
-        help='Use already existing launch-id. The plugin won\'t control the '
-             'Launch status',
+        help_str='Use already existing launch-id. The plugin won\'t control '
+        'the Launch status',
     )
     add_shared_option(
         name='rp_launch_description',
-        help='Launch description',
+        help_str='Launch description',
         default='',
     )
-    add_shared_option(name='rp_project', help='Project name')
+    add_shared_option(name='rp_project', help_str='Project name')
     add_shared_option(
         name='rp_log_level',
-        help='Logging level for automated log records reporting',
+        help_str='Logging level for automated log records reporting',
     )
     add_shared_option(
         name='rp_log_format',
-        help='Logging format for automated log records reporting',
+        help_str='Logging format for automated log records reporting',
     )
     add_shared_option(
         name='rp_rerun',
-        help='Marks the launch as a rerun',
+        help_str='Marks the launch as a rerun',
         default=False,
         action='store_true',
     )
     add_shared_option(
         name='rp_rerun_of',
-        help='ID of the launch to be marked as a rerun (use only with '
-             'rp_rerun=True)',
+        help_str='ID of the launch to be marked as a rerun (use only with '
+                 'rp_rerun=True)',
         default='',
     )
     add_shared_option(
         name='rp_parent_item_id',
-        help='Create all test item as child items of the given (already '
-             'existing) item.',
+        help_str='Create all test item as child items of the given (already '
+                 'existing) item.',
     )
-    add_shared_option(name='rp_uuid', help='UUID')
-    add_shared_option(name='rp_endpoint', help='Server endpoint')
+    add_shared_option(name='rp_uuid', help_str='UUID')
+    add_shared_option(name='rp_endpoint', help_str='Server endpoint')
     add_shared_option(
         name='rp_mode',
-        help='Visibility of current launch [DEFAULT, DEBUG]',
+        help_str='Visibility of current launch [DEFAULT, DEBUG]',
         default='DEFAULT'
     )
     add_shared_option(
         name='rp_thread_logging',
-        help='EXPERIMENTAL: Report logs from threads. '
-             'This option applies a patch to the builtin Thread class, '
-             'and so it is turned off by default. Use with caution.',
+        help_str='EXPERIMENTAL: Report logs from threads. '
+                 'This option applies a patch to the builtin Thread class, '
+                 'and so it is turned off by default. Use with caution.',
         default=False,
         action='store_true'
     )

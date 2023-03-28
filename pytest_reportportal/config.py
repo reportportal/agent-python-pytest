@@ -3,7 +3,7 @@
 from distutils.util import strtobool
 from os import getenv
 
-from reportportal_client.core.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.logs.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 try:
     # This try/except can go away once we support pytest >= 5.4.0

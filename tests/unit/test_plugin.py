@@ -1,4 +1,4 @@
-"""This modules includes unit tests for the plugin."""
+"""This module includes unit tests for the plugin."""
 
 #  Copyright (c) 2021 http://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
@@ -17,6 +17,7 @@ from _pytest.config.argparsing import Parser
 import pytest
 from delayed_assert import expect, assert_expectations
 from requests.exceptions import RequestException
+# noinspection PyUnresolvedReferences
 from six.moves import mock
 
 from reportportal_client.errors import ResponseError
