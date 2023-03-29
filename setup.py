@@ -28,6 +28,7 @@ setup(
     author_email='support@reportportal.io',
     url='https://github.com/reportportal/agent-python-pytest',
     packages=['pytest_reportportal'],
+    package_data={'pytest_reportportal': ['*.pyi']},
     install_requires=read_file('requirements.txt').splitlines(),
     license='Apache 2.0',
     keywords=['testing', 'reporting', 'reportportal', 'pytest', 'agent'],
