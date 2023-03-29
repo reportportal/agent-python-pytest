@@ -24,6 +24,7 @@ setup(
     description='Agent for Reporting results of tests to the Report Portal',
     long_description=read_file('README.rst'),
     long_description_content_type='text/x-rst',
+    author='Report Portal Team',
     author_email='support@reportportal.io',
     url='https://github.com/reportportal/agent-python-pytest',
     packages=['pytest_reportportal'],
