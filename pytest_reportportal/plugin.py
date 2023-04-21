@@ -38,6 +38,10 @@ MANDATORY_PARAMETER_MISSED_PATTERN = \
     'rp_endpoint: {}, ' + \
     'rp_uuid: {}'
 
+FAILED_LAUNCH_WAIT = 'Failed to initialize reportportal-client service. ' \
+                     + 'Waiting for Launch start timed out. ' \
+                     + 'Reporting is disabled.'
+
 
 @pytest.mark.optionalhook
 def pytest_configure_node(node):
@@ -103,9 +107,7 @@ def pytest_sessionstart(session):
         if config.pluginmanager.hasplugin('xdist') \
                 or config.pluginmanager.hasplugin('pytest-parallel'):
             if not wait_launch(session.config.py_test_service.rp):
-                log.error('Failed to initialize reportportal-client service. '
-                          'Waiting for Launch start timed out. '
-                          'Reporting is disabled.')
+                log.error(FAILED_LAUNCH_WAIT)
                 config.py_test_service.rp = None
                 config._rp_enabled = False
 

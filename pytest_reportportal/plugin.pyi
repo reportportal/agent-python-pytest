@@ -12,6 +12,7 @@ from xdist.workermanage import WorkerController
 
 log: Logger
 MANDATORY_PARAMETER_MISSED_PATTERN: Text
+FAILED_LAUNCH_WAIT: Text
 
 def check_connection(agent_config: AgentConfig) -> bool: ...
 def is_control(config: Config) -> bool: ...
