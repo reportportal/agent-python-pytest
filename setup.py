@@ -5,7 +5,7 @@ import os
 from setuptools import setup
 
 
-__version__ = '5.1.6'
+__version__ = '5.1.7'
 
 
 def read_file(fname):
@@ -24,9 +24,11 @@ setup(
     description='Agent for Reporting results of tests to the Report Portal',
     long_description=read_file('README.rst'),
     long_description_content_type='text/x-rst',
+    author='Report Portal Team',
     author_email='support@reportportal.io',
     url='https://github.com/reportportal/agent-python-pytest',
     packages=['pytest_reportportal'],
+    package_data={'pytest_reportportal': ['*.pyi']},
     install_requires=read_file('requirements.txt').splitlines(),
     license='Apache 2.0',
     keywords=['testing', 'reporting', 'reportportal', 'pytest', 'agent'],

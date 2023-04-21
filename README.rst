@@ -24,7 +24,6 @@ Pytest plugin for reporting test results of the Pytest to the Report Portal.
 * Usage
 * Installation
 * Configuration
-* Contribution
 * Examples
 * Launching
 * Send attachment (screenshots)
@@ -44,21 +43,7 @@ To install pytest plugin execute next command in a terminal:
 
     pip install pytest-reportportal
 
-**IMPORTANT!**
-The latest version **does not** support Report Portal versions below 5.0.0.
 
-Specify the last one release of the client version 1 to install or update the client for other versions of Report Portal below 5.0.0:
-
-.. code-block:: bash
-
-    pip install pytest-reportportal~=1.0
-
-
-Contribution
-~~~~~~~~~~~~~
-
-All the fixes for the agent that supports Report Portal versions below 5.0.0 should go into the v1 branch.
-The master branch will store the code base for the agent for Report Portal versions 5 and above.
 
 Look through the CONTRIBUTING.rst for contribution guidelines.
 
@@ -257,11 +242,11 @@ deactivate :code:`pytest_reportportal` plugin with command like:
     py.test -p no:pytest_reportportal ./tests
 
 
-Integration with GA
--------------------
+Integration with Google analytics
+---------------------------------
 ReportPortal is now supporting integrations with more than 15 test frameworks simultaneously. In order to define the most popular agents and plan the team workload accordingly, we are using Google analytics.
 
-ReportPortal collects information about agent name and its version only. This information is sent to Google analytics on the launch start. Please help us to make our work effective.
+ReportPortal collects information about agent name and its version only. This information is sent to Google Analytics on the launch start. Please help us to make our work effective.
 If you still want to switch Off Google analytics, please change env variable the way below.
 
 .. code-block:: bash

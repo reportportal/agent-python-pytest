@@ -4,20 +4,19 @@ from typing import Text
 import pytest
 
 from .config import AgentConfig
-from .service import PyTestServiceClass as PyTestServiceClass
-from _pytest.config import Config as Config
-from _pytest.config.argparsing import Parser as Parser
-from _pytest.main import Session as Session
-from pytest_reportportal import LAUNCH_WAIT_TIMEOUT as LAUNCH_WAIT_TIMEOUT
-from reportportal_client.service import ReportPortalService as ReportPortalService
-from xdist.workermanage import WorkerController as WorkerController
+from _pytest.config import Config
+from _pytest.config.argparsing import Parser
+from _pytest.main import Session
+from reportportal_client import RPClient
+from xdist.workermanage import WorkerController
 
 log: Logger
 MANDATORY_PARAMETER_MISSED_PATTERN: Text
+FAILED_LAUNCH_WAIT: Text
 
 def check_connection(agent_config: AgentConfig) -> bool: ...
 def is_control(config: Config) -> bool: ...
-def wait_launch(rp_client: ReportPortalService) -> None: ...
+def wait_launch(rp_client: RPClient) -> bool: ...
 def pytest_configure_node(node: WorkerController) -> None: ...
 def pytest_sessionstart(session: Session) -> None: ...
 def pytest_collection_finish(session: Session) -> None: ...

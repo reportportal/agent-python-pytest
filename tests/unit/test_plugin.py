@@ -32,7 +32,7 @@ from pytest_reportportal.plugin import (
     pytest_sessionstart,
     pytest_sessionfinish,
     wait_launch,
-    MANDATORY_PARAMETER_MISSED_PATTERN
+    MANDATORY_PARAMETER_MISSED_PATTERN, FAILED_LAUNCH_WAIT
 )
 from pytest_reportportal.service import PyTestServiceClass
 
@@ -235,9 +235,7 @@ def test_wait_launch(time_mock):
     time_mock.time.side_effect = [0, 1, 2]
     rp_client = mock.Mock()
     rp_client.launch_id = None
-    with pytest.raises(Exception) as err:
-        wait_launch(rp_client)
-    assert str(err.value) == 'Launch has not started.'
+    assert not wait_launch(rp_client)
 
 
 def test_pytest_collection_finish(mocked_session):
@@ -251,12 +249,12 @@ def test_pytest_collection_finish(mocked_session):
         assert_called_with(mocked_session)
 
 
+@mock.patch('pytest_reportportal.plugin.wait_launch',
+            mock.Mock(return_value=True))
 @mock.patch('pytest_reportportal.plugin.is_control', mock.Mock())
-@mock.patch('pytest_reportportal.plugin.wait_launch')
-def test_pytest_sessionstart(mocked_wait, mocked_session):
+def test_pytest_sessionstart(mocked_session):
     """Test session configuration if RP plugin is correctly configured.
 
-    :param mocked_wait:    Mocked wait_launch function
     :param mocked_session: pytest fixture
     """
     mocked_session.config.pluginmanager.hasplugin.return_value = True
@@ -268,9 +266,36 @@ def test_pytest_sessionstart(mocked_wait, mocked_session):
     pytest_sessionstart(mocked_session)
     expect(lambda: mocked_session.config.py_test_service.init_service.called)
     expect(lambda: mocked_session.config.py_test_service.rp is not None)
+    expect(lambda: mocked_session.config._rp_enabled is True)
     expect(lambda: mocked_session.config.py_test_service.start_launch.called)
-    expect(lambda: mocked_wait.called)
+
     assert_expectations()
+
+
+@mock.patch('pytest_reportportal.plugin.log', wraps=log)
+@mock.patch('pytest_reportportal.plugin.is_control', mock.Mock())
+@mock.patch('pytest_reportportal.plugin.wait_launch',
+            mock.Mock(return_value=False))
+def test_pytest_sessionstart_launch_wait_fail(mocked_log, mocked_session):
+    """Test session configuration if RP plugin is correctly configured.
+
+    :param mocked_session: pytest fixture
+    """
+    mocked_session.config.pluginmanager.hasplugin.return_value = True
+    mocked_session.config._reporter_config = mock.Mock(
+        spec=AgentConfig(mocked_session.config))
+    mocked_session.config._reporter_config.rp_launch_attributes = []
+    mocked_session.config._reporter_config.rp_launch_id = None
+    mocked_session.config.py_test_service = mock.Mock()
+    pytest_sessionstart(mocked_session)
+    expect(lambda: mocked_session.config.py_test_service.rp is None)
+    expect(lambda: mocked_session.config._rp_enabled is False)
+    assert_expectations()
+    mocked_log.error.assert_has_calls(
+        [
+            mock.call(FAILED_LAUNCH_WAIT)
+        ]
+    )
 
 
 @mock.patch('pytest_reportportal.plugin.is_control', mock.Mock())
