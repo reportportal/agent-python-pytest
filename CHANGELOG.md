@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.1.7]
 ### Fixed
 - Plugin Exception in case of Launch creation timed out, by @HardNorth
 ### Changed
