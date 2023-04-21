@@ -1,8 +1,19 @@
 """This module contains changed pytest for report-portal."""
 
+#  Copyright (c) 2023 https://reportportal.io .
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
+
 import logging
-# This program is free software: you can redistribute it
-# and/or modify it under the terms of the GPL licence
 import os.path
 import time
 
@@ -59,8 +70,9 @@ def wait_launch(rp_client):
     timeout = time.time() + LAUNCH_WAIT_TIMEOUT
     while not rp_client.launch_id:
         if time.time() > timeout:
-            raise Exception("Launch has not started.")
+            return False
         time.sleep(1)
+    return True
 
 
 # noinspection PyProtectedMember
@@ -90,7 +102,12 @@ def pytest_sessionstart(session):
         config.py_test_service.start_launch()
         if config.pluginmanager.hasplugin('xdist') \
                 or config.pluginmanager.hasplugin('pytest-parallel'):
-            wait_launch(session.config.py_test_service.rp)
+            if not wait_launch(session.config.py_test_service.rp):
+                log.error('Failed to initialize reportportal-client service. '
+                          'Waiting for Launch start timed out. '
+                          'Reporting is disabled.')
+                config.py_test_service.rp = None
+                config._rp_enabled = False
 
 
 def pytest_collection_finish(session):
