@@ -266,7 +266,9 @@ def test_pytest_sessionstart(mocked_session):
     pytest_sessionstart(mocked_session)
     expect(lambda: mocked_session.config.py_test_service.init_service.called)
     expect(lambda: mocked_session.config.py_test_service.rp is not None)
+    expect(lambda: mocked_session.config._rp_enabled is True)
     expect(lambda: mocked_session.config.py_test_service.start_launch.called)
+
     assert_expectations()
 
 
@@ -287,6 +289,7 @@ def test_pytest_sessionstart_launch_wait_fail(mocked_log, mocked_session):
     mocked_session.config.py_test_service = mock.Mock()
     pytest_sessionstart(mocked_session)
     expect(lambda: mocked_session.config.py_test_service.rp is None)
+    expect(lambda: mocked_session.config._rp_enabled is False)
     assert_expectations()
     mocked_log.error.assert_has_calls(
         [
