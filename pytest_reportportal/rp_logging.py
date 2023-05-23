@@ -9,6 +9,18 @@ from reportportal_client.client import RPClient
 
 from reportportal_client._local import current, set_current
 from reportportal_client import RPLogger
+from reportportal_client.core.worker import APIWorker
+
+
+def is_api_worker(target):
+    if target:
+        method_name = getattr(target, '__name__', None)
+        method_self = getattr(target, '__self__', None)
+        if method_name == '_monitor' and method_self:
+            clazz = getattr(method_self, '__class__', None)
+            if clazz is APIWorker:
+                return True
+    return False
 
 
 @contextmanager
@@ -30,7 +42,8 @@ def patching_thread_class(config):
                 def _start(self, *args, **kwargs):
                     """Save the invoking thread's client if there is one."""
                     # Prevent an endless loop of workers being spawned
-                    if "_monitor" not in self.name:
+                    target = getattr(self, '_target', None)
+                    if not is_api_worker(self) and not is_api_worker(target):
                         current_client = current()
                         self.parent_rp_client = current_client
                     return original_func(self, *args, **kwargs)
