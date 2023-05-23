@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- `rp_thread_logging = False` config parameter handling, by @HardNorth
 ### Changed
 - Client version updated on [5.3.2](https://github.com/reportportal/client-Python/releases/tag/5.3.2), by @HardNorth
 
