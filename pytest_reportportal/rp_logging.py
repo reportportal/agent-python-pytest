@@ -5,8 +5,6 @@ import threading
 from contextlib import contextmanager
 from functools import wraps
 
-from reportportal_client.client import RPClient
-
 from reportportal_client._local import current, set_current
 from reportportal_client import RPLogger
 from reportportal_client.core.worker import APIWorker
@@ -61,20 +59,7 @@ def patching_thread_class(config):
                         and not current()
                     ):
                         parent = self.parent_rp_client
-                        client = RPClient(
-                            endpoint=parent.endpoint,
-                            project=parent.project,
-                            token=parent.token,
-                            log_batch_size=parent.log_batch_size,
-                            is_skipped_an_issue=parent.is_skipped_an_issue,
-                            verify_ssl=parent.verify_ssl,
-                            retries=config.rp_retries,
-                            launch_id=parent.launch_id
-                        )
-                        if parent.current_item():
-                            client._item_stack.append(
-                                parent.current_item()
-                            )
+                        client = parent.clone()
                         client.start()
                     try:
                         return original_func(self, *args, **kwargs)
