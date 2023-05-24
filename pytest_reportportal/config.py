@@ -59,9 +59,9 @@ class AgentConfig(object):
             self.rp_log_batch_payload_size = MAX_LOG_BATCH_PAYLOAD_SIZE
         self.rp_log_level = get_actual_log_level(pytest_config, 'rp_log_level')
         self.rp_log_format = self.find_option(pytest_config, 'rp_log_format')
-        self.rp_thread_logging = bool(strtobool(self.find_option(
+        self.rp_thread_logging = bool(strtobool(str(self.find_option(
             pytest_config, 'rp_thread_logging'
-        )))
+        ))))
         self.rp_mode = self.find_option(pytest_config, 'rp_mode')
         self.rp_parent_item_id = self.find_option(pytest_config,
                                                   'rp_parent_item_id')
