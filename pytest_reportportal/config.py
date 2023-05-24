@@ -61,7 +61,7 @@ class AgentConfig(object):
         self.rp_log_format = self.find_option(pytest_config, 'rp_log_format')
         self.rp_thread_logging = bool(strtobool(str(self.find_option(
             pytest_config, 'rp_thread_logging'
-        ))))
+        ) or False)))
         self.rp_mode = self.find_option(pytest_config, 'rp_mode')
         self.rp_parent_item_id = self.find_option(pytest_config,
                                                   'rp_parent_item_id')
