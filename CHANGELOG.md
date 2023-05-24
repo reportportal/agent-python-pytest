@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.1.8]
 ### Fixed
 - `rp_thread_logging = False` config parameter handling, by @HardNorth
 - Recursive thread init issue in case of `rp_thread_logging = True`, by @HardNorth
