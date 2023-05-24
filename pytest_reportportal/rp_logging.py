@@ -11,6 +11,7 @@ from reportportal_client.core.worker import APIWorker
 
 
 def is_api_worker(target):
+    """Check if target is an RP worker thread."""
     if target:
         method_name = getattr(target, '__name__', None)
         method_self = getattr(target, '__self__', None)
