@@ -43,7 +43,7 @@ FAILED_LAUNCH_WAIT = 'Failed to initialize reportportal-client service. ' \
                      + 'Reporting is disabled.'
 
 
-@pytest.mark.optionalhook
+@pytest.hookimpl(optionalhook=True)
 def pytest_configure_node(node):
     """Configure xdist node controller.
 
