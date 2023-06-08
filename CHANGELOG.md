@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.1.9]
 ### Added
 - `rp_api_retries` configuration parameter, by @HardNorth
 ### Changed
