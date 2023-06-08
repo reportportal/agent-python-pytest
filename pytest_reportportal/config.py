@@ -85,12 +85,12 @@ class AgentConfig(object):
             if rp_api_retries and rp_api_retries > 0:
                 self.rp_api_retries = rp_api_retries
                 warnings.warn(
-                    message='Parameter `retries` is deprecated since 5.1.9 '
-                            'and will be subject for removing in the next '
-                            'major version. Use `rp_api_retries` argument '
-                            'instead.',
-                    category=DeprecationWarning,
-                    stacklevel=2
+                    'Parameter `retries` is deprecated since 5.1.9 '
+                    'and will be subject for removing in the next '
+                    'major version. Use `rp_api_retries` argument '
+                    'instead.',
+                    DeprecationWarning,
+                    2
                 )
             else:
                 self.rp_api_retries = 0
@@ -102,21 +102,21 @@ class AgentConfig(object):
                 'RP_UUID') or self.find_option(pytest_config, 'rp_uuid')
             if self.rp_api_key:
                 warnings.warn(
-                    message='Parameter `rp_uuid` is deprecated since 5.1.9 '
-                            'and will be subject for removing in the next '
-                            'major version. Use `rp_api_key` argument '
-                            'instead.',
-                    category=DeprecationWarning,
-                    stacklevel=2
+                    'Parameter `rp_uuid` is deprecated since 5.1.9 '
+                    'and will be subject for removing in the next '
+                    'major version. Use `rp_api_key` argument '
+                    'instead.',
+                    DeprecationWarning,
+                    2
                 )
             else:
                 warnings.warn(
-                    message='Argument `rp_api_key` is `None` or empty string, '
-                            'that is not supposed to happen because Report '
-                            'Portal is usually requires an authorization key. '
-                            'Please check your configuration.',
-                    category=RuntimeWarning,
-                    stacklevel=2
+                    'Argument `rp_api_key` is `None` or empty string, '
+                    'that is not supposed to happen because Report '
+                    'Portal is usually requires an authorization key. '
+                    'Please check your configuration.',
+                    RuntimeWarning,
+                    2
                 )
 
         rp_verify_ssl = self.find_option(pytest_config, 'rp_verify_ssl', True)
