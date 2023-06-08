@@ -144,7 +144,7 @@ def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
                 MANDATORY_PARAMETER_MISSED_PATTERN.format(
                     mocked_config.option.rp_project,
                     None,
-                    mocked_config.option.rp_uuid,
+                    mocked_config.option.rp_api_key,
                 )),
             mock.call('Disabling reporting to RP.'),
         ]
@@ -173,7 +173,7 @@ def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
                 MANDATORY_PARAMETER_MISSED_PATTERN.format(
                     None,
                     mocked_config.option.rp_endpoint,
-                    mocked_config.option.rp_uuid,
+                    mocked_config.option.rp_api_key,
                 )),
             mock.call('Disabling reporting to RP.'),
         ]
@@ -192,7 +192,7 @@ def test_pytest_configure_misssing_rp_uuid(mocked_log, mocked_config):
     :param mocked_config: Pytest fixture
     """
     mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_uuid = None
+    mocked_config.option.rp_api_key = None
     mocked_config.getini.return_value = 0
     pytest_configure(mocked_config)
     assert mocked_config._rp_enabled is False
@@ -342,6 +342,7 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_rerun_of',
         'rp_parent_item_id',
         'rp_uuid',
+        'rp_api_key',
         'rp_endpoint',
         'rp_mode',
         'rp_thread_logging',
@@ -361,6 +362,7 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_verify_ssl',
         'rp_issue_id_marks',
         'retries',
+        'rp_api_retries',
         'rp_skip_connection_test',
         'rp_launch_timeout'
     )
@@ -388,6 +390,7 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         '--rp-rerun-of',
         '--rp-parent-item-id',
         '--rp-uuid',
+        '--rp-api-key',
         '--rp-endpoint',
         '--rp-mode',
         '--rp-thread-logging'

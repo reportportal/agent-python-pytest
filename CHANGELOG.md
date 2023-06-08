@@ -1,6 +1,13 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `rp_api_retries` configuration parameter, by @HardNorth
+### Changed
+- Client version updated on [5.3.5](https://github.com/reportportal/client-Python/releases/tag/5.3.5), by @HardNorth
+- `rp_uuid` configuration parameter was renamed to `rp_api_key` to maintain common convention, by @HardNorth
+
+## [5.1.8]
 ### Fixed
 - `rp_thread_logging = False` config parameter handling, by @HardNorth
 - Recursive thread init issue in case of `rp_thread_logging = True`, by @HardNorth

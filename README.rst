@@ -60,7 +60,7 @@ any one using pytest command line option:
 
 The :code:`pytest.ini` file should have next mandatory fields:
 
-- :code:`rp_uuid` - value could be found in the User Profile section
+- :code:`rp_api_key` - value could be found in the User Profile section
 - :code:`rp_project` - name of project in Report Portal
 - :code:`rp_endpoint` - address of Report Portal Server
 
@@ -69,7 +69,7 @@ Example of :code:`pytest.ini`:
 .. code-block:: text
 
     [pytest]
-    rp_uuid = fb586627-32be-47dd-93c1-678873458a5f
+    rp_api_key = fb586627-32be-47dd-93c1-678873458a5f
     rp_endpoint = http://192.168.1.10:8080
     rp_project = user_personal
     rp_launch = AnyLaunchName
@@ -77,35 +77,33 @@ Example of :code:`pytest.ini`:
     rp_launch_description = 'Smoke test'
     rp_ignore_attributes = 'xfail' 'usefixture'
 
-- The :code:`rp_uuid` can also be set with the environment variable `RP_UUID`. This will override the value set for :code:`rp_uuid` in pytest.ini
+- The :code:`rp_api_key` can also be set with the environment variable `RP_API_KEY`. This will override the value set for :code:`rp_api_key` in pytest.ini
 
 The following parameters are optional:
 
-- :code:`rp_launch = AnyLaunchName` - launch name (could be overridden
-  by pytest --rp-launch option, default value is 'Pytest Launch')
-- :code:`rp_launch_id = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` - id of the existing launch (the session will not handle the lifecycle of the given launch)
-- :code:`rp_launch_attributes = 'PyTest' 'Smoke' 'Env:Python3'` - list of attributes for launch
-- :code:`rp_parent_item_id = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` - id of the existing test item for session to use as parent item for the tests (the session will not handle the lifecycle of the given test item)
-- :code:`rp_tests_attributes = 'PyTest' 'Smoke'` - list of attributes that will be added for each item in the launch
-- :code:`rp_launch_description = 'Smoke test'` - launch description (could be overridden
-  by pytest --rp-launch-description option, default value is '')
-
-- :code:`rp_log_batch_size = 20` - size of batch log request
-- :code:`rp_log_batch_payload_size = 65000000` - maximum payload size in bytes of async batch log requests
-- :code:`rp_log_level = INFO` - The log level that will be reported
+- :code:`rp_launch = AnyLaunchName` - launch name (could be overridden by pytest --rp-launch option, default value is 'Pytest Launch').
+- :code:`rp_launch_id = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` - id of the existing launch (the session will not handle the lifecycle of the given launch).
+- :code:`rp_launch_attributes = 'PyTest' 'Smoke' 'Env:Python3'` - list of attributes for launch.
+- :code:`rp_parent_item_id = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` - id of the existing test item for session to use as parent item for the tests (the session will not handle the lifecycle of the given test item).
+- :code:`rp_tests_attributes = 'PyTest' 'Smoke'` - list of attributes that will be added for each item in the launch.
+- :code:`rp_launch_description = 'Smoke test'` - launch description (could be overridden by pytest --rp-launch-description option, default value is '').
+- :code:`rp_log_batch_size = 20` - size of batch log request.
+- :code:`rp_log_batch_payload_size = 65000000` - maximum payload size in bytes of async batch log requests.
+- :code:`rp_log_level = INFO` - The log level that will be reported.
 - :code:`rp_log_format = [%(levelname)7s] (%(name)s) %(message)s (%(filename)s:%(lineno)s)` - Format string to be used for logs sent to the service.
-- :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers
+- :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers.
 - :code:`rp_is_skipped_an_issue = False` - Treat skipped tests as required investigation. Default is True.
-- :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`)
+- :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`).
 - :code:`rp_hierarchy_dirs = True` - Enables hierarchy for tests directories, default `False`. Doesn't support 'xdist' plugin.
-- :code:`rp_hierarchy_dir_path_separator` - Path separator to display directories in test hierarchy. In case of empty value current system path separator will be used (os.path.sep)
+- :code:`rp_hierarchy_dir_path_separator` - Path separator to display directories in test hierarchy. In case of empty value current system path separator will be used (os.path.sep).
 - :code:`rp_hierarchy_code` - Enables hierarchy for inner classes and parametrized tests, default `False`. Doesn't support 'xdist' plugin.
-- :code:`rp_issue_system_url = https://bugzilla.some.com/show_bug.cgi?id={issue_id}` - issue URL (issue_id will be filled by parameter from pytest mark)
-- :code:`rp_issue_id_marks = True` - Enables adding marks for issue ids (e.g. "issue:123456")
-- :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server
-- :code:`rp_mode = DEFAULT` - DEBUG or DEFAULT launch mode. DEBUG launches are displayed in a separate tab and not visible to anyone except owner
+- :code:`rp_issue_system_url = https://bugzilla.some.com/show_bug.cgi?id={issue_id}` - issue URL (issue_id will be filled by parameter from pytest mark).
+- :code:`rp_issue_id_marks = True` - Enables adding marks for issue ids (e.g. "issue:123456").
+- :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server.
+- :code:`rp_mode = DEFAULT` - DEBUG or DEFAULT launch mode. DEBUG launches are displayed in a separate tab and not visible to anyone except owner.
 - :code:`rp_thread_logging` - EXPERIMENTAL - Enables support for reporting logs from threads by patching the builtin Thread class. Use with caution.
-- :code:`rp_launch_timeout = 86400` - Maximum time to wait for child processes finish, default value: 86400 seconds (1 day)
+- :code:`rp_launch_timeout = 86400` - Maximum time to wait for child processes finish, default value: 86400 seconds (1 day).
+- :code:`rp_api_retries = 0` - Amount of retries for performing REST calls to RP server.
 
 
 
