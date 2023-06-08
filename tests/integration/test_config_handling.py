@@ -159,8 +159,7 @@ def filter_agent_call(args):
 def filter_agent_calls(mock_warnings):
     return list(
         filter(
-            lambda call:
-            call[1]['category'].__name__ != 'PytestAssertRewriteWarning',
+            lambda call: filter_agent_call(call),
             mock_warnings.call_args_list
         )
     )
