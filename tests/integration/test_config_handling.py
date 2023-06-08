@@ -147,6 +147,16 @@ def test_rp_log_batch_payload_size(mock_client_init):
     assert_expectations()
 
 
+def filter_agent_calls(mock_warnings):
+    return list(
+        filter(
+            lambda call:
+            call[1]['category'].__name__ != 'PytestAssertRewriteWarning',
+            mock_warnings.call_args_list
+        )
+    )
+
+
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key(mock_warnings, mock_client_init):
@@ -162,7 +172,8 @@ def test_rp_api_key(mock_warnings, mock_client_init):
 
     constructor_args = mock_client_init.call_args_list[0][1]
     expect(constructor_args['api_key'] == api_key)
-    expect(mock_warnings.call_count == 0)
+    agent_calls = filter_agent_calls(mock_warnings)
+    expect(len(agent_calls) == 0)
     assert_expectations()
 
 
@@ -182,7 +193,8 @@ def test_rp_uuid(mock_warnings, mock_client_init):
 
     constructor_args = mock_client_init.call_args_list[0][1]
     expect(constructor_args['api_key'] == api_key)
-    expect(mock_warnings.call_count == 1)
+    agent_calls = filter_agent_calls(mock_warnings)
+    expect(len(agent_calls) == 1)
     assert_expectations()
 
 
@@ -201,7 +213,25 @@ def test_rp_api_key_priority(mock_warnings, mock_client_init):
 
     constructor_args = mock_client_init.call_args_list[0][1]
     expect(constructor_args['api_key'] == api_key)
-    expect(mock_warnings.call_count == 0)
+    agent_calls = filter_agent_calls(mock_warnings)
+    expect(len(agent_calls) == 0)
+    assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
+def test_rp_api_key_empty(mock_warnings, mock_client_init):
+    api_key = ''
+    variables = utils.DEFAULT_VARIABLES.copy()
+    variables.update({'rp_api_key': api_key}.items())
+
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                    variables=variables)
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    expect(mock_client_init.call_count == 0)
+    agent_calls = filter_agent_calls(mock_warnings)
+    expect(len(agent_calls) == 1)
     assert_expectations()
 
 
@@ -220,7 +250,8 @@ def test_rp_api_retries(mock_warnings, mock_client_init):
 
     constructor_args = mock_client_init.call_args_list[0][1]
     expect(constructor_args['retries'] == retries)
-    expect(mock_warnings.call_count == 0)
+    agent_calls = filter_agent_calls(mock_warnings)
+    expect(len(agent_calls) == 0)
     assert_expectations()
 
 
@@ -239,5 +270,6 @@ def test_retries(mock_warnings, mock_client_init):
 
     constructor_args = mock_client_init.call_args_list[0][1]
     expect(constructor_args['retries'] == retries)
-    expect(mock_warnings.call_count == 1)
+    agent_calls = filter_agent_calls(mock_warnings)
+    expect(len(agent_calls) == 1)
     assert_expectations()
