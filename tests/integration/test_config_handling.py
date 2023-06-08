@@ -147,6 +147,15 @@ def test_rp_log_batch_payload_size(mock_client_init):
     assert_expectations()
 
 
+def filter_agent_call(args):
+    if len(args[0]) > 1 and args[0][1]:
+        return args[0][1].__name__ != 'PytestAssertRewriteWarning'
+    else:
+        if 'category' in args[1] and args[1]['category']:
+            return args[1]['category'].__name__ != 'PytestAssertRewriteWarning'
+    return True
+
+
 def filter_agent_calls(mock_warnings):
     return list(
         filter(
