@@ -1,4 +1,7 @@
 """This module includes integration tests for configuration parameters."""
+import sys
+
+import pytest
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -167,6 +170,8 @@ def filter_agent_calls(mock_warnings):
     )
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key(mock_warnings, mock_client_init):
@@ -187,6 +192,8 @@ def test_rp_api_key(mock_warnings, mock_client_init):
     assert_expectations()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_uuid(mock_warnings, mock_client_init):
@@ -208,6 +215,8 @@ def test_rp_uuid(mock_warnings, mock_client_init):
     assert_expectations()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key_priority(mock_warnings, mock_client_init):
@@ -228,6 +237,8 @@ def test_rp_api_key_priority(mock_warnings, mock_client_init):
     assert_expectations()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key_empty(mock_warnings, mock_client_init):
@@ -245,6 +256,8 @@ def test_rp_api_key_empty(mock_warnings, mock_client_init):
     assert_expectations()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_retries(mock_warnings, mock_client_init):
@@ -265,6 +278,8 @@ def test_rp_api_retries(mock_warnings, mock_client_init):
     assert_expectations()
 
 
+@pytest.mark.skipif(sys.version_info < (3, 6),
+                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_retries(mock_warnings, mock_client_init):
