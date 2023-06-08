@@ -75,12 +75,14 @@ class AgentConfig(object):
                              'rp_skip_connection_test')).lower() in (
                                            'true', '1', 'yes', 'y')
 
-        rp_api_retries = int(self.find_option(pytest_config, 'rp_api_retries'))
-        if rp_api_retries:
+        rp_api_retries_str = self.find_option(pytest_config, 'rp_api_retries')
+        rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
+        if rp_api_retries and rp_api_retries > 0:
             self.rp_api_retries = rp_api_retries
         else:
-            rp_api_retries = int(self.find_option(pytest_config, 'retries'))
-            if rp_api_retries:
+            rp_api_retries_str = self.find_option(pytest_config, 'retries')
+            rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
+            if rp_api_retries and rp_api_retries > 0:
                 self.rp_api_retries = rp_api_retries
                 warnings.warn(
                     message='Parameter `retries` is deprecated since 5.1.9 '
