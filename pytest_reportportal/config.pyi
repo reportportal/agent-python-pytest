@@ -27,9 +27,9 @@ class AgentConfig:
     rp_parent_item_id: Optional[Text]
     rp_project: Text
     rp_rerun_of: Optional[Text]
-    rp_retries: int
+    rp_api_retries: int
     rp_skip_connection_test: bool
-    rp_uuid: Text
+    rp_api_key: Text
     rp_verify_ssl: Union[bool, Text]
     rp_launch_timeout: int
 

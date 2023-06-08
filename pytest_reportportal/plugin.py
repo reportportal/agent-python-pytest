@@ -36,7 +36,7 @@ MANDATORY_PARAMETER_MISSED_PATTERN = \
     'One of the following mandatory parameters is unset: ' + \
     'rp_project: {}, ' + \
     'rp_endpoint: {}, ' + \
-    'rp_uuid: {}'
+    'rp_api_key: {}'
 
 FAILED_LAUNCH_WAIT = 'Failed to initialize reportportal-client service. ' \
                      + 'Waiting for Launch start timed out. ' \
@@ -172,7 +172,7 @@ def check_connection(agent_config):
     """
     url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint,
                                           agent_config.rp_project)
-    headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_uuid)}
+    headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_api_key)}
     try:
         resp = requests.get(url, headers=headers,
                             verify=agent_config.rp_verify_ssl)
@@ -203,7 +203,7 @@ def pytest_configure(config):
     agent_config = AgentConfig(config)
 
     cond = (agent_config.rp_project, agent_config.rp_endpoint,
-            agent_config.rp_uuid)
+            agent_config.rp_api_key)
     config._rp_enabled = all(cond)
     if not config._rp_enabled:
         log.debug(MANDATORY_PARAMETER_MISSED_PATTERN.format(*cond))
@@ -379,7 +379,13 @@ def pytest_addoption(parser):
         help_str='Create all test item as child items of the given (already '
                  'existing) item.',
     )
-    add_shared_option(name='rp_uuid', help_str='UUID')
+    add_shared_option(name='rp_uuid', help_str='Deprecated: use `rp_api_key` '
+                      'instead.')
+    add_shared_option(
+        name='rp_api_key',
+        help_str='API key of Report Portal. Usually located on UI profile '
+                 'page.'
+    )
     add_shared_option(name='rp_endpoint', help_str='Server endpoint')
     add_shared_option(
         name='rp_mode',
@@ -467,6 +473,10 @@ def pytest_addoption(parser):
         help='Add tag with issue id to the test')
     parser.addini(
         'retries',
+        default='0',
+        help='Deprecated: use `rp_api_retries` instead')
+    parser.addini(
+        'rp_api_retries',
         default='0',
         help='Amount of retries for performing REST calls to RP server')
     parser.addini(

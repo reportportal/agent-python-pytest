@@ -1,4 +1,5 @@
 """This module contains class that stores RP agent configuration data."""
+import warnings
 
 from distutils.util import strtobool
 from os import getenv
@@ -69,14 +70,53 @@ class AgentConfig(object):
                                            'rp_project')
         self.rp_rerun_of = self.find_option(pytest_config,
                                             'rp_rerun_of')
-        self.rp_retries = int(self.find_option(pytest_config,
-                                               'retries'))
         self.rp_skip_connection_test = str(
             self.find_option(pytest_config,
                              'rp_skip_connection_test')).lower() in (
                                            'true', '1', 'yes', 'y')
-        self.rp_uuid = getenv('RP_UUID') or self.find_option(pytest_config,
-                                                             'rp_uuid')
+
+        rp_api_retries = int(self.find_option(pytest_config, 'rp_api_retries'))
+        if rp_api_retries:
+            self.rp_api_retries = rp_api_retries
+        else:
+            rp_api_retries = int(self.find_option(pytest_config, 'retries'))
+            if rp_api_retries:
+                self.rp_api_retries = rp_api_retries
+                warnings.warn(
+                    message='Parameter `retries` is deprecated since 5.1.9 '
+                            'and will be subject for removing in the next '
+                            'major version. Use `rp_api_retries` argument '
+                            'instead.',
+                    category=DeprecationWarning,
+                    stacklevel=2
+                )
+            else:
+                self.rp_api_retries = 0
+
+        self.rp_api_key = getenv(
+            'RP_API_KEY') or self.find_option(pytest_config, 'rp_api_key')
+        if not self.rp_api_key:
+            self.rp_api_key = getenv(
+                'RP_UUID') or self.find_option(pytest_config, 'rp_uuid')
+            if self.rp_api_key:
+                warnings.warn(
+                    message='Parameter `rp_uuid` is deprecated since 5.1.9 '
+                            'and will be subject for removing in the next '
+                            'major version. Use `rp_api_key` argument '
+                            'instead.',
+                    category=DeprecationWarning,
+                    stacklevel=2
+                )
+            else:
+                warnings.warn(
+                    message='Argument `rp_api_key` is `None` or empty string, '
+                            'that is not supposed to happen because Report '
+                            'Portal is usually requires an authorization key. '
+                            'Please check your configuration.',
+                    category=RuntimeWarning,
+                    stacklevel=2
+                )
+
         rp_verify_ssl = self.find_option(pytest_config, 'rp_verify_ssl', True)
         try:
             self.rp_verify_ssl = bool(strtobool(rp_verify_ssl))

@@ -17,5 +17,6 @@ limitations under the License
 from six import add_move, MovedModule
 add_move(MovedModule('mock', 'mock', 'unittest.mock'))
 
-REPORT_PORTAL_SERVICE = (
-    'pytest_reportportal.service.RPClient')
+REPORT_PORTAL_PACKAGE = 'pytest_reportportal'
+
+REPORT_PORTAL_SERVICE = REPORT_PORTAL_PACKAGE + '.service.RPClient'

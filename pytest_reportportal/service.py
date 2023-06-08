@@ -859,18 +859,18 @@ class PyTestServiceClass(object):
             ).union({'parametrize'})
         )
         log.debug('ReportPortal - Init service: endpoint=%s, '
-                  'project=%s, uuid=%s', self._config.rp_endpoint,
-                  self._config.rp_project, self._config.rp_uuid)
+                  'project=%s, api_key=%s', self._config.rp_endpoint,
+                  self._config.rp_project, self._config.rp_api_key)
         launch_id = self._launch_id
         if self._config.rp_launch_id:
             launch_id = self._config.rp_launch_id
         self.rp = RPClient(
             endpoint=self._config.rp_endpoint,
             project=self._config.rp_project,
-            token=self._config.rp_uuid,
+            api_key=self._config.rp_api_key,
             is_skipped_an_issue=self._config.rp_is_skipped_an_issue,
             log_batch_size=self._config.rp_log_batch_size,
-            retries=self._config.rp_retries,
+            retries=self._config.rp_api_retries,
             verify_ssl=self._config.rp_verify_ssl,
             launch_id=launch_id,
             log_batch_payload_size=self._config.rp_log_batch_payload_size
