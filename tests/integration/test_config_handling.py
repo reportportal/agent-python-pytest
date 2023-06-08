@@ -171,7 +171,7 @@ def filter_agent_calls(mock_warnings):
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key(mock_warnings, mock_client_init):
     api_key = 'rp_api_key'
-    variables = utils.DEFAULT_VARIABLES.copy()
+    variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_key': api_key}.items())
 
     result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
@@ -191,7 +191,7 @@ def test_rp_api_key(mock_warnings, mock_client_init):
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_uuid(mock_warnings, mock_client_init):
     api_key = 'rp_api_key'
-    variables = utils.DEFAULT_VARIABLES.copy()
+    variables = dict(utils.DEFAULT_VARIABLES)
     del variables['rp_api_key']
     variables.update({'rp_uuid': api_key}.items())
 
@@ -212,7 +212,7 @@ def test_rp_uuid(mock_warnings, mock_client_init):
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key_priority(mock_warnings, mock_client_init):
     api_key = 'rp_api_key'
-    variables = utils.DEFAULT_VARIABLES.copy()
+    variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_key': api_key, 'rp_uuid': 'rp_uuid'}.items())
 
     result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
@@ -232,7 +232,7 @@ def test_rp_api_key_priority(mock_warnings, mock_client_init):
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key_empty(mock_warnings, mock_client_init):
     api_key = ''
-    variables = utils.DEFAULT_VARIABLES.copy()
+    variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_key': api_key}.items())
 
     result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
@@ -249,7 +249,7 @@ def test_rp_api_key_empty(mock_warnings, mock_client_init):
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_retries(mock_warnings, mock_client_init):
     retries = 5
-    variables = utils.DEFAULT_VARIABLES.copy()
+    variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_retries': str(retries)}.items())
 
     result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
