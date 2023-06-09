@@ -12,7 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-from six.moves import mock
+from unittest import mock
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils

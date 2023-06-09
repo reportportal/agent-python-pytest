@@ -15,7 +15,7 @@ import pytest
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 from delayed_assert import expect, assert_expectations
-from six.moves import mock
+from unittest import mock
 
 from examples.test_rp_logging import LOG_MESSAGE
 from tests import REPORT_PORTAL_SERVICE, REPORT_PORTAL_PACKAGE

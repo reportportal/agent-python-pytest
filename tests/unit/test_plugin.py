@@ -18,7 +18,7 @@ import pytest
 from delayed_assert import expect, assert_expectations
 from requests.exceptions import RequestException
 # noinspection PyUnresolvedReferences
-from six.moves import mock
+from unittest import mock
 
 from reportportal_client.errors import ResponseError
 

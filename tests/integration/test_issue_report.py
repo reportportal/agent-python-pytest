@@ -15,7 +15,7 @@
 import pytest
 from delayed_assert import expect, assert_expectations
 from reportportal_client.core.rp_issues import Issue
-from six.moves import mock
+from unittest import mock
 
 from examples import test_issue_id
 from pytest_reportportal.service import NOT_ISSUE

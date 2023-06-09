@@ -3,15 +3,17 @@ import logging
 import os.path
 import sys
 import threading
-from os import getenv, curdir
+from os import curdir
 from time import time, sleep
-from typing import List
+from typing import List, Any, Optional
 
 from _pytest.doctest import DoctestItem
 from aenum import auto, Enum, unique
 from pytest import Class, Function, Module, Package, Item, Session, \
     PytestWarning
 from reportportal_client.core.rp_issues import Issue, ExternalIssue
+
+from .config import AgentConfig
 
 try:
     from pytest import Instance
@@ -28,14 +30,15 @@ from reportportal_client.helpers import (
 
 log = logging.getLogger(__name__)
 
-MAX_ITEM_NAME_LENGTH = 256
-TRUNCATION_STR = '...'
-ROOT_DIR = str(os.path.abspath(curdir))
-PYTEST_MARKS_IGNORE = {'parametrize', 'usefixtures', 'filterwarnings'}
-NOT_ISSUE = Issue('NOT_ISSUE')
-ISSUE_DESCRIPTION_LINE_TEMPLATE = '* {}:{}'
-ISSUE_DESCRIPTION_URL_TEMPLATE = ' [{issue_id}]({url})'
-ISSUE_DESCRIPTION_ID_TEMPLATE = ' {issue_id}'
+MAX_ITEM_NAME_LENGTH: int = 256
+TRUNCATION_STR: str = '...'
+ROOT_DIR: str = str(os.path.abspath(curdir))
+PYTEST_MARKS_IGNORE: set[str] = {'parametrize', 'usefixtures',
+                                 'filterwarnings'}
+NOT_ISSUE: Issue = Issue('NOT_ISSUE')
+ISSUE_DESCRIPTION_LINE_TEMPLATE: str = '* {}:{}'
+ISSUE_DESCRIPTION_URL_TEMPLATE: str = ' [{issue_id}]({url})'
+ISSUE_DESCRIPTION_ID_TEMPLATE: str = ' {issue_id}'
 
 
 def timestamp():
@@ -43,12 +46,12 @@ def timestamp():
     return str(int(time() * 1000))
 
 
-def trim_docstring(docstring):
+def trim_docstring(docstring: str) -> str:
     """
     Convert docstring.
 
     :param docstring: input docstring
-    :return: docstring
+    :return: trimmed docstring
     """
     if not docstring:
         return ''
@@ -93,29 +96,39 @@ class ExecStatus(Enum):
     FINISHED = auto()
 
 
-class PyTestServiceClass(object):
+class PyTestServiceClass:
     """Pytest service class for reporting test results to the Report Portal."""
 
-    def __init__(self, agent_config):
+    _config: AgentConfig
+    _issue_types: dict[str, str]
+    _tree_path: dict[Item, list[dict[str, Any]]]
+    _log_levels: tuple
+    _start_tracker: set[str]
+    _launch_id: Optional[str]
+    agent_name: str
+    agent_version: str
+    ignored_attributes: list[str]
+    parent_item_id: Optional[str]
+    rp: Optional[RPClient]
+    project_settings: dict[str, Any]
+
+    def __init__(self, agent_config: AgentConfig) -> None:
         """Initialize instance attributes."""
         self._config = agent_config
         self._issue_types = {}
         self._tree_path = {}
         self._log_levels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
-        self._skip_analytics = getenv('AGENT_NO_ANALYTICS')
         self._start_tracker = set()
-        self._process_level_lock = threading.Lock()
         self._launch_id = None
         self.agent_name = 'pytest-reportportal'
         self.agent_version = get_package_version(self.agent_name)
         self.ignored_attributes = []
-        self.log_batch_size = 20
         self.parent_item_id = None
         self.rp = None
         self.project_settings = {}
 
     @property
-    def issue_types(self):
+    def issue_types(self) -> dict[str, str]:
         """Issue types for the Report Portal project."""
         if not self._issue_types:
             if not self.project_settings:
@@ -152,7 +165,7 @@ class PyTestServiceClass(object):
         }
         return start_rq
 
-    def start_launch(self):
+    def start_launch(self) -> Optional[str]:
         """
         Launch test items.
 
@@ -850,7 +863,7 @@ class PyTestServiceClass(object):
         }
         self.rp.log(**sl_rq)
 
-    def start(self):
+    def start(self) -> None:
         """Start servicing Report Portal requests."""
         self.parent_item_id = self._config.rp_parent_item_id
         self.ignored_attributes = list(
