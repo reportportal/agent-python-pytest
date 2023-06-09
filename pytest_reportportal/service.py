@@ -101,7 +101,7 @@ class PyTestServiceClass:
 
     _config: AgentConfig
     _issue_types: Dict[str, str]
-    _tree_path: dict[Item, list[dict[str, Any]]]
+    _tree_path: Dict[Item, List[Dict[str, Any]]]
     _log_levels: Tuple[str, str, str, str, str]
     _start_tracker: Set[str]
     _launch_id: Optional[str]
