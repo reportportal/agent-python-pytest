@@ -5,7 +5,7 @@ import sys
 import threading
 from os import curdir
 from time import time, sleep
-from typing import List, Any, Optional
+from typing import List, Any, Optional, Set, Dict, Tuple
 
 from _pytest.doctest import DoctestItem
 from aenum import auto, Enum, unique
@@ -33,7 +33,7 @@ log = logging.getLogger(__name__)
 MAX_ITEM_NAME_LENGTH: int = 256
 TRUNCATION_STR: str = '...'
 ROOT_DIR: str = str(os.path.abspath(curdir))
-PYTEST_MARKS_IGNORE: set[str] = {'parametrize', 'usefixtures',
+PYTEST_MARKS_IGNORE: Set[str] = {'parametrize', 'usefixtures',
                                  'filterwarnings'}
 NOT_ISSUE: Issue = Issue('NOT_ISSUE')
 ISSUE_DESCRIPTION_LINE_TEMPLATE: str = '* {}:{}'
@@ -100,17 +100,17 @@ class PyTestServiceClass:
     """Pytest service class for reporting test results to the Report Portal."""
 
     _config: AgentConfig
-    _issue_types: dict[str, str]
+    _issue_types: Dict[str, str]
     _tree_path: dict[Item, list[dict[str, Any]]]
-    _log_levels: tuple
-    _start_tracker: set[str]
+    _log_levels: Tuple[str, str, str, str, str]
+    _start_tracker: Set[str]
     _launch_id: Optional[str]
     agent_name: str
     agent_version: str
-    ignored_attributes: list[str]
+    ignored_attributes: List[str]
     parent_item_id: Optional[str]
     rp: Optional[RPClient]
-    project_settings: dict[str, Any]
+    project_settings: Dict[str, Any]
 
     def __init__(self, agent_config: AgentConfig) -> None:
         """Initialize instance attributes."""
