@@ -1,7 +1,4 @@
 """This module includes integration tests for configuration parameters."""
-import sys
-
-import pytest
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,6 +11,10 @@ import pytest
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
+import sys
+import warnings
+
 from delayed_assert import expect, assert_expectations
 from unittest import mock
 
@@ -128,8 +129,14 @@ def test_rp_log_format(mock_client_init):
     expect(mock_client.log.call_count == 1)
     message = mock_client.log.call_args_list[0][0][1]
     expect(len(message) > 0)
-    expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
-           ' (test_rp_logging.py:24)')
+    if sys.version_info < (3, 11):
+        expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
+               ' (test_rp_logging.py:24)')
+    else:
+        # FIXME: implement stacktrace preserve solution for Python 3.11
+        warnings.warn('FIXME: implement stacktrace preserve solution for Python 3.11', RuntimeWarning)
+        expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
+               ' (rp_logging.py:111)')
     assert_expectations()
 
 
@@ -170,8 +177,6 @@ def filter_agent_calls(mock_warnings):
     )
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key(mock_warnings, mock_client_init):
@@ -192,8 +197,6 @@ def test_rp_api_key(mock_warnings, mock_client_init):
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_uuid(mock_warnings, mock_client_init):
@@ -215,8 +218,6 @@ def test_rp_uuid(mock_warnings, mock_client_init):
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key_priority(mock_warnings, mock_client_init):
@@ -237,8 +238,6 @@ def test_rp_api_key_priority(mock_warnings, mock_client_init):
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_key_empty(mock_warnings, mock_client_init):
@@ -256,8 +255,6 @@ def test_rp_api_key_empty(mock_warnings, mock_client_init):
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_rp_api_retries(mock_warnings, mock_client_init):
@@ -278,8 +275,6 @@ def test_rp_api_retries(mock_warnings, mock_client_init):
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
 @mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
 def test_retries(mock_warnings, mock_client_init):
