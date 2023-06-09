@@ -128,7 +128,7 @@ class PyTestServiceClass:
         self.project_settings = {}
 
     @property
-    def issue_types(self) -> dict[str, str]:
+    def issue_types(self) -> Dict[str, str]:
         """Issue types for the Report Portal project."""
         if not self._issue_types:
             if not self.project_settings:
