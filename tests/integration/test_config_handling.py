@@ -178,118 +178,112 @@ def filter_agent_calls(mock_warnings):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_api_key(mock_warnings, mock_client_init):
+def test_rp_api_key(mock_client_init):
     api_key = 'rp_api_key'
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_key': api_key}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 1)
+        expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['api_key'] == api_key)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 0)
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['api_key'] == api_key)
+        expect(len(w) == 0)
     assert_expectations()
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_uuid(mock_warnings, mock_client_init):
+def test_rp_uuid(mock_client_init):
     api_key = 'rp_api_key'
     variables = dict(utils.DEFAULT_VARIABLES)
     del variables['rp_api_key']
     variables.update({'rp_uuid': api_key}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 1)
+        expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['api_key'] == api_key)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 1)
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['api_key'] == api_key)
+        expect(len(w) == 1)
     assert_expectations()
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_api_key_priority(mock_warnings, mock_client_init):
+def test_rp_api_key_priority(mock_client_init):
     api_key = 'rp_api_key'
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_key': api_key, 'rp_uuid': 'rp_uuid'}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 1)
+        expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['api_key'] == api_key)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 0)
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['api_key'] == api_key)
+        expect(len(w) == 0)
     assert_expectations()
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_api_key_empty(mock_warnings, mock_client_init):
+def test_rp_api_key_empty(mock_client_init):
     api_key = ''
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_key': api_key}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 0)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 1)
+        expect(mock_client_init.call_count == 0)
+        expect(len(w) == 1)
     assert_expectations()
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_api_retries(mock_warnings, mock_client_init):
+def test_rp_api_retries(mock_client_init):
     retries = 5
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_retries': str(retries)}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 1)
+        expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['retries'] == retries)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 0)
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['retries'] == retries)
+        expect(len(w) == 0)
     assert_expectations()
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_retries(mock_warnings, mock_client_init):
+def test_retries(mock_client_init):
     retries = 5
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({'retries': str(retries)}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 1)
+        expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['retries'] == retries)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 1)
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['retries'] == retries)
+        expect(len(w) == 1)
     assert_expectations()
