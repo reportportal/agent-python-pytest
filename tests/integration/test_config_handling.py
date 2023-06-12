@@ -160,7 +160,7 @@ def test_rp_log_batch_payload_size(mock_client_init):
 def filter_agent_call(warn):
     category = getattr(warn, 'category', None)
     if category:
-        return category.__name__ != 'PytestAssertRewriteWarning'
+        return category.__name__ == 'DeprecationWarning' or category.__name__ == 'RuntimeWarning'
     return False
 
 
