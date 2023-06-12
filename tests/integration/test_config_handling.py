@@ -157,22 +157,18 @@ def test_rp_log_batch_payload_size(mock_client_init):
     assert_expectations()
 
 
-def filter_agent_call(args):
-    if len(args[0]) > 1 and args[0][1]:
-        return args[0][1].__name__ == 'DeprecationWarning' \
-            or args[0][1].__name__ == 'RuntimeWarning'
-    else:
-        if 'category' in args[1] and args[1]['category']:
-            return args[1]['category'].__name__ == 'DeprecationWarning' \
-                or args[1]['category'].__name__ == 'RuntimeWarning'
+def filter_agent_call(warn):
+    category = getattr(warn, 'category', None)
+    if category:
+        return category.__name__ != 'PytestAssertRewriteWarning'
     return False
 
 
-def filter_agent_calls(mock_warnings):
+def filter_agent_calls(warning_list):
     return list(
         filter(
             lambda call: filter_agent_call(call),
-            mock_warnings.call_args_list
+            warning_list
         )
     )
 
@@ -192,7 +188,7 @@ def test_rp_api_key(mock_client_init):
 
         constructor_args = mock_client_init.call_args_list[0][1]
         expect(constructor_args['api_key'] == api_key)
-        expect(len(w) == 0)
+        expect(len(filter_agent_calls(w)) == 0)
     assert_expectations()
 
 
@@ -212,7 +208,7 @@ def test_rp_uuid(mock_client_init):
 
         constructor_args = mock_client_init.call_args_list[0][1]
         expect(constructor_args['api_key'] == api_key)
-        expect(len(w) == 1)
+        expect(len(filter_agent_calls(w)) == 1)
     assert_expectations()
 
 
@@ -231,7 +227,7 @@ def test_rp_api_key_priority(mock_client_init):
 
         constructor_args = mock_client_init.call_args_list[0][1]
         expect(constructor_args['api_key'] == api_key)
-        expect(len(w) == 0)
+        expect(len(filter_agent_calls(w)) == 0)
     assert_expectations()
 
 
@@ -247,7 +243,7 @@ def test_rp_api_key_empty(mock_client_init):
         assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
         expect(mock_client_init.call_count == 0)
-        expect(len(w) == 1)
+        expect(len(filter_agent_calls(w)) == 1)
     assert_expectations()
 
 
@@ -266,7 +262,7 @@ def test_rp_api_retries(mock_client_init):
 
         constructor_args = mock_client_init.call_args_list[0][1]
         expect(constructor_args['retries'] == retries)
-        expect(len(w) == 0)
+        expect(len(filter_agent_calls(w)) == 0)
     assert_expectations()
 
 
@@ -285,5 +281,5 @@ def test_retries(mock_client_init):
 
         constructor_args = mock_client_init.call_args_list[0][1]
         expect(constructor_args['retries'] == retries)
-        expect(len(w) == 1)
+        expect(len(filter_agent_calls(w)) == 1)
     assert_expectations()
