@@ -19,7 +19,7 @@ from delayed_assert import expect, assert_expectations
 from unittest import mock
 
 from examples.test_rp_logging import LOG_MESSAGE
-from tests import REPORT_PORTAL_SERVICE, REPORT_PORTAL_PACKAGE
+from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 TEST_LAUNCH_ID = 'test_launch_id'
