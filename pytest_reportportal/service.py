@@ -3,6 +3,7 @@ import logging
 import os.path
 import sys
 import threading
+from functools import wraps
 from os import curdir
 from time import time, sleep
 from typing import List, Any, Optional, Set, Dict, Tuple
@@ -96,6 +97,19 @@ class ExecStatus(Enum):
     FINISHED = auto()
 
 
+def check_rp_enabled(func):
+    """Verify is RP is enabled in config."""
+
+    @wraps(func)
+    def wrap(*args, **kwargs):
+        if args and isinstance(args[0], PyTestServiceClass):
+            if not args[0].rp:
+                return
+        func(*args, **kwargs)
+
+    return wrap
+
+
 class PyTestServiceClass:
     """Pytest service class for reporting test results to the Report Portal."""
 
@@ -165,14 +179,13 @@ class PyTestServiceClass:
         }
         return start_rq
 
+    @check_rp_enabled
     def start_launch(self) -> Optional[str]:
         """
         Launch test items.
 
         :return: item ID
         """
-        if self.rp is None:
-            return
         sl_pt = self._build_start_launch_rq()
         log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
         self._launch_id = self.rp.start_launch(**sl_pt)
@@ -336,15 +349,13 @@ class PyTestServiceClass:
         elif leaf['type'] != LeafType.ROOT:
             self._tree_path[leaf['item']] = path + [leaf]
 
+    @check_rp_enabled
     def collect_tests(self, session):
         """
         Collect all tests.
 
         :param session: pytest.Session
         """
-        if self.rp is None:
-            return
-
         # Create a test tree to be able to apply mutations
         test_tree = self._build_test_tree(session)
         self._remove_root_package(test_tree)
@@ -428,10 +439,8 @@ class PyTestServiceClass:
         leaf['item_id'] = item_id
         leaf['exec'] = ExecStatus.IN_PROGRESS
 
+    @check_rp_enabled
     def _create_suite_path(self, item):
-        if self.rp is None:
-            return
-
         path = self._tree_path[item]
         for leaf in path[1:-1]:
             if leaf['exec'] != ExecStatus.CREATED:
@@ -669,6 +678,7 @@ class PyTestServiceClass:
     def __started(self):
         return self.__unique_id() in self._start_tracker
 
+    @check_rp_enabled
     def start_pytest_item(self, test_item=None):
         """
         Start pytest_item.
@@ -676,7 +686,7 @@ class PyTestServiceClass:
         :param test_item: pytest.Item
         :return: item ID
         """
-        if self.rp is None or test_item is None:
+        if test_item is None:
             return
 
         if not self.__started():
@@ -771,6 +781,7 @@ class PyTestServiceClass:
         self._lock(leaf['parent'], lambda p: self._proceed_suite_finish(p))
         self._finish_parents(leaf['parent'])
 
+    @check_rp_enabled
     def finish_pytest_item(self, test_item):
         """
         Finish pytest_item.
@@ -778,9 +789,6 @@ class PyTestServiceClass:
         :param test_item: pytest.Item
         :return: None
         """
-        if self.rp is None:
-            return
-
         path = self._tree_path[test_item]
         leaf = path[-1]
         self._process_metadata_item_finish(leaf)
@@ -824,18 +832,17 @@ class PyTestServiceClass:
         log.debug('ReportPortal - Finish launch: request_body=%s', finish_rq)
         self.rp.finish_launch(**finish_rq)
 
+    @check_rp_enabled
     def finish_launch(self):
         """
         Finish tests launch.
 
         :return: None
         """
-        if self.rp is None:
-            return
-
         # To finish launch session str parameter is needed
         self._finish_launch(self._build_finish_launch_rq())
 
+    @check_rp_enabled
     def post_log(self, test_item, message, log_level='INFO', attachment=None):
         """
         Send a log message to the Report Portal.
@@ -847,9 +854,6 @@ class PyTestServiceClass:
         :param attachment: attachment file
         :return: None
         """
-        if self.rp is None:
-            return
-
         if log_level not in self._log_levels:
             log.warning('Incorrect loglevel = %s. Force set to INFO. '
                         'Available levels: %s.', log_level, self._log_levels)
