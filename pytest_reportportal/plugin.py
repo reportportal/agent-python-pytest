@@ -104,6 +104,9 @@ def pytest_sessionstart(session):
 
     if is_control(config) and not config._reporter_config.rp_launch_id:
         config.py_test_service.start_launch()
+        if config._reporter_config.rp_launch_uuid_print:
+            launch_id = config.py_test_service.rp.launch_id
+            print(f'Report Portal Launch UUID: {launch_id}', file=config._reporter_config.rp_launch_uuid_print_output)
         if config.pluginmanager.hasplugin('xdist') \
                 or config.pluginmanager.hasplugin('pytest-parallel'):
             if not wait_launch(session.config.py_test_service.rp):
@@ -399,6 +402,16 @@ def pytest_addoption(parser):
                  'and so it is turned off by default. Use with caution.',
         default=False,
         action='store_true'
+    )
+    add_shared_option(
+        name='rp_launch_uuid_print',
+        help_str='Enables printing Launch UUID on test run start. Possible values: [True, False]',
+        default='False'
+    )
+    add_shared_option(
+        name='rp_launch_uuid_print_output',
+        help_str='Launch UUID print output. Default `stdout`. Possible values: [stderr, stdout]',
+        default='stdout'
     )
 
     parser.addini(

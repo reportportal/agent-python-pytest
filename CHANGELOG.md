@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `rp_launch_uuid_print` and `rp_launch_uuid_print_output` configuration parameters, by @HardNorth
+### Removed
+- Python 2.7, 3.6 support, by @HardNorth
 
 ## [5.1.9]
 ### Added
