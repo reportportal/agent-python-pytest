@@ -168,7 +168,7 @@ class AgentConfig(object):
 
         self.rp_launch_uuid_print = bool(strtobool(self.find_option(
             pytest_config, 'rp_launch_uuid_print'
-        )))
+        ) or 'False'))
         self.rp_launch_uuid_print_output = OUTPUT_TYPES.get((self.find_option(
             pytest_config, 'rp_launch_uuid_print_output'
         ) or 'stdout').lower(), OUTPUT_TYPES['stdout'])

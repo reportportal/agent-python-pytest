@@ -67,6 +67,7 @@ def mocked_config():
     mocked_config.option.rp_rerun = False
     mocked_config.option.rp_launch_timeout = -1
     mocked_config.option.rp_thread_logging = True
+    mocked_config.option.rp_launch_uuid_print = 'False'
     return mocked_config
 
 
