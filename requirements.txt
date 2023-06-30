@@ -1,4 +1,4 @@
-dill>=0.2.7.1
+dill>=0.3.6
 pytest>=3.8.0
 reportportal-client==5.3.5
 aenum>=3.1.0
