@@ -72,9 +72,7 @@ class AgentConfig(object):
                                                   'rp_hierarchy_dirs')
         self.rp_dir_path_separator = \
             self.find_option(pytest_config, 'rp_hierarchy_dir_path_separator')
-        ignore_attributes = self.find_option(pytest_config,
-                                             'rp_ignore_attributes')
-        self.rp_ignore_attributes = ignore_attributes and set(ignore_attributes)
+        self.rp_ignore_attributes = set(self.find_option(pytest_config, 'rp_ignore_attributes') or [])
         self.rp_is_skipped_an_issue = self.find_option(
             pytest_config,
             'rp_is_skipped_an_issue'
