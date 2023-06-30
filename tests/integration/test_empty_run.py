@@ -22,7 +22,7 @@
 #  limitations under the License
 
 from delayed_assert import expect, assert_expectations
-from six.moves import mock
+from unittest import mock
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils

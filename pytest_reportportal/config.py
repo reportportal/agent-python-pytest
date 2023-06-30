@@ -1,9 +1,12 @@
 """This module contains class that stores RP agent configuration data."""
+import sys
 import warnings
 
 from distutils.util import strtobool
 from os import getenv
+from typing import Optional, Union, Any, TextIO, Dict
 
+from _pytest.config import Config
 from reportportal_client.logs.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 try:
@@ -14,10 +17,49 @@ except ImportError:
         get_actual_log_level
 
 
+OUTPUT_TYPES: Dict[str, TextIO] = {
+    'stdout': sys.stdout,
+    'stderr': sys.stderr
+}
+
+
 class AgentConfig(object):
     """Storage for the RP agent initialization attributes."""
 
-    def __init__(self, pytest_config):
+    rp_rerun: Optional[bool]
+    pconfig: Config
+    rp_endpoint: str
+    rp_hierarchy_code: bool
+    rp_dir_level: int
+    rp_hierarchy_dirs: bool
+    rp_dir_path_separator: str
+    rp_ignore_attributes: set
+    rp_is_skipped_an_issue: bool
+    rp_issue_id_marks: bool
+    rp_issue_system_url: str
+    rp_bts_project: str
+    rp_bts_url: str
+    rp_launch: str
+    rp_launch_id: Optional[str]
+    rp_launch_attributes: Optional[list]
+    rp_launch_description: str
+    rp_log_batch_size: int
+    rp_log_batch_payload_size: int
+    rp_log_level: Optional[int]
+    rp_log_format: Optional[str]
+    rp_mode: str
+    rp_parent_item_id: Optional[str]
+    rp_project: str
+    rp_rerun_of: Optional[str]
+    rp_api_retries: int
+    rp_skip_connection_test: bool
+    rp_api_key: str
+    rp_verify_ssl: Union[bool, str]
+    rp_launch_timeout: int
+    rp_launch_uuid_print: bool
+    rp_launch_uuid_print_output: TextIO
+
+    def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
         self.rp_rerun = (pytest_config.option.rp_rerun or
                          pytest_config.getini('rp_rerun'))
@@ -30,10 +72,7 @@ class AgentConfig(object):
                                                   'rp_hierarchy_dirs')
         self.rp_dir_path_separator = \
             self.find_option(pytest_config, 'rp_hierarchy_dir_path_separator')
-        ignore_attributes = self.find_option(pytest_config,
-                                             'rp_ignore_attributes')
-        self.rp_ignore_attributes = set(ignore_attributes) \
-            if ignore_attributes else set()
+        self.rp_ignore_attributes = set(self.find_option(pytest_config, 'rp_ignore_attributes') or [])
         self.rp_is_skipped_an_issue = self.find_option(
             pytest_config,
             'rp_is_skipped_an_issue'
@@ -127,8 +166,15 @@ class AgentConfig(object):
         self.rp_launch_timeout = int(
             self.find_option(pytest_config, 'rp_launch_timeout'))
 
+        self.rp_launch_uuid_print = bool(strtobool(self.find_option(
+            pytest_config, 'rp_launch_uuid_print'
+        ) or 'False'))
+        self.rp_launch_uuid_print_output = OUTPUT_TYPES.get((self.find_option(
+            pytest_config, 'rp_launch_uuid_print_output'
+        ) or 'stdout').lower(), OUTPUT_TYPES['stdout'])
+
     # noinspection PyMethodMayBeStatic
-    def find_option(self, pytest_config, option_name, default=None):
+    def find_option(self, pytest_config: Config, option_name: str, default: Any = None):
         """
         Find a single configuration setting from multiple places.
 
@@ -148,4 +194,4 @@ class AgentConfig(object):
         )
         if isinstance(value, bool):
             return value
-        return value if value else default
+        return value or default

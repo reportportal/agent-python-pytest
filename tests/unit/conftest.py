@@ -19,7 +19,7 @@ from _pytest.main import Session
 from pluggy._tracing import TagTracer
 from pytest import fixture, Module
 # noinspection PyUnresolvedReferences
-from six.moves import mock
+from unittest import mock
 
 from reportportal_client import RPLogger
 from pytest_reportportal.config import AgentConfig
@@ -67,6 +67,7 @@ def mocked_config():
     mocked_config.option.rp_rerun = False
     mocked_config.option.rp_launch_timeout = -1
     mocked_config.option.rp_thread_logging = True
+    mocked_config.option.rp_launch_uuid_print = 'False'
     return mocked_config
 
 

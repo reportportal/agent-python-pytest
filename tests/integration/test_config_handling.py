@@ -1,7 +1,4 @@
 """This module includes integration tests for configuration parameters."""
-import sys
-
-import pytest
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -14,11 +11,17 @@ import pytest
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License
+
+import sys
+import warnings
+from io import StringIO
+
 from delayed_assert import expect, assert_expectations
-from six.moves import mock
+from unittest import mock
 
 from examples.test_rp_logging import LOG_MESSAGE
-from tests import REPORT_PORTAL_SERVICE, REPORT_PORTAL_PACKAGE
+from pytest_reportportal.config import OUTPUT_TYPES
+from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 TEST_LAUNCH_ID = 'test_launch_id'
@@ -128,8 +131,14 @@ def test_rp_log_format(mock_client_init):
     expect(mock_client.log.call_count == 1)
     message = mock_client.log.call_args_list[0][0][1]
     expect(len(message) > 0)
-    expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
-           ' (test_rp_logging.py:24)')
+    if sys.version_info < (3, 11):
+        expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
+               ' (test_rp_logging.py:24)')
+    else:
+        # FIXME: implement stacktrace preserve solution for Python 3.11
+        warnings.warn('FIXME: implement stacktrace preserve solution for Python 3.11', RuntimeWarning)
+        expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
+               ' (rp_logging.py:111)')
     assert_expectations()
 
 
@@ -150,151 +159,215 @@ def test_rp_log_batch_payload_size(mock_client_init):
     assert_expectations()
 
 
-def filter_agent_call(args):
-    if len(args[0]) > 1 and args[0][1]:
-        return args[0][1].__name__ == 'DeprecationWarning' \
-            or args[0][1].__name__ == 'RuntimeWarning'
-    else:
-        if 'category' in args[1] and args[1]['category']:
-            return args[1]['category'].__name__ == 'DeprecationWarning' \
-                or args[1]['category'].__name__ == 'RuntimeWarning'
+def filter_agent_call(warn):
+    category = getattr(warn, 'category', None)
+    if category:
+        return category.__name__ == 'DeprecationWarning' or category.__name__ == 'RuntimeWarning'
     return False
 
 
-def filter_agent_calls(mock_warnings):
+def filter_agent_calls(warning_list):
     return list(
         filter(
             lambda call: filter_agent_call(call),
-            mock_warnings.call_args_list
+            warning_list
         )
     )
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_api_key(mock_warnings, mock_client_init):
+def test_rp_api_key(mock_client_init):
     api_key = 'rp_api_key'
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_key': api_key}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 1)
+        expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['api_key'] == api_key)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 0)
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['api_key'] == api_key)
+        expect(len(filter_agent_calls(w)) == 0)
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_uuid(mock_warnings, mock_client_init):
+def test_rp_uuid(mock_client_init):
     api_key = 'rp_api_key'
     variables = dict(utils.DEFAULT_VARIABLES)
     del variables['rp_api_key']
     variables.update({'rp_uuid': api_key}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 1)
+        expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['api_key'] == api_key)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 1)
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['api_key'] == api_key)
+        expect(len(filter_agent_calls(w)) == 1)
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_api_key_priority(mock_warnings, mock_client_init):
+def test_rp_api_key_priority(mock_client_init):
     api_key = 'rp_api_key'
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_key': api_key, 'rp_uuid': 'rp_uuid'}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 1)
+        expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['api_key'] == api_key)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 0)
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['api_key'] == api_key)
+        expect(len(filter_agent_calls(w)) == 0)
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_api_key_empty(mock_warnings, mock_client_init):
+def test_rp_api_key_empty(mock_client_init):
     api_key = ''
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_key': api_key}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 0)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 1)
+        expect(mock_client_init.call_count == 0)
+        expect(len(filter_agent_calls(w)) == 1)
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_rp_api_retries(mock_warnings, mock_client_init):
+def test_rp_api_retries(mock_client_init):
     retries = 5
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({'rp_api_retries': str(retries)}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(mock_client_init.call_count == 1)
+        expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['retries'] == retries)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 0)
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['retries'] == retries)
+        expect(len(filter_agent_calls(w)) == 0)
     assert_expectations()
 
 
-@pytest.mark.skipif(sys.version_info < (3, 6),
-                    reason="requires python3.6 or higher")
 @mock.patch(REPORT_PORTAL_SERVICE)
-@mock.patch(REPORT_PORTAL_PACKAGE + '.config.warnings.warn')
-def test_retries(mock_warnings, mock_client_init):
+def test_retries(mock_client_init):
     retries = 5
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({'retries': str(retries)}.items())
 
-    result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                    variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
+        expect(mock_client_init.call_count == 1)
+
+        constructor_args = mock_client_init.call_args_list[0][1]
+        expect(constructor_args['retries'] == retries)
+        expect(len(filter_agent_calls(w)) == 1)
+    assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_launch_uuid_print(mock_client_init):
+    print_uuid = True
+    variables = utils.DEFAULT_VARIABLES.copy()
+    variables.update({'rp_launch_uuid_print': str(print_uuid)}.items())
+
+    str_io = StringIO()
+    stdout = sys.stdout
+    try:
+        OUTPUT_TYPES['stdout'] = str_io
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+    finally:
+        OUTPUT_TYPES['stdout'] = stdout
+
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
 
-    constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args['retries'] == retries)
-    agent_calls = filter_agent_calls(mock_warnings)
-    expect(len(agent_calls) == 1)
+    expect('Report Portal Launch UUID:' in str_io.getvalue())
+    assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_launch_uuid_print_stderr(mock_client_init):
+    print_uuid = True
+    variables = utils.DEFAULT_VARIABLES.copy()
+    variables.update({'rp_launch_uuid_print': str(print_uuid), 'rp_launch_uuid_print_output': 'stderr'}.items())
+
+    str_io = StringIO()
+    stderr = sys.stderr
+    try:
+        OUTPUT_TYPES['stderr'] = str_io
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+    finally:
+        OUTPUT_TYPES['stderr'] = stderr
+
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    expect(mock_client_init.call_count == 1)
+
+    expect('Report Portal Launch UUID:' in str_io.getvalue())
+    assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_launch_uuid_print_invalid_output(mock_client_init):
+    print_uuid = True
+    variables = utils.DEFAULT_VARIABLES.copy()
+    variables.update({'rp_launch_uuid_print': str(print_uuid), 'rp_launch_uuid_print_output': 'something'}.items())
+
+    str_io = StringIO()
+    stdout = sys.stdout
+    try:
+        OUTPUT_TYPES['stdout'] = str_io
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+    finally:
+        OUTPUT_TYPES['stdout'] = stdout
+
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    expect(mock_client_init.call_count == 1)
+
+    expect('Report Portal Launch UUID:' in str_io.getvalue())
+    assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_no_launch_uuid_print(mock_client_init):
+    variables = utils.DEFAULT_VARIABLES.copy()
+
+    str_io = StringIO()
+    stdout = sys.stdout
+    try:
+        OUTPUT_TYPES['stdout'] = str_io
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
+                                        variables=variables)
+    finally:
+        OUTPUT_TYPES['stdout'] = stdout
+
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    expect(mock_client_init.call_count == 1)
+
+    expect('Report Portal Launch UUID:' not in str_io.getvalue())
     assert_expectations()

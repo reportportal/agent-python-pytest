@@ -84,15 +84,18 @@ The following parameters are optional:
 - :code:`rp_launch = AnyLaunchName` - launch name (could be overridden by pytest --rp-launch option, default value is 'Pytest Launch').
 - :code:`rp_launch_id = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` - id of the existing launch (the session will not handle the lifecycle of the given launch).
 - :code:`rp_launch_attributes = 'PyTest' 'Smoke' 'Env:Python3'` - list of attributes for launch.
+- :code:`rp_launch_description = 'Smoke test'` - launch description (could be overridden by pytest --rp-launch-description option, default value is '').
+- :code:`rp_launch_timeout = 86400` - Maximum time to wait for child processes finish, default value: 86400 seconds (1 day).
+- :code:`rp_launch_uuid_print = True` - Enables printing Launch UUID on test run start. Default `False`.
+- :code:`rp_launch_uuid_print_output = stderr` - Launch UUID print output. Default `stdout`. Possible values: [stderr, stdout].
 - :code:`rp_parent_item_id = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` - id of the existing test item for session to use as parent item for the tests (the session will not handle the lifecycle of the given test item).
 - :code:`rp_tests_attributes = 'PyTest' 'Smoke'` - list of attributes that will be added for each item in the launch.
-- :code:`rp_launch_description = 'Smoke test'` - launch description (could be overridden by pytest --rp-launch-description option, default value is '').
 - :code:`rp_log_batch_size = 20` - size of batch log request.
 - :code:`rp_log_batch_payload_size = 65000000` - maximum payload size in bytes of async batch log requests.
 - :code:`rp_log_level = INFO` - The log level that will be reported.
 - :code:`rp_log_format = [%(levelname)7s] (%(name)s) %(message)s (%(filename)s:%(lineno)s)` - Format string to be used for logs sent to the service.
 - :code:`rp_ignore_attributes = 'xfail' 'usefixture'` - Ignore specified pytest markers.
-- :code:`rp_is_skipped_an_issue = False` - Treat skipped tests as required investigation. Default is True.
+- :code:`rp_is_skipped_an_issue = False` - Treat skipped tests as required investigation. Default `True`.
 - :code:`rp_hierarchy_dirs_level = 0` - Directory starting hierarchy level (from pytest.ini level) (default `0`).
 - :code:`rp_hierarchy_dirs = True` - Enables hierarchy for tests directories, default `False`. Doesn't support 'xdist' plugin.
 - :code:`rp_hierarchy_dir_path_separator` - Path separator to display directories in test hierarchy. In case of empty value current system path separator will be used (os.path.sep).
@@ -102,7 +105,6 @@ The following parameters are optional:
 - :code:`rp_verify_ssl = True` - Verify SSL when connecting to the server.
 - :code:`rp_mode = DEFAULT` - DEBUG or DEFAULT launch mode. DEBUG launches are displayed in a separate tab and not visible to anyone except owner.
 - :code:`rp_thread_logging` - EXPERIMENTAL - Enables support for reporting logs from threads by patching the builtin Thread class. Use with caution.
-- :code:`rp_launch_timeout = 86400` - Maximum time to wait for child processes finish, default value: 86400 seconds (1 day).
 - :code:`rp_api_retries = 0` - Amount of retries for performing REST calls to RP server.
 
 

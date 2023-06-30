@@ -13,7 +13,7 @@
 #  limitations under the License
 
 import pytest
-from six.moves import mock
+from unittest import mock
 
 from examples.test_case_id import test_case_id_decorator, \
     test_case_id_decorator_params_false, test_case_id_decorator_params_no, \

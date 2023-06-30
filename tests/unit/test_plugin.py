@@ -18,7 +18,7 @@ import pytest
 from delayed_assert import expect, assert_expectations
 from requests.exceptions import RequestException
 # noinspection PyUnresolvedReferences
-from six.moves import mock
+from unittest import mock
 
 from reportportal_client.errors import ResponseError
 
@@ -346,6 +346,8 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_endpoint',
         'rp_mode',
         'rp_thread_logging',
+        'rp_launch_uuid_print',
+        'rp_launch_uuid_print_output',
         'rp_launch_attributes',
         'rp_tests_attributes',
         'rp_log_batch_size',
@@ -393,7 +395,9 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         '--rp-api-key',
         '--rp-endpoint',
         '--rp-mode',
-        '--rp-thread-logging'
+        '--rp-thread-logging',
+        '--rp-launch-uuid-print',
+        '--rp-launch-uuid-print-output'
     )
     mock_parser = mock.MagicMock(spec=Parser)
     mock_reporting_group = mock_parser.getgroup.return_value
