@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.2.0]
 ### Added
 - `rp_launch_uuid_print` and `rp_launch_uuid_print_output` configuration parameters, by @HardNorth
 ### Removed
