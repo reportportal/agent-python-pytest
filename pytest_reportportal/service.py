@@ -890,7 +890,9 @@ class PyTestServiceClass:
             retries=self._config.rp_api_retries,
             verify_ssl=self._config.rp_verify_ssl,
             launch_id=launch_id,
-            log_batch_payload_size=self._config.rp_log_batch_payload_size
+            log_batch_payload_size=self._config.rp_log_batch_payload_size,
+            launch_uuid_print=self._config.rp_launch_uuid_print,
+            print_output=self._config.rp_launch_uuid_print_output
         )
         if hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()

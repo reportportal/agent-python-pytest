@@ -304,8 +304,8 @@ def test_launch_uuid_print(mock_client_init):
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
-
-    expect('Report Portal Launch UUID:' in str_io.getvalue())
+    expect(mock_client_init.call_args_list[0].kwargs['launch_uuid_print'] == print_uuid)
+    expect(mock_client_init.call_args_list[0].kwargs['print_output'] is str_io)
     assert_expectations()
 
 
@@ -326,8 +326,8 @@ def test_launch_uuid_print_stderr(mock_client_init):
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
-
-    expect('Report Portal Launch UUID:' in str_io.getvalue())
+    expect(mock_client_init.call_args_list[0].kwargs['launch_uuid_print'] == print_uuid)
+    expect(mock_client_init.call_args_list[0].kwargs['print_output'] is str_io)
     assert_expectations()
 
 
@@ -348,8 +348,8 @@ def test_launch_uuid_print_invalid_output(mock_client_init):
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
-
-    expect('Report Portal Launch UUID:' in str_io.getvalue())
+    expect(mock_client_init.call_args_list[0].kwargs['launch_uuid_print'] == print_uuid)
+    expect(mock_client_init.call_args_list[0].kwargs['print_output'] is str_io)
     assert_expectations()
 
 
