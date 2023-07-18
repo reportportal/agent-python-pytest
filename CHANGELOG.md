@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.2.1]
 ### Fixed
  - Log line reference for Python 3.11, by @HardNorth
 ### Changed
