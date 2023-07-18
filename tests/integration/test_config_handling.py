@@ -131,14 +131,7 @@ def test_rp_log_format(mock_client_init):
     expect(mock_client.log.call_count == 1)
     message = mock_client.log.call_args_list[0][0][1]
     expect(len(message) > 0)
-    if sys.version_info < (3, 11):
-        expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
-               ' (test_rp_logging.py:24)')
-    else:
-        # FIXME: implement stacktrace preserve solution for Python 3.11
-        warnings.warn('FIXME: implement stacktrace preserve solution for Python 3.11', RuntimeWarning)
-        expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
-               ' (rp_logging.py:111)')
+    expect(message == f'(examples.test_rp_logging) {LOG_MESSAGE} (test_rp_logging.py:24)')
     assert_expectations()
 
 
