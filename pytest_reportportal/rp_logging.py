@@ -1,5 +1,6 @@
 """RPLogger class for low-level logging in tests."""
 
+import sys
 import logging
 import threading
 from contextlib import contextmanager
@@ -108,7 +109,17 @@ def patching_logger_class():
                 if attachment is not None:
                     kwargs.setdefault('extra', {}).update(
                         {'attachment': attachment})
-                return original_func(self, *args, **kwargs)
+                #  Python 3.11 start catches stack frames in wrappers,
+                #  so add additional stack level skip to not show it
+                if sys.version_info >= (3, 11):
+                    my_kwargs = kwargs.copy()
+                    if 'stacklevel' in kwargs:
+                        my_kwargs['stacklevel'] = my_kwargs['stacklevel'] + 1
+                    else:
+                        my_kwargs['stacklevel'] = 2
+                    return original_func(self, *args, **my_kwargs)
+                else:
+                    return original_func(self, *args, **kwargs)
 
             return _log
 

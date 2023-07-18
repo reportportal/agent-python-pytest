@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+ - Log line reference for Python 3.11, by @HardNorth
+### Changed
+- Client version updated on [5.4.0](https://github.com/reportportal/client-Python/releases/tag/5.4.0), by @HardNorth
+
+## [5.2.0]
 ### Added
 - `rp_launch_uuid_print` and `rp_launch_uuid_print_output` configuration parameters, by @HardNorth
 ### Removed

@@ -1,5 +1,5 @@
 dill>=0.3.6
 pytest>=3.8.0
-reportportal-client==5.3.5
+reportportal-client==5.4.0
 aenum>=3.1.0
 requests>=2.27.1

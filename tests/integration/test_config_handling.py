@@ -131,14 +131,7 @@ def test_rp_log_format(mock_client_init):
     expect(mock_client.log.call_count == 1)
     message = mock_client.log.call_args_list[0][0][1]
     expect(len(message) > 0)
-    if sys.version_info < (3, 11):
-        expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
-               ' (test_rp_logging.py:24)')
-    else:
-        # FIXME: implement stacktrace preserve solution for Python 3.11
-        warnings.warn('FIXME: implement stacktrace preserve solution for Python 3.11', RuntimeWarning)
-        expect(message == '(examples.test_rp_logging) ' + LOG_MESSAGE +
-               ' (rp_logging.py:111)')
+    expect(message == f'(examples.test_rp_logging) {LOG_MESSAGE} (test_rp_logging.py:24)')
     assert_expectations()
 
 
@@ -304,8 +297,8 @@ def test_launch_uuid_print(mock_client_init):
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
-
-    expect('Report Portal Launch UUID:' in str_io.getvalue())
+    expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] == print_uuid)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
     assert_expectations()
 
 
@@ -326,8 +319,8 @@ def test_launch_uuid_print_stderr(mock_client_init):
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
-
-    expect('Report Portal Launch UUID:' in str_io.getvalue())
+    expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] == print_uuid)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
     assert_expectations()
 
 
@@ -348,8 +341,8 @@ def test_launch_uuid_print_invalid_output(mock_client_init):
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
-
-    expect('Report Portal Launch UUID:' in str_io.getvalue())
+    expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] == print_uuid)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
     assert_expectations()
 
 
@@ -368,6 +361,6 @@ def test_no_launch_uuid_print(mock_client_init):
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
-
-    expect('Report Portal Launch UUID:' not in str_io.getvalue())
+    expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] is False)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
     assert_expectations()
