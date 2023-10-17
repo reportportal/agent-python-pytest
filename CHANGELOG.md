@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `RP_CLIENT_TYPE` configuration variable, by @HardNorth
+### Changed
+- Client version updated on [5.5.1](https://github.com/reportportal/client-Python/releases/tag/5.5.1), by @HardNorth
 
 ## [5.2.2]
 ### Changed

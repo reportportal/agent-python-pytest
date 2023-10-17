@@ -1,13 +1,12 @@
 """This module contains class that stores RP agent configuration data."""
-import sys
 import warnings
-
 from distutils.util import strtobool
 from os import getenv
-from typing import Optional, Union, Any, TextIO, Dict
+from typing import Optional, Union, Any
 
 from _pytest.config import Config
-from reportportal_client.logs.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client import OutputType, ClientType
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 try:
     # This try/except can go away once we support pytest >= 5.4.0
@@ -17,15 +16,10 @@ except ImportError:
         get_actual_log_level
 
 
-OUTPUT_TYPES: Dict[str, TextIO] = {
-    'stdout': sys.stdout,
-    'stderr': sys.stderr
-}
-
-
 class AgentConfig(object):
     """Storage for the RP agent initialization attributes."""
 
+    rp_client_type: Optional[ClientType]
     rp_rerun: Optional[bool]
     pconfig: Config
     rp_endpoint: str
@@ -57,7 +51,7 @@ class AgentConfig(object):
     rp_verify_ssl: Union[bool, str]
     rp_launch_timeout: int
     rp_launch_uuid_print: bool
-    rp_launch_uuid_print_output: TextIO
+    rp_launch_uuid_print_output: Optional[OutputType]
 
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
@@ -169,12 +163,13 @@ class AgentConfig(object):
         self.rp_launch_uuid_print = bool(strtobool(self.find_option(
             pytest_config, 'rp_launch_uuid_print'
         ) or 'False'))
-        self.rp_launch_uuid_print_output = OUTPUT_TYPES.get((self.find_option(
-            pytest_config, 'rp_launch_uuid_print_output'
-        ) or 'stdout').lower(), OUTPUT_TYPES['stdout'])
+        print_output = self.find_option(pytest_config, 'rp_launch_uuid_print_output')
+        self.rp_launch_uuid_print_output = OutputType[print_output] if print_output else None
+        client_type = self.find_option(pytest_config, 'rp_client_type')
+        self.rp_client_type = ClientType[client_type.upper()] if client_type else ClientType.SYNC
 
     # noinspection PyMethodMayBeStatic
-    def find_option(self, pytest_config: Config, option_name: str, default: Any = None):
+    def find_option(self, pytest_config: Config, option_name: str, default: Any = None) -> Any:
         """
         Find a single configuration setting from multiple places.
 
