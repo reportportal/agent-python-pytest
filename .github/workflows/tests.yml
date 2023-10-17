@@ -39,7 +39,7 @@ jobs:
         run: tox
 
       - name: Upload coverage to Codecov
-        if: matrix.python-version == 3.7 && success()
+        if: matrix.python-version == 3.8 && success()
         uses: codecov/codecov-action@v3
         with:
           files: coverage.xml
