@@ -15,12 +15,12 @@
 import sys
 import warnings
 from io import StringIO
-
-from delayed_assert import expect, assert_expectations
 from unittest import mock
 
+from delayed_assert import expect, assert_expectations
+
+from reportportal_client import OutputType
 from examples.test_rp_logging import LOG_MESSAGE
-from pytest_reportportal.config import OUTPUT_TYPES
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
@@ -285,20 +285,11 @@ def test_launch_uuid_print(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({'rp_launch_uuid_print': str(print_uuid)}.items())
-
-    str_io = StringIO()
-    stdout = sys.stdout
-    try:
-        OUTPUT_TYPES['stdout'] = str_io
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
-    finally:
-        OUTPUT_TYPES['stdout'] = stdout
-
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] == print_uuid)
-    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is None)
     assert_expectations()
 
 
@@ -307,20 +298,11 @@ def test_launch_uuid_print_stderr(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({'rp_launch_uuid_print': str(print_uuid), 'rp_launch_uuid_print_output': 'stderr'}.items())
-
-    str_io = StringIO()
-    stderr = sys.stderr
-    try:
-        OUTPUT_TYPES['stderr'] = str_io
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
-    finally:
-        OUTPUT_TYPES['stderr'] = stderr
-
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] == print_uuid)
-    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is OutputType.STDERR)
     assert_expectations()
 
 
@@ -329,38 +311,17 @@ def test_launch_uuid_print_invalid_output(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({'rp_launch_uuid_print': str(print_uuid), 'rp_launch_uuid_print_output': 'something'}.items())
-
-    str_io = StringIO()
-    stdout = sys.stdout
-    try:
-        OUTPUT_TYPES['stdout'] = str_io
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
-    finally:
-        OUTPUT_TYPES['stdout'] = stdout
-
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
-    expect(mock_client_init.call_count == 1)
-    expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] == print_uuid)
-    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
-    assert_expectations()
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
+    assert int(result) == 3, 'Exit code should be 3 (INTERNALERROR)'
+    assert mock_client_init.call_count == 0
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_no_launch_uuid_print(mock_client_init):
     variables = utils.DEFAULT_VARIABLES.copy()
-
-    str_io = StringIO()
-    stdout = sys.stdout
-    try:
-        OUTPUT_TYPES['stdout'] = str_io
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
-    finally:
-        OUTPUT_TYPES['stdout'] = stdout
-
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] is False)
-    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is None)
     assert_expectations()

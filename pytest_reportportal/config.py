@@ -164,7 +164,7 @@ class AgentConfig(object):
             pytest_config, 'rp_launch_uuid_print'
         ) or 'False'))
         print_output = self.find_option(pytest_config, 'rp_launch_uuid_print_output')
-        self.rp_launch_uuid_print_output = OutputType[print_output] if print_output else None
+        self.rp_launch_uuid_print_output = OutputType[print_output.upper()] if print_output else None
         client_type = self.find_option(pytest_config, 'rp_client_type')
         self.rp_client_type = ClientType[client_type.upper()] if client_type else ClientType.SYNC
 

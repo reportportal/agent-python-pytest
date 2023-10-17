@@ -138,7 +138,7 @@ def attributes_to_tuples(attributes):
 # noinspection PyProtectedMember
 def run_tests_with_client(client, tests, args=None, variables=None):
     def test_func():
-        from reportportal_client._local import set_current
+        from reportportal_client import set_current
         set_current(client)
         return run_pytest_tests(tests, args, variables)
 
