@@ -1,13 +1,26 @@
-"""This module contains class that stores RP agent configuration data."""
-import sys
-import warnings
+#  Copyright (c) 2023 EPAM Systems
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
 
+"""This module contains class that stores RP agent configuration data."""
+
+import warnings
 from distutils.util import strtobool
 from os import getenv
-from typing import Optional, Union, Any, TextIO, Dict
+from typing import Optional, Union, Any, Tuple
 
 from _pytest.config import Config
-from reportportal_client.logs.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client import OutputType, ClientType
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 try:
     # This try/except can go away once we support pytest >= 5.4.0
@@ -17,15 +30,10 @@ except ImportError:
         get_actual_log_level
 
 
-OUTPUT_TYPES: Dict[str, TextIO] = {
-    'stdout': sys.stdout,
-    'stderr': sys.stderr
-}
-
-
 class AgentConfig(object):
     """Storage for the RP agent initialization attributes."""
 
+    rp_client_type: Optional[ClientType]
     rp_rerun: Optional[bool]
     pconfig: Config
     rp_endpoint: str
@@ -57,7 +65,8 @@ class AgentConfig(object):
     rp_verify_ssl: Union[bool, str]
     rp_launch_timeout: int
     rp_launch_uuid_print: bool
-    rp_launch_uuid_print_output: TextIO
+    rp_launch_uuid_print_output: Optional[OutputType]
+    rp_http_timeout: Optional[Union[Tuple[float, float], float]]
 
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
@@ -169,12 +178,24 @@ class AgentConfig(object):
         self.rp_launch_uuid_print = bool(strtobool(self.find_option(
             pytest_config, 'rp_launch_uuid_print'
         ) or 'False'))
-        self.rp_launch_uuid_print_output = OUTPUT_TYPES.get((self.find_option(
-            pytest_config, 'rp_launch_uuid_print_output'
-        ) or 'stdout').lower(), OUTPUT_TYPES['stdout'])
+        print_output = self.find_option(pytest_config, 'rp_launch_uuid_print_output')
+        self.rp_launch_uuid_print_output = OutputType[print_output.upper()] if print_output else None
+        client_type = self.find_option(pytest_config, 'rp_client_type')
+        self.rp_client_type = ClientType[client_type.upper()] if client_type else ClientType.SYNC
+
+        connect_timeout = self.find_option(pytest_config, 'rp_connect_timeout')
+        connect_timeout = float(connect_timeout) if connect_timeout else None
+        read_timeout = self.find_option(pytest_config, 'rp_read_timeout')
+        read_timeout = float(read_timeout) if read_timeout else None
+        if connect_timeout is None and read_timeout is None:
+            self.rp_http_timeout = None
+        elif connect_timeout is not None and read_timeout is not None:
+            self.rp_http_timeout = (connect_timeout, read_timeout)
+        else:
+            self.rp_http_timeout = connect_timeout or read_timeout
 
     # noinspection PyMethodMayBeStatic
-    def find_option(self, pytest_config: Config, option_name: str, default: Any = None):
+    def find_option(self, pytest_config: Config, option_name: str, default: Any = None) -> Any:
         """
         Find a single configuration setting from multiple places.
 

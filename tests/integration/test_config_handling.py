@@ -1,5 +1,4 @@
-"""This module includes integration tests for configuration parameters."""
-#  Copyright (c) 2022 https://reportportal.io .
+#  Copyright (c) 2023 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
@@ -12,15 +11,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-import sys
-import warnings
-from io import StringIO
+"""This module includes integration tests for configuration parameters."""
 
-from delayed_assert import expect, assert_expectations
+import warnings
 from unittest import mock
 
+import pytest
+
+from delayed_assert import expect, assert_expectations
+from reportportal_client import OutputType
+
 from examples.test_rp_logging import LOG_MESSAGE
-from pytest_reportportal.config import OUTPUT_TYPES
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
@@ -249,8 +250,7 @@ def test_rp_api_retries(mock_client_init):
     variables.update({'rp_api_retries': str(retries)}.items())
 
     with warnings.catch_warnings(record=True) as w:
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
         assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
         expect(mock_client_init.call_count == 1)
@@ -285,20 +285,11 @@ def test_launch_uuid_print(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({'rp_launch_uuid_print': str(print_uuid)}.items())
-
-    str_io = StringIO()
-    stdout = sys.stdout
-    try:
-        OUTPUT_TYPES['stdout'] = str_io
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
-    finally:
-        OUTPUT_TYPES['stdout'] = stdout
-
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] == print_uuid)
-    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is None)
     assert_expectations()
 
 
@@ -307,20 +298,11 @@ def test_launch_uuid_print_stderr(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({'rp_launch_uuid_print': str(print_uuid), 'rp_launch_uuid_print_output': 'stderr'}.items())
-
-    str_io = StringIO()
-    stderr = sys.stderr
-    try:
-        OUTPUT_TYPES['stderr'] = str_io
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
-    finally:
-        OUTPUT_TYPES['stderr'] = stderr
-
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] == print_uuid)
-    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is OutputType.STDERR)
     assert_expectations()
 
 
@@ -329,38 +311,42 @@ def test_launch_uuid_print_invalid_output(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({'rp_launch_uuid_print': str(print_uuid), 'rp_launch_uuid_print_output': 'something'}.items())
-
-    str_io = StringIO()
-    stdout = sys.stdout
-    try:
-        OUTPUT_TYPES['stdout'] = str_io
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
-    finally:
-        OUTPUT_TYPES['stdout'] = stdout
-
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
-    expect(mock_client_init.call_count == 1)
-    expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] == print_uuid)
-    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
-    assert_expectations()
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
+    assert int(result) == 3, 'Exit code should be 3 (INTERNALERROR)'
+    assert mock_client_init.call_count == 0
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_no_launch_uuid_print(mock_client_init):
     variables = utils.DEFAULT_VARIABLES.copy()
-
-    str_io = StringIO()
-    stdout = sys.stdout
-    try:
-        OUTPUT_TYPES['stdout'] = str_io
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
-    finally:
-        OUTPUT_TYPES['stdout'] = stdout
-
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] is False)
-    expect(mock_client_init.call_args_list[0][1]['print_output'] is str_io)
+    expect(mock_client_init.call_args_list[0][1]['print_output'] is None)
     assert_expectations()
+
+
+@pytest.mark.parametrize(
+    'connect_value, read_value, expected_result',
+    [
+        ('5', '15', (5.0, 15.0)),
+        ('5.5', '15.5', (5.5, 15.5)),
+        (None, None, None),
+        (None, '5', 5),
+        ('5', None, 5)
+    ]
+)
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_client_timeouts(mock_client_init, connect_value, read_value, expected_result):
+    variables = utils.DEFAULT_VARIABLES.copy()
+    if connect_value:
+        variables['rp_connect_timeout'] = connect_value
+    if read_value:
+        variables['rp_read_timeout'] = read_value
+
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
+
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    assert mock_client_init.call_count == 1
+    assert mock_client_init.call_args_list[0][1]['http_timeout'] == expected_result

@@ -1,5 +1,3 @@
-"""This module contains changed pytest for report-portal."""
-
 #  Copyright (c) 2023 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -13,6 +11,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
+"""This module contains changed pytest for ReportPortal."""
+
 import logging
 import os.path
 import time
@@ -23,7 +23,7 @@ import pytest
 import requests
 from reportportal_client import RPLogHandler
 from reportportal_client.errors import ResponseError
-from reportportal_client.logs.log_manager import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from .config import AgentConfig
@@ -402,13 +402,11 @@ def pytest_addoption(parser):
     )
     add_shared_option(
         name='rp_launch_uuid_print',
-        help_str='Enables printing Launch UUID on test run start. Possible values: [True, False]',
-        default='False'
+        help_str='Enables printing Launch UUID on test run start. Possible values: [True, False]'
     )
     add_shared_option(
         name='rp_launch_uuid_print_output',
-        help_str='Launch UUID print output. Default `stdout`. Possible values: [stderr, stdout]',
-        default='stdout'
+        help_str='Launch UUID print output. Default `stdout`. Possible values: [stderr, stdout]'
     )
 
     parser.addini(
@@ -499,4 +497,17 @@ def pytest_addoption(parser):
         default=86400,
         help='Maximum time to wait for child processes finish, default value: '
              '86400 seconds (1 day)'
+    )
+    parser.addini(
+        'rp_client_type',
+        help='Type of the under-the-hood ReportPortal client implementation. Possible values: [SYNC, ASYNC_THREAD, '
+             'ASYNC_BATCHED]'
+    )
+    parser.addini(
+        'rp_connect_timeout',
+        help='Connection timeout to ReportPortal server'
+    )
+    parser.addini(
+        'rp_read_timeout',
+        help='Response read timeout for ReportPortal connection'
     )

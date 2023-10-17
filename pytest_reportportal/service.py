@@ -1,4 +1,18 @@
+#  Copyright (c) 2023 https://reportportal.io .
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#  https://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License
+
 """This module includes Service functions for work with pytest agent."""
+
 import logging
 import os.path
 import sys
@@ -6,13 +20,14 @@ import threading
 from functools import wraps
 from os import curdir
 from time import time, sleep
-from typing import List, Any, Optional, Set, Dict, Tuple
+from typing import List, Any, Optional, Set, Dict, Tuple, Union
 
 from _pytest.doctest import DoctestItem
 from aenum import auto, Enum, unique
 from pytest import Class, Function, Module, Package, Item, Session, \
     PytestWarning
 from reportportal_client.core.rp_issues import Issue, ExternalIssue
+from reportportal_client.aio import Task
 
 from .config import AgentConfig
 
@@ -21,7 +36,7 @@ try:
 except ImportError:
     # in pytest >= 7.0 this type was removed
     Instance = type('dummy', (), {})
-from reportportal_client.client import RPClient
+from reportportal_client import RP, create_client
 from reportportal_client.helpers import (
     dict_to_payload,
     gen_attributes,
@@ -123,8 +138,8 @@ class PyTestServiceClass:
     agent_version: str
     ignored_attributes: List[str]
     parent_item_id: Optional[str]
-    rp: Optional[RPClient]
-    project_settings: Dict[str, Any]
+    rp: Optional[RP]
+    project_settings: Union[Dict[str, Any], Task]
 
     def __init__(self, agent_config: AgentConfig) -> None:
         """Initialize instance attributes."""
@@ -144,12 +159,16 @@ class PyTestServiceClass:
     @property
     def issue_types(self) -> Dict[str, str]:
         """Issue types for the Report Portal project."""
-        if not self._issue_types:
-            if not self.project_settings:
-                return self._issue_types
-            for values in self.project_settings["subTypes"].values():
-                for item in values:
-                    self._issue_types[item["shortName"]] = item["locator"]
+        if self._issue_types:
+            return self._issue_types
+        if not self.project_settings:
+            return self._issue_types
+        project_settings = self.project_settings
+        if not isinstance(self.project_settings, dict):
+            project_settings = project_settings.blocking_result()
+        for values in project_settings["subTypes"].values():
+            for item in values:
+                self._issue_types[item["shortName"]] = item["locator"]
         return self._issue_types
 
     def _get_launch_attributes(self, ini_attrs):
@@ -881,7 +900,8 @@ class PyTestServiceClass:
         launch_id = self._launch_id
         if self._config.rp_launch_id:
             launch_id = self._config.rp_launch_id
-        self.rp = RPClient(
+        self.rp = create_client(
+            client_type=self._config.rp_client_type,
             endpoint=self._config.rp_endpoint,
             project=self._config.rp_project,
             api_key=self._config.rp_api_key,
@@ -892,16 +912,16 @@ class PyTestServiceClass:
             launch_id=launch_id,
             log_batch_payload_size=self._config.rp_log_batch_payload_size,
             launch_uuid_print=self._config.rp_launch_uuid_print,
-            print_output=self._config.rp_launch_uuid_print_output
+            print_output=self._config.rp_launch_uuid_print_output,
+            http_timeout=self._config.rp_http_timeout
         )
         if hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()
-        self.rp.start()
         # noinspection PyUnresolvedReferences
         self._start_tracker.add(self.__unique_id())
 
     def stop(self):
         """Finish servicing Report Portal requests."""
-        self.rp.terminate()
+        self.rp.close()
         self.rp = None
         self._start_tracker.remove(self.__unique_id())

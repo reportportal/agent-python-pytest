@@ -81,6 +81,7 @@ Example of :code:`pytest.ini`:
 
 The following parameters are optional:
 
+- :code:`rp_client_type = SYNC` - Type of the under-the-hood ReportPortal client implementation. Possible values: [SYNC, ASYNC_THREAD, ASYNC_BATCHED].
 - :code:`rp_launch = AnyLaunchName` - launch name (could be overridden by pytest --rp-launch option, default value is 'Pytest Launch').
 - :code:`rp_launch_id = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` - id of the existing launch (the session will not handle the lifecycle of the given launch).
 - :code:`rp_launch_attributes = 'PyTest' 'Smoke' 'Env:Python3'` - list of attributes for launch.
@@ -90,6 +91,8 @@ The following parameters are optional:
 - :code:`rp_launch_uuid_print_output = stderr` - Launch UUID print output. Default `stdout`. Possible values: [stderr, stdout].
 - :code:`rp_parent_item_id = xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx` - id of the existing test item for session to use as parent item for the tests (the session will not handle the lifecycle of the given test item).
 - :code:`rp_tests_attributes = 'PyTest' 'Smoke'` - list of attributes that will be added for each item in the launch.
+- :code:`rp_connect_timeout = 15` - Connection timeout to ReportPortal server. Default value is "10.0".
+- :code:`rp_read_timeout = 15` - Response read timeout for ReportPortal connection. Default value is "10.0".
 - :code:`rp_log_batch_size = 20` - size of batch log request.
 - :code:`rp_log_batch_payload_size = 65000000` - maximum payload size in bytes of async batch log requests.
 - :code:`rp_log_level = INFO` - The log level that will be reported.
