@@ -366,7 +366,8 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'retries',
         'rp_api_retries',
         'rp_skip_connection_test',
-        'rp_launch_timeout'
+        'rp_launch_timeout',
+        'rp_client_type'
     )
     mock_parser = mock.MagicMock(spec=Parser)
 

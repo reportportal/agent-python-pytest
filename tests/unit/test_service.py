@@ -1,4 +1,4 @@
-"""This modules includes unit tests for the service.py module."""
+"""This module includes unit tests for the service.py module."""
 
 from delayed_assert import expect, assert_expectations
 
