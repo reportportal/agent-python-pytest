@@ -68,6 +68,8 @@ def mocked_config():
     mocked_config.option.rp_launch_timeout = -1
     mocked_config.option.rp_thread_logging = True
     mocked_config.option.rp_launch_uuid_print = 'False'
+    mocked_config.option.rp_launch_uuid_print_output = 'STDOUT'
+    mocked_config.option.rp_client_type = 'SYNC'
     return mocked_config
 
 
