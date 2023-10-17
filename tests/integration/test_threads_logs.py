@@ -14,7 +14,7 @@ def test_rp_thread_logs_reporting(mock_client_init):
     mock_thread_client = mock_client.clone()
 
     def init_thread_client(*_, **__):
-        from reportportal_client._local import set_current
+        from reportportal_client import set_current
         set_current(mock_thread_client)
         return mock_thread_client
 
