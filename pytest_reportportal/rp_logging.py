@@ -6,7 +6,7 @@ import threading
 from contextlib import contextmanager
 from functools import wraps
 
-from reportportal_client._local import current, set_current
+from reportportal_client import current, set_current
 from reportportal_client import RPLogger
 from reportportal_client.core.worker import APIWorker
 
@@ -62,13 +62,12 @@ def patching_thread_class(config):
                     ):
                         parent = self.parent_rp_client
                         client = parent.clone()
-                        client.start()
                     try:
                         return original_func(self, *args, **kwargs)
                     finally:
                         if client:
                             # Stop the client and remove any references
-                            client.terminate()
+                            client.close()
                             self.parent_rp_client = None
                             del self.parent_rp_client
                             set_current(None)
