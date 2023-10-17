@@ -16,7 +16,7 @@
 import warnings
 from distutils.util import strtobool
 from os import getenv
-from typing import Optional, Union, Any
+from typing import Optional, Union, Any, Tuple
 
 from _pytest.config import Config
 from reportportal_client import OutputType, ClientType
@@ -66,6 +66,7 @@ class AgentConfig(object):
     rp_launch_timeout: int
     rp_launch_uuid_print: bool
     rp_launch_uuid_print_output: Optional[OutputType]
+    rp_http_timeout: Optional[Union[Tuple[float, float], float]]
 
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
@@ -181,6 +182,17 @@ class AgentConfig(object):
         self.rp_launch_uuid_print_output = OutputType[print_output.upper()] if print_output else None
         client_type = self.find_option(pytest_config, 'rp_client_type')
         self.rp_client_type = ClientType[client_type.upper()] if client_type else ClientType.SYNC
+
+        connect_timeout = self.find_option(pytest_config, 'rp_connect_timeout')
+        connect_timeout = float(connect_timeout) if connect_timeout else None
+        read_timeout = self.find_option(pytest_config, 'rp_read_timeout')
+        read_timeout = float(read_timeout) if read_timeout else None
+        if connect_timeout is None and read_timeout is None:
+            self.rp_http_timeout = None
+        elif connect_timeout is not None and read_timeout is not None:
+            self.rp_http_timeout = (connect_timeout, read_timeout)
+        else:
+            self.rp_http_timeout = connect_timeout or read_timeout
 
     # noinspection PyMethodMayBeStatic
     def find_option(self, pytest_config: Config, option_name: str, default: Any = None) -> Any:

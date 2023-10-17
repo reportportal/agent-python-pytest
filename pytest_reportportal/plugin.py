@@ -503,3 +503,11 @@ def pytest_addoption(parser):
         help='Type of the under-the-hood ReportPortal client implementation. Possible values: [SYNC, ASYNC_THREAD, '
              'ASYNC_BATCHED]'
     )
+    parser.addini(
+        'rp_connect_timeout',
+        help='Connection timeout to ReportPortal server'
+    )
+    parser.addini(
+        'rp_read_timeout',
+        help='Response read timeout for ReportPortal connection'
+    )

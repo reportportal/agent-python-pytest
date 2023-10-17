@@ -16,6 +16,8 @@
 import warnings
 from unittest import mock
 
+import pytest
+
 from delayed_assert import expect, assert_expectations
 from reportportal_client import OutputType
 
@@ -248,8 +250,7 @@ def test_rp_api_retries(mock_client_init):
     variables.update({'rp_api_retries': str(retries)}.items())
 
     with warnings.catch_warnings(record=True) as w:
-        result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
-                                        variables=variables)
+        result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
         assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
         expect(mock_client_init.call_count == 1)
@@ -324,3 +325,28 @@ def test_no_launch_uuid_print(mock_client_init):
     expect(mock_client_init.call_args_list[0][1]['launch_uuid_print'] is False)
     expect(mock_client_init.call_args_list[0][1]['print_output'] is None)
     assert_expectations()
+
+
+@pytest.mark.parametrize(
+    'connect_value, read_value, expected_result',
+    [
+        ('5', '15', (5.0, 15.0)),
+        ('5.5', '15.5', (5.5, 15.5)),
+        (None, None, None),
+        (None, '5', 5),
+        ('5', None, 5)
+    ]
+)
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_client_timeouts(mock_client_init, connect_value, read_value, expected_result):
+    variables = utils.DEFAULT_VARIABLES.copy()
+    if connect_value:
+        variables['rp_connect_timeout'] = connect_value
+    if read_value:
+        variables['rp_read_timeout'] = read_value
+
+    result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
+
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    assert mock_client_init.call_count == 1
+    assert mock_client_init.call_args_list[0][1]['http_timeout'] == expected_result

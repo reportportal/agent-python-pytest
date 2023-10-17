@@ -912,7 +912,8 @@ class PyTestServiceClass:
             launch_id=launch_id,
             log_batch_payload_size=self._config.rp_log_batch_payload_size,
             launch_uuid_print=self._config.rp_launch_uuid_print,
-            print_output=self._config.rp_launch_uuid_print_output
+            print_output=self._config.rp_launch_uuid_print_output,
+            http_timeout=self._config.rp_http_timeout
         )
         if hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()
