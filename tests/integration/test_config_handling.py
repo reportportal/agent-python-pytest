@@ -12,14 +12,12 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License
 
-import sys
 import warnings
-from io import StringIO
 from unittest import mock
 
 from delayed_assert import expect, assert_expectations
-
 from reportportal_client import OutputType
+
 from examples.test_rp_logging import LOG_MESSAGE
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
