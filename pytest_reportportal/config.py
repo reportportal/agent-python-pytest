@@ -30,7 +30,7 @@ except ImportError:
         get_actual_log_level
 
 
-class AgentConfig(object):
+class AgentConfig:
     """Storage for the RP agent initialization attributes."""
 
     rp_client_type: Optional[ClientType]
