@@ -11,7 +11,7 @@ agent-python-pytest
 .. image:: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml/badge.svg
     :target: https://github.com/reportportal/agent-python-pytest/actions/workflows/tests.yml
     :alt: Test status
-.. image:: https://codecov.io/gh/reportportal/agent-python-pytest/branch/master/graph/badge.svg
+.. image:: https://codecov.io/gh/reportportal/agent-python-pytest/branch/develop/graph/badge.svg
     :target: https://codecov.io/gh/reportportal/agent-python-pytest
     :alt: Test coverage
 .. image:: https://slack.epmrpp.reportportal.io/badge.svg
