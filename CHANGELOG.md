@@ -4,8 +4,8 @@
 
 ## [5.3.0]
 ### Added
-- `RP_CLIENT_TYPE` configuration variable, by @HardNorth
-- `RP_CONNECT_TIMEOUT` and `RP_READ_TIMEOUT` configuration variables, by @HardNorth
+- `rp_client_type` configuration variable, by @HardNorth
+- `rp_connect_timeout` and `rp_read_timeout` configuration variables, by @HardNorth
 ### Changed
 - Client version updated on [5.5.2](https://github.com/reportportal/client-Python/releases/tag/5.5.2), by @HardNorth
 
