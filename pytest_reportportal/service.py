@@ -184,8 +184,7 @@ class PyTestServiceClass:
 
     def _build_start_launch_rq(self):
         rp_launch_attributes = self._config.rp_launch_attributes
-        attributes = gen_attributes(rp_launch_attributes) \
-            if rp_launch_attributes else None
+        attributes = gen_attributes(rp_launch_attributes) if rp_launch_attributes else None
 
         start_rq = {
             'attributes': self._get_launch_attributes(attributes),
@@ -909,7 +908,7 @@ class PyTestServiceClass:
             log_batch_size=self._config.rp_log_batch_size,
             retries=self._config.rp_api_retries,
             verify_ssl=self._config.rp_verify_ssl,
-            launch_id=launch_id,
+            launch_uuid=launch_id,
             log_batch_payload_size=self._config.rp_log_batch_payload_size,
             launch_uuid_print=self._config.rp_launch_uuid_print,
             print_output=self._config.rp_launch_uuid_print_output,

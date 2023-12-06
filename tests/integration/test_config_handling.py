@@ -17,45 +17,33 @@ import warnings
 from unittest import mock
 
 import pytest
-
 from delayed_assert import expect, assert_expectations
 from reportportal_client import OutputType
 
 from examples.test_rp_logging import LOG_MESSAGE
-from tests import REPORT_PORTAL_SERVICE
+from tests import REPORT_PORTAL_SERVICE, REQUESTS_SERVICE
 from tests.helpers import utils
 
 TEST_LAUNCH_ID = 'test_launch_id'
 
 
-@mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_launch_id(mock_client_init):
+@mock.patch(REQUESTS_SERVICE)
+def test_rp_launch_id(mock_requests_init):
     """Verify that RP plugin does not start/stop launch if 'rp_launch_id' set.
 
-    :param mock_client_init: Pytest fixture
+    :param mock_requests_init: mocked requests lib
     """
     variables = dict()
     variables['rp_launch_id'] = TEST_LAUNCH_ID
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_simple.py'],
-                                    variables=variables)
-
+    result = utils.run_pytest_tests(tests=['examples/test_simple.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    expect(
-        mock_client_init.call_args_list[0][1]['launch_id'] == TEST_LAUNCH_ID)
-
-    mock_client = mock_client_init.return_value
-    expect(mock_client.start_launch.call_count == 0,
-           '"start_launch" method was called')
-    expect(mock_client.finish_launch.call_count == 0,
-           '"finish_launch" method was called')
-
-    start_call_args = mock_client.start_test_item.call_args_list
-    finish_call_args = mock_client.finish_test_item.call_args_list
-
-    expect(len(start_call_args) == len(finish_call_args))
-    assert_expectations()
+    mock_requests = mock_requests_init.return_value
+    assert mock_requests.post.call_count == 1
+    item_start = mock_requests.post.call_args_list[0]
+    assert item_start[0][0].endswith('/item')
+    assert item_start[1]['json']['launchUuid'] == TEST_LAUNCH_ID
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -68,8 +56,7 @@ def test_rp_parent_item_id(mock_client_init):
     variables = dict()
     variables['rp_parent_item_id'] = parent_id
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_simple.py'],
-                                    variables=variables)
+    result = utils.run_pytest_tests(tests=['examples/test_simple.py'], variables=variables)
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
@@ -87,34 +74,25 @@ def test_rp_parent_item_id(mock_client_init):
     assert_expectations()
 
 
-@mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_parent_item_id_and_rp_launch_id(mock_client_init):
+@mock.patch(REQUESTS_SERVICE)
+def test_rp_parent_item_id_and_rp_launch_id(mock_requests_init):
     """Verify RP handles both conf props 'rp_parent_item_id' & 'rp_launch_id'.
 
-    :param mock_client_init: Pytest fixture
+    :param mock_requests_init: mocked requests lib
     """
     parent_id = "parent_id"
     variables = dict()
     variables['rp_parent_item_id'] = parent_id
-    variables['rp_launch_id'] = "test_launch_id"
+    variables['rp_launch_id'] = TEST_LAUNCH_ID
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_simple.py'],
-                                    variables=variables)
-
+    result = utils.run_pytest_tests(tests=['examples/test_simple.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    mock_client = mock_client_init.return_value
-    expect(mock_client.start_launch.call_count == 0,
-           '"start_launch" method was called')
-    expect(mock_client.finish_launch.call_count == 0,
-           '"finish_launch" method was called')
-
-    start_call_args = mock_client.start_test_item.call_args_list
-    finish_call_args = mock_client.finish_test_item.call_args_list
-
-    expect(len(start_call_args) == len(finish_call_args))
-    expect(start_call_args[0][1]["parent_item_id"] == parent_id)
-    assert_expectations()
+    mock_requests = mock_requests_init.return_value
+    assert mock_requests.post.call_count == 1
+    item_start = mock_requests.post.call_args_list[0]
+    assert item_start[0][0].endswith(f'/item/{parent_id}')
+    assert item_start[1]['json']['launchUuid'] == TEST_LAUNCH_ID
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)

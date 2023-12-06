@@ -13,14 +13,14 @@
 
 """This module includes unit tests for the plugin."""
 
-from _pytest.config.argparsing import Parser
-import pytest
-from delayed_assert import expect, assert_expectations
-from requests.exceptions import RequestException
 # noinspection PyUnresolvedReferences
 from unittest import mock
 
+import pytest
+from _pytest.config.argparsing import Parser
+from delayed_assert import expect, assert_expectations
 from reportportal_client.errors import ResponseError
+from requests.exceptions import RequestException
 
 from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.plugin import (
@@ -258,10 +258,8 @@ def test_pytest_sessionstart(mocked_session):
     :param mocked_session: pytest fixture
     """
     mocked_session.config.pluginmanager.hasplugin.return_value = True
-    mocked_session.config._reporter_config = mock.Mock(
-        spec=AgentConfig(mocked_session.config))
+    mocked_session.config._reporter_config = mock.Mock(spec=AgentConfig(mocked_session.config))
     mocked_session.config._reporter_config.rp_launch_attributes = []
-    mocked_session.config._reporter_config.rp_launch_id = None
     mocked_session.config.py_test_service = mock.Mock()
     pytest_sessionstart(mocked_session)
     expect(lambda: mocked_session.config.py_test_service.init_service.called)
@@ -298,22 +296,20 @@ def test_pytest_sessionstart_launch_wait_fail(mocked_log, mocked_session):
     )
 
 
-@mock.patch('pytest_reportportal.plugin.is_control', mock.Mock())
 @mock.patch('pytest_reportportal.plugin.wait_launch', mock.Mock())
-def test_pytest_sessionstart_with_launch_id(mocked_session):
-    """Test session configuration if RP launch ID is set via command-line.
+def test_pytest_sessionstart_xdist(mocked_session):
+    """Test session configuration if it's worker xdist node.
 
     :param mocked_session: pytest fixture
     """
     mocked_session.config.pluginmanager.hasplugin.return_value = True
-    mocked_session.config._reporter_config = mock.Mock(
-        spec=AgentConfig(mocked_session.config))
+    mocked_session.config._reporter_config = mock.Mock(spec=AgentConfig(mocked_session.config))
     mocked_session.config._reporter_config.rp_launch_attributes = []
     mocked_session.config._reporter_config.rp_launch_id = 1
+    mocked_session.config.workerinput = 1
     mocked_session.config.py_test_service = mock.Mock()
     pytest_sessionstart(mocked_session)
-    expect(lambda: mocked_session.config.py_test_service.start_launch.
-           assert_not_called())
+    expect(lambda: mocked_session.config.py_test_service.start_launch.assert_not_called())
     assert_expectations()
 
 
