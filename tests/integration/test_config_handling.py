@@ -17,7 +17,6 @@ import warnings
 from unittest import mock
 
 import pytest
-
 from delayed_assert import expect, assert_expectations
 from reportportal_client import OutputType
 
@@ -86,7 +85,7 @@ def test_rp_parent_item_id_and_rp_launch_id(mock_requests_init):
     variables['rp_parent_item_id'] = parent_id
     variables['rp_launch_id'] = TEST_LAUNCH_ID
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_simple.py'],variables=variables)
+    result = utils.run_pytest_tests(tests=['examples/test_simple.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
     mock_requests = mock_requests_init.return_value
@@ -94,7 +93,6 @@ def test_rp_parent_item_id_and_rp_launch_id(mock_requests_init):
     item_start = mock_requests.post.call_args_list[0]
     assert item_start[0][0].endswith(f'/item/{parent_id}')
     assert item_start[1]['json']['launchUuid'] == TEST_LAUNCH_ID
-
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
