@@ -53,8 +53,7 @@ def pytest_configure_node(node):
     if not node.config._rp_enabled:
         # Stop now if the plugin is not properly configured
         return
-    node.workerinput['py_test_service'] = pickle.dumps(
-        node.config.py_test_service)
+    node.workerinput['py_test_service'] = pickle.dumps(node.config.py_test_service)
 
 
 def is_control(config):
@@ -102,7 +101,7 @@ def pytest_sessionstart(session):
         config._rp_enabled = False
         return
 
-    if is_control(config) and not config._reporter_config.rp_launch_id:
+    if is_control(config):
         config.py_test_service.start_launch()
         if config.pluginmanager.hasplugin('xdist') \
                 or config.pluginmanager.hasplugin('pytest-parallel'):
@@ -137,8 +136,7 @@ def pytest_sessionfinish(session):
         return
 
     config.py_test_service.finish_suites()
-    if is_control(config) \
-            and not config._reporter_config.rp_launch_id:
+    if is_control(config):
         config.py_test_service.finish_launch()
 
     config.py_test_service.stop()
@@ -224,8 +222,7 @@ def pytest_configure(config):
         config.py_test_service = PyTestServiceClass(agent_config)
     else:
         # noinspection PyUnresolvedReferences
-        config.py_test_service = pickle.loads(
-            config.workerinput['py_test_service'])
+        config.py_test_service = pickle.loads(config.workerinput['py_test_service'])
 
 
 # noinspection PyProtectedMember
