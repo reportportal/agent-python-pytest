@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.3.1]
 ### Changed
 - Client version updated on [5.5.4](https://github.com/reportportal/client-Python/releases/tag/5.5.4), by @HardNorth
 - `rp_launch_id` property handling moved completely on Client side, by @HardNorth
