@@ -36,6 +36,11 @@ try:
 except ImportError:
     # in pytest >= 7.0 this type was removed
     Instance = type('dummy', (), {})
+try:
+    from pytest import Dir
+except ImportError:
+    # in pytest < 8.0 there is no such type
+    Dir = type('dummy', (), {})
 from reportportal_client import RP, create_client
 from reportportal_client.helpers import (
     dict_to_payload,
@@ -238,6 +243,8 @@ class PyTestServiceClass:
             parent = parent.parent
 
         path.reverse()
+        if isinstance(path[0], Dir):
+            path = path[1:]
         return path
 
     def _get_leaf(self, leaf_type, parent_item, item, item_id=None):
