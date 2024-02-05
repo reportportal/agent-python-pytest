@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.3.2]
 ### Changed
 - Set upper pytest version limit to not include `8.0.0`, by @HardNorth
 
