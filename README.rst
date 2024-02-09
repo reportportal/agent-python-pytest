@@ -14,7 +14,7 @@ agent-python-pytest
 .. image:: https://codecov.io/gh/reportportal/agent-python-pytest/branch/develop/graph/badge.svg
     :target: https://codecov.io/gh/reportportal/agent-python-pytest
     :alt: Test coverage
-.. image:: https://slack.epmrpp.reportportal.io/badge.svg
+.. image:: https://img.shields.io/badge/slack-join-brightgreen.svg
     :target: https://slack.epmrpp.reportportal.io/
     :alt: Join Slack chat!
 
