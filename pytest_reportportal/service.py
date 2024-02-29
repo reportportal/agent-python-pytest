@@ -539,7 +539,7 @@ class PyTestServiceClass:
         :param mark: pytest mark
         :return: Issue object
         """
-        default_url = self._config.rp_issue_system_url
+        default_url = self._config.rp_bts_issue_url
 
         issue_description_line = \
             self._get_issue_description_line(mark, default_url)
