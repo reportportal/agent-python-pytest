@@ -24,8 +24,7 @@ from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 ISSUE_PLACEHOLDER = '{issue_id}'
-ISSUE_URL_PATTERN = 'https://bugzilla.some.com/show_bug.cgi?id=' + \
-                    ISSUE_PLACEHOLDER
+ISSUE_URL_PATTERN = f'https://bugzilla.some.com/show_bug.cgi?id={ISSUE_PLACEHOLDER}'
 BTS_PROJECT = 'RP-TEST'
 BTS_URL = 'https://bugzilla.some.com'
 
@@ -42,11 +41,9 @@ def test_issue_id_attribute(mock_client_init, issue_id_mark):
     mock_client.start_test_item.side_effect = utils.item_id_gen
     mock_client.get_project_settings.side_effect = utils.project_settings
 
-    variables = dict()
-    variables['rp_issue_id_marks'] = issue_id_mark
+    variables = {'rp_issue_id_marks': issue_id_mark}
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'],
-                                    variables=variables)
+    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'], variables=variables)
     assert int(result) == 1, 'Exit code should be 1 (test failed)'
 
     call_args = mock_client.start_test_item.call_args_list
@@ -73,8 +70,7 @@ def test_issue_report(mock_client_init):
     mock_client.start_test_item.side_effect = utils.item_id_gen
     mock_client.get_project_settings.side_effect = utils.project_settings
 
-    variables = dict()
-    variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
+    variables = {'rp_issue_system_url': ISSUE_URL_PATTERN}
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'],
                                     variables=variables)
@@ -106,11 +102,9 @@ def test_passed_no_issue_report(mock_client_init):
     mock_client.start_test_item.side_effect = utils.item_id_gen
     mock_client.get_project_settings.side_effect = utils.project_settings
 
-    variables = dict()
-    variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
+    variables = {'rp_issue_system_url': ISSUE_URL_PATTERN}
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_issue_id_pass.py'],
-                                    variables=variables)
+    result = utils.run_pytest_tests(tests=['examples/test_issue_id_pass.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no failures)'
 
     call_args = mock_client.finish_test_item.call_args_list
@@ -164,8 +158,7 @@ def test_skipped_custom_issue(mock_client_init):
     variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
     variables.update(utils.DEFAULT_VARIABLES.items())
 
-    result = utils.run_pytest_tests(tests=['examples/skip/test_skip_issue.py'],
-                                    variables=variables)
+    result = utils.run_pytest_tests(tests=['examples/skip/test_skip_issue.py'], variables=variables)
 
     assert int(result) == 0, 'Exit code should be 0 (no failures)'
     call_args = mock_client.finish_test_item.call_args_list
@@ -187,14 +180,14 @@ def test_external_issue(mock_client_init):
     mock_client.start_test_item.side_effect = utils.item_id_gen
     mock_client.get_project_settings.side_effect = utils.project_settings
 
-    variables = dict()
-    variables['rp_bts_project'] = BTS_PROJECT
-    variables['rp_bts_url'] = BTS_URL
-    variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
+    variables = {
+        'rp_bts_project': BTS_PROJECT,
+        'rp_bts_url': BTS_URL,
+        'rp_bts_issue_url': ISSUE_URL_PATTERN
+    }
     variables.update(utils.DEFAULT_VARIABLES.items())
 
-    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'],
-                                    variables=variables)
+    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'], variables=variables)
 
     assert int(result) == 1, 'Exit code should be 1 (test failed)'
     call_args = mock_client.finish_test_item.call_args_list
@@ -210,6 +203,5 @@ def test_external_issue(mock_client_init):
     expect(external_issue['btsUrl'] == BTS_URL)
     expect(external_issue['btsProject'] == BTS_PROJECT)
     expect(external_issue['ticketId'] == test_issue_id.ID)
-    expect(external_issue['url'] ==
-           ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID))
+    expect(external_issue['url'] == ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID))
     assert_expectations()
