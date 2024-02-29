@@ -259,6 +259,21 @@ def test_retries(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_issue_system_url_warning(mock_client_init):
+    url = 'https://bugzilla.some.com/show_bug.cgi?id={issue_id}'
+    variables = utils.DEFAULT_VARIABLES.copy()
+    variables.update({'rp_issue_system_url': str(url)}.items())
+
+    with warnings.catch_warnings(record=True) as w:
+        result = utils.run_pytest_tests(['examples/test_issue_id.py'], variables=variables)
+        assert int(result) == 1, 'Exit code should be 1 (test failure)'
+
+        expect(mock_client_init.call_count == 1)
+        expect(len(filter_agent_calls(w)) == 1)
+    assert_expectations()
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
 def test_launch_uuid_print(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()

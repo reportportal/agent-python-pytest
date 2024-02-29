@@ -1,6 +1,12 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Pytest version >= 8 support, by @HardNorth
+### Removed
+- `Packege` and `Dir` item types processing on test collection. This is done to preserve backward compatibility and improve name consistency, by @HardNorth
+### Changed
+- `rp_issue_system_url` renamed to `rp_bts_issue_url` to be consistent with other agents, by @HardNorth
 
 ## [5.3.2]
 ### Changed

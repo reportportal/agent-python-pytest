@@ -452,8 +452,13 @@ def pytest_addoption(parser):
     parser.addini(
         'rp_issue_system_url',
         default='',
-        help='URL to get issue description. Issue id '
-             'from pytest mark will be added to this URL')
+        help='URL to get issue description. Issue id from pytest mark will be added to this URL. '
+             'Deprecated: use "rp_bts_issue_url".')
+    parser.addini(
+        'rp_bts_issue_url',
+        default='',
+        help='URL to get issue description. Issue ID from pytest mark will be added to this URL by replacing '
+             '"{issue_id}" placeholder.')
     parser.addini(
         'rp_bts_project',
         default='',
