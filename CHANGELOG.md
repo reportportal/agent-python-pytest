@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.4.0]
 ### Added
 - Pytest version >= 8 support, by @HardNorth
 ### Removed
