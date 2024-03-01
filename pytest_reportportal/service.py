@@ -36,6 +36,11 @@ try:
 except ImportError:
     # in pytest >= 7.0 this type was removed
     Instance = type('dummy', (), {})
+try:
+    from pytest import Dir
+except ImportError:
+    # in pytest < 8.0 there is no such type
+    Dir = type('dummy', (), {})
 from reportportal_client import RP, create_client
 from reportportal_client.helpers import (
     dict_to_payload,
@@ -233,7 +238,7 @@ class PyTestServiceClass:
         path = [item]
         parent = item.parent
         while parent is not None and not isinstance(parent, Session):
-            if not isinstance(parent, Instance):
+            if not isinstance(parent, Instance) and not isinstance(parent, Dir) and not isinstance(parent, Package):
                 path.append(parent)
             parent = parent.parent
 
@@ -282,22 +287,6 @@ class PyTestServiceClass:
                 current_leaf = children_leafs[leaf]
         return test_tree
 
-    def _remove_root_package(self, test_tree):
-        if test_tree['type'] == LeafType.ROOT or \
-                test_tree['type'] == LeafType.DIR:
-            for item, child_leaf in test_tree['children'].items():
-                self._remove_root_package(child_leaf)
-                return
-        if test_tree['type'] == LeafType.CODE and \
-                isinstance(test_tree['item'], Package) and \
-                test_tree['parent']['type'] == LeafType.DIR:
-            parent_leaf = test_tree['parent']
-            current_item = test_tree['item']
-            del parent_leaf['children'][current_item]
-            for item, child_leaf in test_tree['children'].items():
-                parent_leaf['children'][item] = child_leaf
-                child_leaf['parent'] = parent_leaf
-
     def _remove_root_dirs(self, test_tree, max_dir_level, dir_level=0):
         if test_tree['type'] == LeafType.ROOT:
             for item, child_leaf in test_tree['children'].items():
@@ -323,10 +312,7 @@ class PyTestServiceClass:
 
         if test_tree['type'] == LeafType.CODE:
             item = test_tree['item']
-            if isinstance(item, Package):
-                test_tree['name'] = \
-                    os.path.split(os.path.split(str(item.fspath))[0])[1]
-            elif isinstance(item, Module):
+            if isinstance(item, Module):
                 test_tree['name'] = os.path.split(str(item.fspath))[1]
             else:
                 test_tree['name'] = item.name
@@ -376,7 +362,6 @@ class PyTestServiceClass:
         """
         # Create a test tree to be able to apply mutations
         test_tree = self._build_test_tree(session)
-        self._remove_root_package(test_tree)
         self._remove_root_dirs(test_tree, self._config.rp_dir_level)
         self._generate_names(test_tree)
         if not self._config.rp_hierarchy_dirs:
@@ -554,7 +539,7 @@ class PyTestServiceClass:
         :param mark: pytest mark
         :return: Issue object
         """
-        default_url = self._config.rp_issue_system_url
+        default_url = self._config.rp_bts_issue_url
 
         issue_description_line = \
             self._get_issue_description_line(mark, default_url)

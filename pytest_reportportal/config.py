@@ -44,7 +44,7 @@ class AgentConfig:
     rp_ignore_attributes: set
     rp_is_skipped_an_issue: bool
     rp_issue_id_marks: bool
-    rp_issue_system_url: str
+    rp_bts_issue_url: str
     rp_bts_project: str
     rp_bts_url: str
     rp_launch: str
@@ -88,8 +88,16 @@ class AgentConfig:
         )
         self.rp_issue_id_marks = self.find_option(pytest_config,
                                                   'rp_issue_id_marks')
-        self.rp_issue_system_url = self.find_option(pytest_config,
-                                                    'rp_issue_system_url')
+        self.rp_bts_issue_url = self.find_option(pytest_config, 'rp_bts_issue_url')
+        if not self.rp_bts_issue_url:
+            self.rp_bts_issue_url = self.find_option(pytest_config, 'rp_issue_system_url')
+            if self.rp_bts_issue_url:
+                warnings.warn(
+                    'Parameter `rp_issue_system_url` is deprecated since 5.4.0 and will be subject for removing'
+                    'in the next major version. Use `rp_bts_issue_url` argument instead.',
+                    DeprecationWarning,
+                    2
+                )
         self.rp_bts_project = self.find_option(pytest_config, 'rp_bts_project')
         self.rp_bts_url = self.find_option(pytest_config, 'rp_bts_url')
         self.rp_launch = self.find_option(pytest_config, 'rp_launch')
