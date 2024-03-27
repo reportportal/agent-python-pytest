@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.4.1]
 ### Fixed
 - Issue [#362](https://github.com/reportportal/agent-python-pytest/issues/362): Debug mode passing, by @HardNorth
 
