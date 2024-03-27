@@ -32,6 +32,7 @@ from reportportal_client.aio import Task
 from .config import AgentConfig
 
 try:
+    # noinspection PyProtectedMember
     from pytest import Instance
 except ImportError:
     # in pytest >= 7.0 this type was removed
@@ -196,7 +197,6 @@ class PyTestServiceClass:
             'name': self._config.rp_launch,
             'start_time': timestamp(),
             'description': self._config.rp_launch_description,
-            'mode': self._config.rp_mode,
             'rerun': self._config.rp_rerun,
             'rerun_of': self._config.rp_rerun_of
         }
@@ -897,7 +897,8 @@ class PyTestServiceClass:
             log_batch_payload_size=self._config.rp_log_batch_payload_size,
             launch_uuid_print=self._config.rp_launch_uuid_print,
             print_output=self._config.rp_launch_uuid_print_output,
-            http_timeout=self._config.rp_http_timeout
+            http_timeout=self._config.rp_http_timeout,
+            mode=self._config.rp_mode
         )
         if hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()
