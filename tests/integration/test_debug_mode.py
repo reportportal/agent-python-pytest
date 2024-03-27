@@ -40,10 +40,8 @@ def test_launch_mode(mock_client_init, mode, expected_mode):
                                     variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
-    mock_client = mock_client_init.return_value
-    assert mock_client.start_launch.call_count == 1, \
-        '"start_launch" method was not called'
+    assert mock_client_init.call_count == 1, "client wasn't initialized"
 
-    call_args = mock_client.start_launch.call_args_list
-    start_launch_kwargs = call_args[0][1]
-    assert start_launch_kwargs['mode'] == expected_mode
+    init_kwargs = mock_client_init.call_args_list[0][1]
+    assert 'mode' in init_kwargs
+    assert init_kwargs['mode'] == expected_mode

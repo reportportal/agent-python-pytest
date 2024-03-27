@@ -1,10 +1,14 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Issue [#362](https://github.com/reportportal/agent-python-pytest/issues/362): Debug mode passing, by @HardNorth
+
+## [5.4.0]
 ### Added
 - Pytest version >= 8 support, by @HardNorth
 ### Removed
-- `Packege` and `Dir` item types processing on test collection. This is done to preserve backward compatibility and improve name consistency, by @HardNorth
+- `Package` and `Dir` item types processing on test collection. This is done to preserve backward compatibility and improve name consistency, by @HardNorth
 ### Changed
 - `rp_issue_system_url` renamed to `rp_bts_issue_url` to be consistent with other agents, by @HardNorth
 
