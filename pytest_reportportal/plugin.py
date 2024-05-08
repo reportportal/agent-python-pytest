@@ -437,6 +437,11 @@ def pytest_addoption(parser):
         type='bool',
         help='Enables hierarchy for code')
     parser.addini(
+        'rp_drop_hierarchy_code',
+        default=False,
+        type='bool',
+        help='Removes hierarchy for code from path')
+    parser.addini(
         'rp_hierarchy_dirs_level',
         default='0',
         help='Directory starting hierarchy level')

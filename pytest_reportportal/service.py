@@ -353,6 +353,21 @@ class PyTestServiceClass:
         elif leaf['type'] != LeafType.ROOT:
             self._tree_path[leaf['item']] = path + [leaf]
 
+    def _get_custom_path(self, full_path):
+        path = []
+        for leaf in full_path:
+            if len(leaf['children']) and leaf['type'] == LeafType.CODE:
+                continue
+            else:
+                leaf['parent'] = path[-1] if path else None
+                path.append(leaf)
+        return path
+
+    def _rebuild_paths(self):
+        test_tree = self._tree_path
+        for item, path in test_tree.items():
+            self._tree_path[item] = self._get_custom_path(path)
+
     @check_rp_enabled
     def collect_tests(self, session):
         """
@@ -369,6 +384,8 @@ class PyTestServiceClass:
         if not self._config.rp_hierarchy_code:
             self._merge_code(test_tree)
         self._build_item_paths(test_tree, [])
+        if self._config.rp_drop_hierarchy_code:
+            self._rebuild_paths()
 
     def _get_item_name(self, name):
         """

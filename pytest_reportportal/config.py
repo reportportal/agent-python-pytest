@@ -38,6 +38,7 @@ class AgentConfig:
     pconfig: Config
     rp_endpoint: str
     rp_hierarchy_code: bool
+    rp_drop_hierarchy_code: bool
     rp_dir_level: int
     rp_hierarchy_dirs: bool
     rp_dir_path_separator: str
@@ -77,6 +78,7 @@ class AgentConfig:
                                                   'rp_hierarchy_code')
         self.rp_dir_level = int(self.find_option(pytest_config,
                                                  'rp_hierarchy_dirs_level'))
+        self.rp_drop_hierarchy_code = self.find_option(pytest_config, 'rp_drop_hierarchy_code')
         self.rp_hierarchy_dirs = self.find_option(pytest_config,
                                                   'rp_hierarchy_dirs')
         self.rp_dir_path_separator = \
