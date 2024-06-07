@@ -455,14 +455,18 @@ class PyTestServiceClass:
         # same path on different systems and do not affect Test Case ID on
         # different systems
         path = os.path.relpath(str(item.fspath), ROOT_DIR).replace('\\', '/')
-        method_name = item.originalname if item.originalname is not None \
+        method_name = item.originalname if hasattr(item, 'originalname') \
+            and item.originalname is not None \
             else item.name
         parent = item.parent
         classes = [method_name]
         while not isinstance(parent, Module):
-            if not isinstance(parent, Instance):
+            if not isinstance(parent, Instance) and hasattr(parent, 'name'):
                 classes.append(parent.name)
-            parent = parent.parent
+            if hasattr(parent, 'parent'):
+                parent = parent.parent
+            else:
+                break
         classes.reverse()
         class_path = '.'.join(classes)
         return '{0}:{1}'.format(path, class_path)
