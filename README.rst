@@ -47,24 +47,24 @@ any one using pytest command line option:
 
 The :code:`pytest.ini` file should have next mandatory fields:
 
-- :code:`rp_api_key` - value could be found in the User Profile section
-- :code:`rp_project` - name of project in ReportPortal
-- :code:`rp_endpoint` - address of ReportPortal Server
+- :code:`rp_api_key_forked` - value could be found in the User Profile section
+- :code:`rp_project_forked` - name of project in ReportPortal
+- :code:`rp_endpoint_forked` - address of ReportPortal Server
 
 Example of :code:`pytest.ini`:
 
 .. code-block:: text
 
     [pytest]
-    rp_api_key = fb586627-32be-47dd-93c1-678873458a5f
-    rp_endpoint = http://192.168.1.10:8080
-    rp_project = user_personal
-    rp_launch = AnyLaunchName
-    rp_launch_attributes = 'PyTest' 'Smoke'
-    rp_launch_description = 'Smoke test'
-    rp_ignore_attributes = 'xfail' 'usefixture'
+    rp_api_key_forked = fb586627-32be-47dd-93c1-678873458a5f
+    rp_endpoint_forked = http://192.168.1.10:8080
+    rp_project_forked = user_personal
+    rp_launch_forked = AnyLaunchName
+    rp_launch_forked_attributes = 'PyTest' 'Smoke'
+    rp_launch_forked_description = 'Smoke test'
+    rp_ignore_attributes_forked = 'xfail' 'usefixture'
 
-- The :code:`rp_api_key` can also be set with the environment variable `RP_API_KEY`. This will override the value set for :code:`rp_api_key` in pytest.ini
+- The :code:`rp_api_key_forked` can also be set with the environment variable `rp_api_key_forked`. This will override the value set for :code:`rp_api_key_forked` in pytest.ini
 
 There are also optional parameters:
 https://reportportal.io/docs/log-data-in-reportportal/test-framework-integration/Python/pytest/

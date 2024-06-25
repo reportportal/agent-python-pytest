@@ -28,13 +28,13 @@ TEST_LAUNCH_ID = 'test_launch_id'
 
 
 @mock.patch(REQUESTS_SERVICE)
-def test_rp_launch_id(mock_requests_init):
-    """Verify that RP plugin does not start/stop launch if 'rp_launch_id' set.
+def test_rp_launch_forked_id(mock_requests_init):
+    """Verify that RP plugin does not start/stop launch if 'rp_launch_forked_id' set.
 
     :param mock_requests_init: mocked requests lib
     """
     variables = dict()
-    variables['rp_launch_id'] = TEST_LAUNCH_ID
+    variables['rp_launch_forked_id'] = TEST_LAUNCH_ID
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=['examples/test_simple.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
@@ -75,15 +75,15 @@ def test_rp_parent_item_id(mock_client_init):
 
 
 @mock.patch(REQUESTS_SERVICE)
-def test_rp_parent_item_id_and_rp_launch_id(mock_requests_init):
-    """Verify RP handles both conf props 'rp_parent_item_id' & 'rp_launch_id'.
+def test_rp_parent_item_id_and_rp_launch_forked_id(mock_requests_init):
+    """Verify RP handles both conf props 'rp_parent_item_id' & 'rp_launch_forked_id'.
 
     :param mock_requests_init: mocked requests lib
     """
     parent_id = "parent_id"
     variables = dict()
     variables['rp_parent_item_id'] = parent_id
-    variables['rp_launch_id'] = TEST_LAUNCH_ID
+    variables['rp_launch_forked_id'] = TEST_LAUNCH_ID
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=['examples/test_simple.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
@@ -115,9 +115,9 @@ def test_rp_log_format(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_log_batch_payload_size(mock_client_init):
+def test_rp_log_batch_payload_size_forked(mock_client_init):
     log_size = 123456
-    variables = {'rp_log_batch_payload_size': log_size}
+    variables = {'rp_log_batch_payload_size_forked': log_size}
     variables.update(utils.DEFAULT_VARIABLES.items())
 
     result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
@@ -148,10 +148,10 @@ def filter_agent_calls(warning_list):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_api_key(mock_client_init):
-    api_key = 'rp_api_key'
+def test_rp_api_key_forked(mock_client_init):
+    api_key = 'rp_api_key_forked'
     variables = dict(utils.DEFAULT_VARIABLES)
-    variables.update({'rp_api_key': api_key}.items())
+    variables.update({'rp_api_key_forked': api_key}.items())
 
     with warnings.catch_warnings(record=True) as w:
         result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
@@ -168,9 +168,9 @@ def test_rp_api_key(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_rp_uuid(mock_client_init):
-    api_key = 'rp_api_key'
+    api_key = 'rp_api_key_forked'
     variables = dict(utils.DEFAULT_VARIABLES)
-    del variables['rp_api_key']
+    del variables['rp_api_key_forked']
     variables.update({'rp_uuid': api_key}.items())
 
     with warnings.catch_warnings(record=True) as w:
@@ -187,10 +187,10 @@ def test_rp_uuid(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_api_key_priority(mock_client_init):
-    api_key = 'rp_api_key'
+def test_rp_api_key_forked_priority(mock_client_init):
+    api_key = 'rp_api_key_forked'
     variables = dict(utils.DEFAULT_VARIABLES)
-    variables.update({'rp_api_key': api_key, 'rp_uuid': 'rp_uuid'}.items())
+    variables.update({'rp_api_key_forked': api_key, 'rp_uuid': 'rp_uuid'}.items())
 
     with warnings.catch_warnings(record=True) as w:
         result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
@@ -206,10 +206,10 @@ def test_rp_api_key_priority(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_api_key_empty(mock_client_init):
+def test_rp_api_key_forked_empty(mock_client_init):
     api_key = ''
     variables = dict(utils.DEFAULT_VARIABLES)
-    variables.update({'rp_api_key': api_key}.items())
+    variables.update({'rp_api_key_forked': api_key}.items())
 
     with warnings.catch_warnings(record=True) as w:
         result = utils.run_pytest_tests(['examples/test_rp_logging.py'],
@@ -277,7 +277,7 @@ def test_rp_issue_system_url_warning(mock_client_init):
 def test_launch_uuid_print(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
-    variables.update({'rp_launch_uuid_print': str(print_uuid)}.items())
+    variables.update({'rp_launch_forked_uuid_print': str(print_uuid)}.items())
     result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
@@ -290,7 +290,7 @@ def test_launch_uuid_print(mock_client_init):
 def test_launch_uuid_print_stderr(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
-    variables.update({'rp_launch_uuid_print': str(print_uuid), 'rp_launch_uuid_print_output': 'stderr'}.items())
+    variables.update({'rp_launch_forked_uuid_print': str(print_uuid), 'rp_launch_forked_uuid_print_output': 'stderr'}.items())
     result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
     expect(mock_client_init.call_count == 1)
@@ -303,7 +303,7 @@ def test_launch_uuid_print_stderr(mock_client_init):
 def test_launch_uuid_print_invalid_output(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
-    variables.update({'rp_launch_uuid_print': str(print_uuid), 'rp_launch_uuid_print_output': 'something'}.items())
+    variables.update({'rp_launch_forked_uuid_print': str(print_uuid), 'rp_launch_forked_uuid_print_output': 'something'}.items())
     result = utils.run_pytest_tests(['examples/test_rp_logging.py'], variables=variables)
     assert int(result) == 3, 'Exit code should be 3 (INTERNALERROR)'
     assert mock_client_init.call_count == 0

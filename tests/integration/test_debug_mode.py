@@ -34,7 +34,7 @@ def test_launch_mode(mock_client_init, mode, expected_mode):
     """
     variables = dict()
     if mode is not None:
-        variables['rp_mode'] = mode
+        variables['rp_mode_forked'] = mode
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=['examples/test_simple.py'],
                                     variables=variables)

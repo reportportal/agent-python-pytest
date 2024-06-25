@@ -43,7 +43,7 @@ def mocked_config():
     mocked_config.getoption_side_effects = {
         '--collect-only': False,
         '--setup-plan': False,
-        'rp_log_level': 'debug'
+        'rp_log_level_forked': 'debug'
     }
 
     def getoption_side_effect(name, default=None):
@@ -58,17 +58,17 @@ def mocked_config():
     mocked_config.trace = TagTracer().get('root')
     mocked_config.pluginmanager = mock.Mock()
     mocked_config.option = mock.create_autospec(Config)
-    mocked_config.option.rp_project = 'default_personal'
-    mocked_config.option.rp_endpoint = 'http://docker.local:8080/'
-    mocked_config.option.rp_api_key = mock.sentinel.rp_api_key
-    mocked_config.option.rp_log_batch_size = -1
+    mocked_config.option.rp_project_forked = 'default_personal'
+    mocked_config.option.rp_endpoint_forked = 'http://docker.local:8080/'
+    mocked_config.option.rp_api_key_forked = mock.sentinel.rp_api_key_forked
+    mocked_config.option.rp_log_batch_size_forked = -1
     mocked_config.option.retries = -1
     mocked_config.option.rp_hierarchy_dirs_level = '0'
     mocked_config.option.rp_rerun = False
-    mocked_config.option.rp_launch_timeout = -1
+    mocked_config.option.rp_launch_forked_timeout = -1
     mocked_config.option.rp_thread_logging = True
-    mocked_config.option.rp_launch_uuid_print = 'False'
-    mocked_config.option.rp_launch_uuid_print_output = 'STDOUT'
+    mocked_config.option.rp_launch_forked_uuid_print = 'False'
+    mocked_config.option.rp_launch_forked_uuid_print_output = 'STDOUT'
     mocked_config.option.rp_client_type = 'SYNC'
     return mocked_config
 

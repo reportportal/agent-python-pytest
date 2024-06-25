@@ -30,7 +30,7 @@ from pytest_reportportal.config import AgentConfig
 )
 def test_verify_ssl_true(mocked_config, verify_ssl, expected_result):
     mocked_config.getini.side_effect = \
-        lambda x: verify_ssl if x == 'rp_verify_ssl' else None
+        lambda x: verify_ssl if x == 'rp_verify_ssl_forked' else None
     config = AgentConfig(mocked_config)
 
-    assert config.rp_verify_ssl == expected_result
+    assert config.rp_verify_ssl_forked == expected_result

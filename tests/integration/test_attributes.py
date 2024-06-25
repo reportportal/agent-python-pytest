@@ -52,7 +52,7 @@ def test_custom_attribute_not_reported_if_skip_configured(mock_client_init):
     """
     variables = {
         'markers': 'scope: to which test scope a test relates',
-        'rp_ignore_attributes': 'scope'
+        'rp_ignore_attributes_forked': 'scope'
     }
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(

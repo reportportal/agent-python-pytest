@@ -117,7 +117,7 @@ def test_passed_no_issue_report(mock_client_init):
                                                             (None, None)])
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
-    """Verify 'rp_is_skipped_an_issue' option handling.
+    """Verify 'rp_is_skipped_an_issue_forked' option handling.
 
     :param mock_client_init: mocked Report Portal client Pytest fixture
     :param flag_value:       option value to set during the test
@@ -128,7 +128,7 @@ def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
 
     variables = dict()
     if flag_value is not None:
-        variables['rp_is_skipped_an_issue'] = flag_value
+        variables['rp_is_skipped_an_issue_forked'] = flag_value
     variables.update(utils.DEFAULT_VARIABLES.items())
 
     result = utils.run_pytest_tests(
@@ -154,7 +154,7 @@ def test_skipped_custom_issue(mock_client_init):
     mock_client.get_project_settings.side_effect = utils.project_settings
 
     variables = dict()
-    variables['rp_is_skipped_an_issue'] = True
+    variables['rp_is_skipped_an_issue_forked'] = True
     variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
     variables.update(utils.DEFAULT_VARIABLES.items())
 

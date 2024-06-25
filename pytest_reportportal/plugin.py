@@ -34,9 +34,9 @@ log = logging.getLogger(__name__)
 
 MANDATORY_PARAMETER_MISSED_PATTERN = \
     'One of the following mandatory parameters is unset: ' + \
-    'rp_project: {}, ' + \
-    'rp_endpoint: {}, ' + \
-    'rp_api_key: {}'
+    'rp_project_forked: {}, ' + \
+    'rp_endpoint_forked: {}, ' + \
+    'rp_api_key_forked: {}'
 
 FAILED_LAUNCH_WAIT = 'Failed to initialize reportportal-client service. ' \
                      + 'Waiting for Launch start timed out. ' \
@@ -168,12 +168,12 @@ def check_connection(agent_config):
     :param agent_config: Instance of the AgentConfig class
     :return True on successful connection check, either False
     """
-    url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint,
-                                          agent_config.rp_project)
-    headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_api_key)}
+    url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint_forked,
+                                          agent_config.rp_project_forked)
+    headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_api_key_forked)}
     try:
         resp = requests.get(url, headers=headers,
-                            verify=agent_config.rp_verify_ssl)
+                            verify=agent_config.rp_verify_ssl_forked)
         resp.raise_for_status()
         return True
     except requests.exceptions.RequestException as exc:
@@ -200,8 +200,8 @@ def pytest_configure(config):
 
     agent_config = AgentConfig(config)
 
-    cond = (agent_config.rp_project, agent_config.rp_endpoint,
-            agent_config.rp_api_key)
+    cond = (agent_config.rp_project_forked, agent_config.rp_endpoint_forked,
+            agent_config.rp_api_key_forked)
     config._rp_enabled = all(cond)
     if not config._rp_enabled:
         log.debug(MANDATORY_PARAMETER_MISSED_PATTERN.format(*cond))
@@ -261,10 +261,10 @@ def pytest_runtest_protocol(item):
     service = config.py_test_service
     agent_config = config._reporter_config
     service.start_pytest_item(item)
-    log_level = agent_config.rp_log_level or logging.NOTSET
+    log_level = agent_config.rp_log_level_forked or logging.NOTSET
     log_handler = RPLogHandler(level=log_level,
                                filter_client_logs=True,
-                               endpoint=agent_config.rp_endpoint,
+                               endpoint=agent_config.rp_endpoint_forked,
                                ignored_record_names=('reportportal_client',
                                                      'pytest_reportportal'))
     log_format = agent_config.rp_log_format
@@ -336,23 +336,23 @@ def pytest_addoption(parser):
         help='Enable ReportPortal plugin'
     )
     add_shared_option(
-        name='rp_launch',
+        name='rp_launch_forked',
         help_str='Launch name',
         default='Pytest Launch',
     )
     add_shared_option(
-        name='rp_launch_id',
+        name='rp_launch_forked_id',
         help_str='Use already existing launch-id. The plugin won\'t control '
         'the Launch status',
     )
     add_shared_option(
-        name='rp_launch_description',
+        name='rp_launch_forked_description',
         help_str='Launch description',
         default='',
     )
-    add_shared_option(name='rp_project', help_str='Project name')
+    add_shared_option(name='rp_project_forked', help_str='Project name')
     add_shared_option(
-        name='rp_log_level',
+        name='rp_log_level_forked',
         help_str='Logging level for automated log records reporting',
     )
     add_shared_option(
@@ -376,16 +376,16 @@ def pytest_addoption(parser):
         help_str='Create all test item as child items of the given (already '
                  'existing) item.',
     )
-    add_shared_option(name='rp_uuid', help_str='Deprecated: use `rp_api_key` '
+    add_shared_option(name='rp_uuid', help_str='Deprecated: use `rp_api_key_forked` '
                       'instead.')
     add_shared_option(
-        name='rp_api_key',
+        name='rp_api_key_forked',
         help_str='API key of Report Portal. Usually located on UI profile '
                  'page.'
     )
-    add_shared_option(name='rp_endpoint', help_str='Server endpoint')
+    add_shared_option(name='rp_endpoint_forked', help_str='Server endpoint')
     add_shared_option(
-        name='rp_mode',
+        name='rp_mode_forked',
         help_str='Visibility of current launch [DEFAULT, DEBUG]',
         default='DEFAULT'
     )
@@ -398,16 +398,16 @@ def pytest_addoption(parser):
         action='store_true'
     )
     add_shared_option(
-        name='rp_launch_uuid_print',
+        name='rp_launch_forked_uuid_print',
         help_str='Enables printing Launch UUID on test run start. Possible values: [True, False]'
     )
     add_shared_option(
-        name='rp_launch_uuid_print_output',
+        name='rp_launch_forked_uuid_print_output',
         help_str='Launch UUID print output. Default `stdout`. Possible values: [stderr, stdout]'
     )
 
     parser.addini(
-        'rp_launch_attributes',
+        'rp_launch_forked_attributes',
         type='args',
         help='Launch attributes, i.e Performance Regression')
     parser.addini(
@@ -415,19 +415,19 @@ def pytest_addoption(parser):
         type='args',
         help='Attributes for all tests items, e.g. Smoke')
     parser.addini(
-        'rp_log_batch_size',
+        'rp_log_batch_size_forked',
         default='20',
         help='Size of batch log requests in async mode')
     parser.addini(
-        'rp_log_batch_payload_size',
+        'rp_log_batch_payload_size_forked',
         default=str(MAX_LOG_BATCH_PAYLOAD_SIZE),
         help='Maximum payload size in bytes of async batch log requests')
     parser.addini(
-        'rp_ignore_attributes',
+        'rp_ignore_attributes_forked',
         type='args',
         help='Ignore specified pytest markers, i.e parametrize')
     parser.addini(
-        'rp_is_skipped_an_issue',
+        'rp_is_skipped_an_issue_forked',
         default=True,
         type='bool',
         help='Treat skipped tests as required investigation')
@@ -472,7 +472,7 @@ def pytest_addoption(parser):
              'server. To enable runtime external issue reporting you need to '
              'specify this and "rp_bts_project" property.')
     parser.addini(
-        'rp_verify_ssl',
+        'rp_verify_ssl_forked',
         default='True',
         help='True/False - verify HTTPS calls, or path to a CA_BUNDLE or '
              'directory with certificates of trusted CAs.')
@@ -495,7 +495,7 @@ def pytest_addoption(parser):
         type='bool',
         help='Skip Report Portal connection test')
     parser.addini(
-        'rp_launch_timeout',
+        'rp_launch_forked_timeout',
         default=86400,
         help='Maximum time to wait for child processes finish, default value: '
              '86400 seconds (1 day)'

@@ -82,7 +82,7 @@ def test_portal_on_maintenance(mocked_service_class, mocked_config,
     :param mocked_session: pytest fixture
     """
     mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_project = None
+    mocked_config.option.rp_project_forked = None
 
     mocked_service = mocked_service_class.return_value
     mocked_config.py_test_service = mocked_service
@@ -100,7 +100,7 @@ def test_pytest_configure(mocked_config):
     :param mocked_config: Pytest fixture
     """
     mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_project = None
+    mocked_config.option.rp_project_forked = None
     pytest_configure(mocked_config)
     expect(mocked_config._rp_enabled is True)
     expect(
@@ -124,17 +124,17 @@ def test_pytest_configure_dry_run(mocked_config):
 
 @mock.patch('pytest_reportportal.plugin.requests.get', mock.Mock())
 @mock.patch('pytest_reportportal.plugin.log', wraps=log)
-def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
-    """Test plugin configuration in case of missing rp_endpoint.
+def test_pytest_configure_misssing_rp_endpoint_forked(mocked_log, mocked_config):
+    """Test plugin configuration in case of missing rp_endpoint_forked.
 
     The value of the _reportportal_configured attribute of the pytest Config
     object should be changed to False, stopping plugin configuration, if
-    rp_endpoint is not set.
+    rp_endpoint_forked is not set.
 
     :param mocked_config: Pytest fixture
     """
     mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_endpoint = None
+    mocked_config.option.rp_endpoint_forked = None
     mocked_config.getini.return_value = 0
     pytest_configure(mocked_config)
     assert mocked_config._rp_enabled is False
@@ -142,9 +142,9 @@ def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
         [
             mock.call(
                 MANDATORY_PARAMETER_MISSED_PATTERN.format(
-                    mocked_config.option.rp_project,
+                    mocked_config.option.rp_project_forked,
                     None,
-                    mocked_config.option.rp_api_key,
+                    mocked_config.option.rp_api_key_forked,
                 )),
             mock.call('Disabling reporting to RP.'),
         ]
@@ -153,17 +153,17 @@ def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
 
 @mock.patch('pytest_reportportal.plugin.requests.get', mock.Mock())
 @mock.patch('pytest_reportportal.plugin.log', wraps=log)
-def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
-    """Test plugin configuration in case of missing rp_project.
+def test_pytest_configure_misssing_rp_project_forked(mocked_log, mocked_config):
+    """Test plugin configuration in case of missing rp_project_forked.
 
     The value of the _reportportal_configured attribute of the pytest Config
     object should be changed to False, stopping plugin configuration, if
-    rp_project is not set.
+    rp_project_forked is not set.
 
     :param mocked_config: Pytest fixture
     """
     mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_project = None
+    mocked_config.option.rp_project_forked = None
     mocked_config.getini.return_value = 0
     pytest_configure(mocked_config)
     assert mocked_config._rp_enabled is False
@@ -172,8 +172,8 @@ def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
             mock.call(
                 MANDATORY_PARAMETER_MISSED_PATTERN.format(
                     None,
-                    mocked_config.option.rp_endpoint,
-                    mocked_config.option.rp_api_key,
+                    mocked_config.option.rp_endpoint_forked,
+                    mocked_config.option.rp_api_key_forked,
                 )),
             mock.call('Disabling reporting to RP.'),
         ]
@@ -192,7 +192,7 @@ def test_pytest_configure_misssing_rp_uuid(mocked_log, mocked_config):
     :param mocked_config: Pytest fixture
     """
     mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_api_key = None
+    mocked_config.option.rp_api_key_forked = None
     mocked_config.getini.return_value = 0
     pytest_configure(mocked_config)
     assert mocked_config._rp_enabled is False
@@ -200,8 +200,8 @@ def test_pytest_configure_misssing_rp_uuid(mocked_log, mocked_config):
         [
             mock.call(
                 MANDATORY_PARAMETER_MISSED_PATTERN.format(
-                    mocked_config.option.rp_project,
-                    mocked_config.option.rp_endpoint,
+                    mocked_config.option.rp_project_forked,
+                    mocked_config.option.rp_endpoint_forked,
                     None,
                 )),
             mock.call('Disabling reporting to RP.'),
@@ -259,7 +259,7 @@ def test_pytest_sessionstart(mocked_session):
     """
     mocked_session.config.pluginmanager.hasplugin.return_value = True
     mocked_session.config._reporter_config = mock.Mock(spec=AgentConfig(mocked_session.config))
-    mocked_session.config._reporter_config.rp_launch_attributes = []
+    mocked_session.config._reporter_config.rp_launch_forked_attributes = []
     mocked_session.config.py_test_service = mock.Mock()
     pytest_sessionstart(mocked_session)
     expect(lambda: mocked_session.config.py_test_service.init_service.called)
@@ -282,8 +282,8 @@ def test_pytest_sessionstart_launch_wait_fail(mocked_log, mocked_session):
     mocked_session.config.pluginmanager.hasplugin.return_value = True
     mocked_session.config._reporter_config = mock.Mock(
         spec=AgentConfig(mocked_session.config))
-    mocked_session.config._reporter_config.rp_launch_attributes = []
-    mocked_session.config._reporter_config.rp_launch_id = None
+    mocked_session.config._reporter_config.rp_launch_forked_attributes = []
+    mocked_session.config._reporter_config.rp_launch_forked_id = None
     mocked_session.config.py_test_service = mock.Mock()
     pytest_sessionstart(mocked_session)
     expect(lambda: mocked_session.config.py_test_service.rp is None)
@@ -304,8 +304,8 @@ def test_pytest_sessionstart_xdist(mocked_session):
     """
     mocked_session.config.pluginmanager.hasplugin.return_value = True
     mocked_session.config._reporter_config = mock.Mock(spec=AgentConfig(mocked_session.config))
-    mocked_session.config._reporter_config.rp_launch_attributes = []
-    mocked_session.config._reporter_config.rp_launch_id = 1
+    mocked_session.config._reporter_config.rp_launch_forked_attributes = []
+    mocked_session.config._reporter_config.rp_launch_forked_id = 1
     mocked_session.config.workerinput = 1
     mocked_session.config.py_test_service = mock.Mock()
     pytest_sessionstart(mocked_session)
@@ -320,7 +320,7 @@ def test_pytest_sessionfinish(mocked_session):
     :param mocked_session: pytest fixture
     """
     mocked_session.config.py_test_service = mock.Mock()
-    mocked_session.config._reporter_config.rp_launch_id = None
+    mocked_session.config._reporter_config.rp_launch_forked_id = None
     pytest_sessionfinish(mocked_session)
     assert mocked_session.config.py_test_service.finish_launch.called
 
@@ -328,28 +328,28 @@ def test_pytest_sessionfinish(mocked_session):
 def test_pytest_addoption_adds_correct_ini_file_arguments():
     """Test the correct list of options are available in the .ini file."""
     expected_argument_names = (
-        'rp_launch',
-        'rp_launch_id',
-        'rp_launch_description',
-        'rp_project',
-        'rp_log_level',
+        'rp_launch_forked',
+        'rp_launch_forked_id',
+        'rp_launch_forked_description',
+        'rp_project_forked',
+        'rp_log_level_forked',
         'rp_log_format',
         'rp_rerun',
         'rp_rerun_of',
         'rp_parent_item_id',
         'rp_uuid',
-        'rp_api_key',
-        'rp_endpoint',
-        'rp_mode',
+        'rp_api_key_forked',
+        'rp_endpoint_forked',
+        'rp_mode_forked',
         'rp_thread_logging',
-        'rp_launch_uuid_print',
-        'rp_launch_uuid_print_output',
-        'rp_launch_attributes',
+        'rp_launch_forked_uuid_print',
+        'rp_launch_forked_uuid_print_output',
+        'rp_launch_forked_attributes',
         'rp_tests_attributes',
-        'rp_log_batch_size',
-        'rp_log_batch_payload_size',
-        'rp_ignore_attributes',
-        'rp_is_skipped_an_issue',
+        'rp_log_batch_size_forked',
+        'rp_log_batch_payload_size_forked',
+        'rp_ignore_attributes_forked',
+        'rp_is_skipped_an_issue_forked',
         'rp_hierarchy_code',
         'rp_hierarchy_dirs_level',
         'rp_hierarchy_dirs',
@@ -358,12 +358,12 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_bts_issue_url',
         'rp_bts_project',
         'rp_bts_url',
-        'rp_verify_ssl',
+        'rp_verify_ssl_forked',
         'rp_issue_id_marks',
         'retries',
         'rp_api_retries',
         'rp_skip_connection_test',
-        'rp_launch_timeout',
+        'rp_launch_forked_timeout',
         'rp_client_type',
         'rp_connect_timeout',
         'rp_read_timeout'

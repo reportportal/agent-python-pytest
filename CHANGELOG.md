@@ -21,7 +21,7 @@
 ## [5.3.1]
 ### Changed
 - Client version updated on [5.5.4](https://github.com/reportportal/client-Python/releases/tag/5.5.4), by @HardNorth
-- `rp_launch_id` property handling moved completely on Client side, by @HardNorth
+- `rp_launch_forked_id` property handling moved completely on Client side, by @HardNorth
 
 ## [5.3.0]
 ### Added
@@ -42,7 +42,7 @@
 
 ## [5.2.0]
 ### Added
-- `rp_launch_uuid_print` and `rp_launch_uuid_print_output` configuration parameters, by @HardNorth
+- `rp_launch_forked_uuid_print` and `rp_launch_forked_uuid_print_output` configuration parameters, by @HardNorth
 ### Removed
 - Python 2.7, 3.6 support, by @HardNorth
 
@@ -51,7 +51,7 @@
 - `rp_api_retries` configuration parameter, by @HardNorth
 ### Changed
 - Client version updated on [5.3.5](https://github.com/reportportal/client-Python/releases/tag/5.3.5), by @HardNorth
-- `rp_uuid` configuration parameter was renamed to `rp_api_key` to maintain common convention, by @HardNorth
+- `rp_uuid` configuration parameter was renamed to `rp_api_key_forked` to maintain common convention, by @HardNorth
 
 ## [5.1.8]
 ### Fixed
@@ -77,7 +77,7 @@
 ## [5.1.4]
 ### Added
 - Feature [#325](https://github.com/reportportal/agent-python-pytest/issues/325) Support of runtime attribute adding, by @yakovbabich, @HardNorth
-- `rp_launch_timeout` parameter to limit test execution in case of process hanging, by @HardNorth
+- `rp_launch_forked_timeout` parameter to limit test execution in case of process hanging, by @HardNorth
 
 ## [5.1.3]
 ### Added
@@ -85,7 +85,7 @@
 
 ## [5.1.2]
 ### Added
-- `rp_log_batch_payload_size` parameter, by @HardNorth
+- `rp_log_batch_payload_size_forked` parameter, by @HardNorth
 ### Changed
 - Feature [#311](https://github.com/reportportal/agent-python-pytest/issues/311):
 Adding log format config option, by @dagansandler

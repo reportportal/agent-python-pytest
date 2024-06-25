@@ -21,10 +21,10 @@ from multiprocessing.pool import ThreadPool
 import pytest
 
 DEFAULT_VARIABLES = {
-    'rp_launch': 'Pytest',
-    'rp_endpoint': 'http://localhost:8080',
-    'rp_project': 'default_personal',
-    'rp_api_key': 'test_api_key',
+    'rp_launch_forked': 'Pytest',
+    'rp_endpoint_forked': 'http://localhost:8080',
+    'rp_project_forked': 'default_personal',
+    'rp_api_key_forked': 'test_api_key',
     'rp_skip_connection_test': 'True'
 }
 

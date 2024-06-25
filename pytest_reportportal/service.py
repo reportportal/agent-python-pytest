@@ -189,14 +189,14 @@ class PyTestServiceClass:
         return attributes + dict_to_payload(system_attributes)
 
     def _build_start_launch_rq(self):
-        rp_launch_attributes = self._config.rp_launch_attributes
-        attributes = gen_attributes(rp_launch_attributes) if rp_launch_attributes else None
+        rp_launch_forked_attributes = self._config.rp_launch_forked_attributes
+        attributes = gen_attributes(rp_launch_forked_attributes) if rp_launch_forked_attributes else None
 
         start_rq = {
             'attributes': self._get_launch_attributes(attributes),
-            'name': self._config.rp_launch,
+            'name': self._config.rp_launch_forked,
             'start_time': timestamp(),
-            'description': self._config.rp_launch_description,
+            'description': self._config.rp_launch_forked_description,
             'rerun': self._config.rp_rerun,
             'rerun_of': self._config.rp_rerun_of
         }
@@ -626,7 +626,7 @@ class PyTestServiceClass:
                     for issue_id in self._get_issue_ids(marker):
                         attributes.add((marker.name, issue_id))
                 continue
-            if marker.name in self._config.rp_ignore_attributes \
+            if marker.name in self._config.rp_ignore_attributes_forked \
                     or marker.name in PYTEST_MARKS_IGNORE:
                 continue
             if len(marker.args) > 0:
@@ -736,7 +736,7 @@ class PyTestServiceClass:
     def _build_finish_step_rq(self, leaf):
         issue = leaf.get('issue', None)
         status = leaf['status']
-        if status == 'SKIPPED' and not self._config.rp_is_skipped_an_issue:
+        if status == 'SKIPPED' and not self._config.rp_is_skipped_an_issue_forked:
             issue = NOT_ISSUE
         if status == 'PASSED':
             issue = None
@@ -819,7 +819,7 @@ class PyTestServiceClass:
         # Ensure there is no running items
         finish_time = time()
         while len(self._get_items(ExecStatus.IN_PROGRESS)) > 0 \
-                and time() - finish_time <= self._config.rp_launch_timeout:
+                and time() - finish_time <= self._config.rp_launch_forked_timeout:
             sleep(0.1)
         skipped_items = self._get_items(ExecStatus.CREATED)
         for item in skipped_items:
@@ -879,30 +879,30 @@ class PyTestServiceClass:
         self.parent_item_id = self._config.rp_parent_item_id
         self.ignored_attributes = list(
             set(
-                self._config.rp_ignore_attributes or []
+                self._config.rp_ignore_attributes_forked or []
             ).union({'parametrize'})
         )
         log.debug('ReportPortal - Init service: endpoint=%s, '
-                  'project=%s, api_key=%s', self._config.rp_endpoint,
-                  self._config.rp_project, self._config.rp_api_key)
+                  'project=%s, api_key=%s', self._config.rp_endpoint_forked,
+                  self._config.rp_project_forked, self._config.rp_api_key_forked)
         launch_id = self._launch_id
-        if self._config.rp_launch_id:
-            launch_id = self._config.rp_launch_id
+        if self._config.rp_launch_forked_id:
+            launch_id = self._config.rp_launch_forked_id
         self.rp = create_client(
             client_type=self._config.rp_client_type,
-            endpoint=self._config.rp_endpoint,
-            project=self._config.rp_project,
-            api_key=self._config.rp_api_key,
-            is_skipped_an_issue=self._config.rp_is_skipped_an_issue,
-            log_batch_size=self._config.rp_log_batch_size,
+            endpoint=self._config.rp_endpoint_forked,
+            project=self._config.rp_project_forked,
+            api_key=self._config.rp_api_key_forked,
+            is_skipped_an_issue=self._config.rp_is_skipped_an_issue_forked,
+            log_batch_size=self._config.rp_log_batch_size_forked,
             retries=self._config.rp_api_retries,
-            verify_ssl=self._config.rp_verify_ssl,
+            verify_ssl=self._config.rp_verify_ssl_forked,
             launch_uuid=launch_id,
-            log_batch_payload_size=self._config.rp_log_batch_payload_size,
-            launch_uuid_print=self._config.rp_launch_uuid_print,
-            print_output=self._config.rp_launch_uuid_print_output,
+            log_batch_payload_size=self._config.rp_log_batch_payload_size_forked,
+            launch_uuid_print=self._config.rp_launch_forked_uuid_print,
+            print_output=self._config.rp_launch_forked_uuid_print_output,
             http_timeout=self._config.rp_http_timeout,
-            mode=self._config.rp_mode
+            mode=self._config.rp_mode_forked
         )
         if hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()
