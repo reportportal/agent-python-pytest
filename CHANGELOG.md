@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Fixed
 - Issue [#368](https://github.com/reportportal/agent-python-pytest/issues/368): Distutils in the agent, by @HardNorth
+- Pytest Tavern plugin support, by @virdok
 ### Added
 - Python 12 support, by @HardNorth
 
