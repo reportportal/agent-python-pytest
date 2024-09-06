@@ -14,13 +14,13 @@
 """This module contains class that stores RP agent configuration data."""
 
 import warnings
-from distutils.util import strtobool
 from os import getenv
 from typing import Optional, Union, Any, Tuple
 
 from _pytest.config import Config
 from reportportal_client import OutputType, ClientType
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.helpers import to_bool
 
 try:
     # This try/except can go away once we support pytest >= 5.4.0
@@ -116,9 +116,7 @@ class AgentConfig:
             self.rp_log_batch_payload_size = MAX_LOG_BATCH_PAYLOAD_SIZE
         self.rp_log_level = get_actual_log_level(pytest_config, 'rp_log_level')
         self.rp_log_format = self.find_option(pytest_config, 'rp_log_format')
-        self.rp_thread_logging = bool(strtobool(str(self.find_option(
-            pytest_config, 'rp_thread_logging'
-        ) or False)))
+        self.rp_thread_logging = to_bool(self.find_option(pytest_config, 'rp_thread_logging') or False)
         self.rp_mode = self.find_option(pytest_config, 'rp_mode')
         self.rp_parent_item_id = self.find_option(pytest_config,
                                                   'rp_parent_item_id')
@@ -177,15 +175,13 @@ class AgentConfig:
 
         rp_verify_ssl = self.find_option(pytest_config, 'rp_verify_ssl', True)
         try:
-            self.rp_verify_ssl = bool(strtobool(rp_verify_ssl))
+            self.rp_verify_ssl = to_bool(rp_verify_ssl)
         except (ValueError, AttributeError):
             self.rp_verify_ssl = rp_verify_ssl
         self.rp_launch_timeout = int(
             self.find_option(pytest_config, 'rp_launch_timeout'))
 
-        self.rp_launch_uuid_print = bool(strtobool(self.find_option(
-            pytest_config, 'rp_launch_uuid_print'
-        ) or 'False'))
+        self.rp_launch_uuid_print = to_bool(self.find_option(pytest_config, 'rp_launch_uuid_print') or 'False')
         print_output = self.find_option(pytest_config, 'rp_launch_uuid_print_output')
         self.rp_launch_uuid_print_output = OutputType[print_output.upper()] if print_output else None
         client_type = self.find_option(pytest_config, 'rp_client_type')

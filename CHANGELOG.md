@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Issue [#368](https://github.com/reportportal/agent-python-pytest/issues/368): Distutils in the agent, by @HardNorth
+### Added
+- Python 12 support, by @HardNorth
 
 ## [5.4.1]
 ### Fixed
