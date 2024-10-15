@@ -295,6 +295,27 @@ def pytest_runtest_makereport(item):
     service.process_results(item, report)
 
 
+@pytest.hookimpl(hookwrapper=True)
+def pytest_fixture_post_finalizer(fixturedef, request):
+    config = request.config
+    if not config._rp_enabled:
+        yield
+        return
+
+    outcome = yield
+    result = str(fixturedef.cached_result) if hasattr(fixturedef, 'cached_result') else None
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_fixture_setup(fixturedef, request):
+    config = request.config
+    if not config._rp_enabled:
+        yield
+        return
+    outcome = yield
+    result = str(fixturedef.cached_result) if hasattr(fixturedef, 'cached_result') else None
+
+
 def pytest_addoption(parser):
     """Add support for the RP-related options.
 
