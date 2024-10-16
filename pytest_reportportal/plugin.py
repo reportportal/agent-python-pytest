@@ -25,10 +25,11 @@ import pytest
 import requests
 from pluggy import Result
 from pytest import Config, FixtureDef, FixtureRequest, Parser, Session, Item
-from reportportal_client import RPLogHandler, RP
+from reportportal_client import RPLogHandler, RP, current
 from reportportal_client.errors import ResponseError
+from reportportal_client.helpers import timestamp
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
-from reportportal_client.steps import Step
+from reportportal_client.steps import StepReporter
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from pytest_reportportal.config import AgentConfig
@@ -266,11 +267,9 @@ def pytest_runtest_protocol(item: Item) -> None:
     agent_config = config._reporter_config
     service.start_pytest_item(item)
     log_level = agent_config.rp_log_level or logging.NOTSET
-    log_handler = RPLogHandler(level=log_level,
-                               filter_client_logs=True,
-                               endpoint=agent_config.rp_endpoint,
-                               ignored_record_names=('reportportal_client',
-                                                     'pytest_reportportal'))
+    log_handler = RPLogHandler(
+        level=log_level, filter_client_logs=True, endpoint=agent_config.rp_endpoint,
+        ignored_record_names=('reportportal_client', 'pytest_reportportal'))
     log_format = agent_config.rp_log_format
     if log_format:
         log_handler.setFormatter(logging.Formatter(log_format))
@@ -298,40 +297,50 @@ def pytest_runtest_makereport(item: Item) -> None:
     service.process_results(item, report)
 
 
-@pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_setup(fixturedef: FixtureDef, request: FixtureRequest) -> None:
+def report_fixture(request: FixtureRequest, name: str, error_msg: str) -> None:
+    """Report fixture setup and teardown.
+
+    :param request:    Object of the FixtureRequest class
+    :param name:       Name of the fixture
+    :param error_msg:  Error message
+    """
     config = request.config
     # noinspection PyUnresolvedReferences, PyProtectedMember
-    if not config._rp_enabled:
+    agent_config = config._reporter_config
+    # noinspection PyUnresolvedReferences, PyProtectedMember
+    if not config._rp_enabled or not agent_config.rp_report_fixtures:
         yield
         return
 
-    name = fixturedef.argname
-    scope = fixturedef.scope
-    with Step(f'{scope} fixture setup: {name}', {}, 'PASSED', None):
+    reporter = StepReporter(current())
+    item_id = reporter.start_nested_step(name, timestamp())
+
+    try:
         outcome: Result = yield
         if outcome.exception:
-            log.error(f'{scope} fixture setup failed: {name}')
+            log.error(error_msg)
             log.exception(outcome.exception)
-            raise outcome.exception
+            reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
+        else:
+            reporter.finish_nested_step(item_id, timestamp(), 'PASSED')
+    except Exception as e:
+        log.error('Failed to report fixture: %s', name)
+        log.exception(e)
+        reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
+
+
+@pytest.hookimpl(hookwrapper=True)
+def pytest_fixture_setup(fixturedef: FixtureDef, request: FixtureRequest) -> None:
+    yield from report_fixture(
+        request, f'{fixturedef.scope} fixture setup: {fixturedef.argname}',
+        f'{fixturedef.scope} fixture setup failed: {fixturedef.argname}')
 
 
 @pytest.hookimpl(hookwrapper=True)
 def pytest_fixture_post_finalizer(fixturedef: FixtureDef, request: FixtureRequest) -> None:
-    config = request.config
-    # noinspection PyUnresolvedReferences, PyProtectedMember
-    if not config._rp_enabled:
-        yield
-        return
-
-    name = fixturedef.argname
-    scope = fixturedef.scope
-    with Step(f'{scope} fixture teardown: {name}', {}, 'PASSED', None):
-        outcome: Result = yield
-        if outcome.exception:
-            log.error(f'{scope} fixture teardown failed: {name}')
-            log.exception(outcome.exception)
-            raise outcome.exception
+    yield from report_fixture(
+        request, f'{fixturedef.scope} fixture teardown: {fixturedef.argname}',
+        f'{fixturedef.scope} fixture teardown failed: {fixturedef.argname}')
 
 
 def pytest_addoption(parser: Parser) -> None:
@@ -551,4 +560,10 @@ def pytest_addoption(parser: Parser) -> None:
     parser.addini(
         'rp_read_timeout',
         help='Response read timeout for ReportPortal connection'
+    )
+    parser.addini(
+        'rp_report_fixtures',
+        default=False,
+        type='bool',
+        help='Enable reporting fixtures as test items. Possible values: [True, False]'
     )
