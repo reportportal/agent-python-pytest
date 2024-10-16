@@ -298,23 +298,6 @@ def pytest_runtest_makereport(item: Item) -> None:
     service.process_results(item, report)
 
 
-def report_fixture(fixturedef: FixtureDef, request: FixtureRequest, name: str, error_msg: str) -> None:
-    config = request.config
-    # noinspection PyUnresolvedReferences, PyProtectedMember
-    if not config._rp_enabled:
-        yield
-        return
-
-    name = fixturedef.argname
-    scope = fixturedef.scope
-    with Step(name, {}, 'PASSED', None):
-        outcome: Result = yield
-        if outcome.exception:
-            log.error(error_msg)
-            log.exception(outcome.exception)
-            raise outcome.exception
-
-
 @pytest.hookimpl(hookwrapper=True)
 def pytest_fixture_setup(fixturedef: FixtureDef, request: FixtureRequest) -> None:
     config = request.config
