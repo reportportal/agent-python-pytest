@@ -23,10 +23,12 @@ import _pytest.logging
 import dill as pickle
 import pytest
 import requests
+from pluggy import Result
 from pytest import Config, FixtureDef, FixtureRequest, Parser, Session, Item
 from reportportal_client import RPLogHandler, RP
 from reportportal_client.errors import ResponseError
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
+from reportportal_client.steps import Step
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from pytest_reportportal.config import AgentConfig
@@ -250,8 +252,7 @@ def pytest_runtestloop(session: Session) -> None:
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_protocol(item: Item) -> None:
-    """
-    Control start and finish of pytest items.
+    """Control start and finish of pytest items.
 
     :param item: Pytest.Item
     :return:     generator object
@@ -282,8 +283,7 @@ def pytest_runtest_protocol(item: Item) -> None:
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
 def pytest_runtest_makereport(item: Item) -> None:
-    """
-        Change runtest_makereport function.
+    """Change runtest_makereport function.
 
     :param item: pytest.Item
     :return: None
@@ -298,6 +298,23 @@ def pytest_runtest_makereport(item: Item) -> None:
     service.process_results(item, report)
 
 
+def report_fixture(fixturedef: FixtureDef, request: FixtureRequest, name: str, error_msg: str) -> None:
+    config = request.config
+    # noinspection PyUnresolvedReferences, PyProtectedMember
+    if not config._rp_enabled:
+        yield
+        return
+
+    name = fixturedef.argname
+    scope = fixturedef.scope
+    with Step(name, {}, 'PASSED', None):
+        outcome: Result = yield
+        if outcome.exception:
+            log.error(error_msg)
+            log.exception(outcome.exception)
+            raise outcome.exception
+
+
 @pytest.hookimpl(hookwrapper=True)
 def pytest_fixture_setup(fixturedef: FixtureDef, request: FixtureRequest) -> None:
     config = request.config
@@ -306,8 +323,14 @@ def pytest_fixture_setup(fixturedef: FixtureDef, request: FixtureRequest) -> Non
         yield
         return
 
-    outcome = yield
-    result = str(fixturedef.cached_result) if hasattr(fixturedef, 'cached_result') else None
+    name = fixturedef.argname
+    scope = fixturedef.scope
+    with Step(f'{scope} fixture setup: {name}', {}, 'PASSED', None):
+        outcome: Result = yield
+        if outcome.exception:
+            log.error(f'{scope} fixture setup failed: {name}')
+            log.exception(outcome.exception)
+            raise outcome.exception
 
 
 @pytest.hookimpl(hookwrapper=True)
@@ -318,8 +341,14 @@ def pytest_fixture_post_finalizer(fixturedef: FixtureDef, request: FixtureReques
         yield
         return
 
-    outcome = yield
-    result = str(fixturedef.cached_result) if hasattr(fixturedef, 'cached_result') else None
+    name = fixturedef.argname
+    scope = fixturedef.scope
+    with Step(f'{scope} fixture teardown: {name}', {}, 'PASSED', None):
+        outcome: Result = yield
+        if outcome.exception:
+            log.error(f'{scope} fixture teardown failed: {name}')
+            log.exception(outcome.exception)
+            raise outcome.exception
 
 
 def pytest_addoption(parser: Parser) -> None:
