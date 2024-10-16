@@ -16,35 +16,38 @@
 import logging
 import os.path
 import time
+from logging import Logger
+from typing import Any
 
 import _pytest.logging
 import dill as pickle
 import pytest
 import requests
-from reportportal_client import RPLogHandler
+from pytest import Config, FixtureDef, FixtureRequest, Parser, Session, Item
+from reportportal_client import RPLogHandler, RP
 from reportportal_client.errors import ResponseError
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
-from .config import AgentConfig
-from .rp_logging import patching_logger_class, patching_thread_class
-from .service import PyTestServiceClass
+from pytest_reportportal.config import AgentConfig
+from pytest_reportportal.rp_logging import patching_logger_class, patching_thread_class
+from pytest_reportportal.service import PyTestServiceClass
 
-log = logging.getLogger(__name__)
+log: Logger = logging.getLogger(__name__)
 
-MANDATORY_PARAMETER_MISSED_PATTERN = \
+MANDATORY_PARAMETER_MISSED_PATTERN: str = \
     'One of the following mandatory parameters is unset: ' + \
     'rp_project: {}, ' + \
     'rp_endpoint: {}, ' + \
     'rp_api_key: {}'
 
-FAILED_LAUNCH_WAIT = 'Failed to initialize reportportal-client service. ' \
-                     + 'Waiting for Launch start timed out. ' \
-                     + 'Reporting is disabled.'
+FAILED_LAUNCH_WAIT: str = 'Failed to initialize reportportal-client service. ' \
+                          + 'Waiting for Launch start timed out. ' \
+                          + 'Reporting is disabled.'
 
 
 @pytest.hookimpl(optionalhook=True)
-def pytest_configure_node(node):
+def pytest_configure_node(node: Any) -> None:
     """Configure xdist node controller.
 
     :param node: Object of the xdist WorkerController class
@@ -56,7 +59,7 @@ def pytest_configure_node(node):
     node.workerinput['py_test_service'] = pickle.dumps(node.config.py_test_service)
 
 
-def is_control(config):
+def is_control(config: Config) -> bool:
     """Validate workerinput attribute of the Config object.
 
     True if the code, running the given pytest.config object,
@@ -65,7 +68,7 @@ def is_control(config):
     return not hasattr(config, 'workerinput')
 
 
-def wait_launch(rp_client):
+def wait_launch(rp_client: RP) -> bool:
     """Wait for the launch startup.
 
     :param rp_client: Instance of the ReportPortalService class
@@ -79,7 +82,7 @@ def wait_launch(rp_client):
 
 
 # noinspection PyProtectedMember
-def pytest_sessionstart(session):
+def pytest_sessionstart(session: Session) -> None:
     """Start Report Portal launch.
 
     This method is called every time on control or worker process start, it
@@ -111,7 +114,7 @@ def pytest_sessionstart(session):
                 config._rp_enabled = False
 
 
-def pytest_collection_finish(session):
+def pytest_collection_finish(session: Session) -> None:
     """Collect tests if session is configured.
 
     :param session: Object of the pytest Session class
@@ -125,7 +128,7 @@ def pytest_collection_finish(session):
 
 
 # noinspection PyProtectedMember
-def pytest_sessionfinish(session):
+def pytest_sessionfinish(session: Session) -> None:
     """Finish current test session.
 
     :param session: Object of the pytest Session class
@@ -142,7 +145,7 @@ def pytest_sessionfinish(session):
     config.py_test_service.stop()
 
 
-def register_markers(config):
+def register_markers(config: Config) -> None:
     """Register plugin's markers, to avoid declaring them in `pytest.ini`.
 
     :param config: Object of the pytest Config class
@@ -161,7 +164,7 @@ def register_markers(config):
     )
 
 
-def check_connection(agent_config):
+def check_connection(agent_config: AgentConfig):
     """Check connection to RP using provided options.
 
     If connection is successful returns True either False.
@@ -184,7 +187,7 @@ def check_connection(agent_config):
 
 
 # noinspection PyProtectedMember
-def pytest_configure(config):
+def pytest_configure(config: Config) -> None:
     """Update Config object with attributes required for reporting to RP.
 
     :param config: Object of the pytest Config class
@@ -227,7 +230,7 @@ def pytest_configure(config):
 
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtestloop(session):
+def pytest_runtestloop(session: Session) -> None:
     """
     Control start and finish of all test items in the session.
 
@@ -246,7 +249,7 @@ def pytest_runtestloop(session):
 
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_protocol(item):
+def pytest_runtest_protocol(item: Item) -> None:
     """
     Control start and finish of pytest items.
 
@@ -278,7 +281,7 @@ def pytest_runtest_protocol(item):
 
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item):
+def pytest_runtest_makereport(item: Item) -> None:
     """
         Change runtest_makereport function.
 
@@ -296,8 +299,9 @@ def pytest_runtest_makereport(item):
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_post_finalizer(fixturedef, request):
+def pytest_fixture_setup(fixturedef: FixtureDef, request: FixtureRequest) -> None:
     config = request.config
+    # noinspection PyUnresolvedReferences, PyProtectedMember
     if not config._rp_enabled:
         yield
         return
@@ -307,16 +311,18 @@ def pytest_fixture_post_finalizer(fixturedef, request):
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_setup(fixturedef, request):
+def pytest_fixture_post_finalizer(fixturedef: FixtureDef, request: FixtureRequest) -> None:
     config = request.config
+    # noinspection PyUnresolvedReferences, PyProtectedMember
     if not config._rp_enabled:
         yield
         return
+
     outcome = yield
     result = str(fixturedef.cached_result) if hasattr(fixturedef, 'cached_result') else None
 
 
-def pytest_addoption(parser):
+def pytest_addoption(parser: Parser) -> None:
     """Add support for the RP-related options.
 
     :param parser: Object of the Parser class
@@ -364,7 +370,7 @@ def pytest_addoption(parser):
     add_shared_option(
         name='rp_launch_id',
         help_str='Use already existing launch-id. The plugin won\'t control '
-        'the Launch status',
+                 'the Launch status',
     )
     add_shared_option(
         name='rp_launch_description',
@@ -398,7 +404,7 @@ def pytest_addoption(parser):
                  'existing) item.',
     )
     add_shared_option(name='rp_uuid', help_str='Deprecated: use `rp_api_key` '
-                      'instead.')
+                                               'instead.')
     add_shared_option(
         name='rp_api_key',
         help_str='API key of Report Portal. Usually located on UI profile '
