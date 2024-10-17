@@ -333,6 +333,11 @@ def report_fixture(request, name: str, error_msg: str) -> None:
 # no types for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
 def pytest_fixture_setup(fixturedef, request) -> None:
+    """Report fixture setup.
+
+    :param fixturedef: represents definition of the texture class
+    :param request:    represents fixture execution metadata
+    """
     yield from report_fixture(
         request, f'{fixturedef.scope} fixture setup: {fixturedef.argname}',
         f'{fixturedef.scope} fixture setup failed: {fixturedef.argname}')
@@ -341,6 +346,11 @@ def pytest_fixture_setup(fixturedef, request) -> None:
 # no types for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
 def pytest_fixture_post_finalizer(fixturedef, request) -> None:
+    """Report fixture teardown.
+
+    :param fixturedef: represents definition of the texture class
+    :param request:    represents fixture execution metadata
+    """
     yield from report_fixture(
         request, f'{fixturedef.scope} fixture teardown: {fixturedef.argname}',
         f'{fixturedef.scope} fixture teardown failed: {fixturedef.argname}')
