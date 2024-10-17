@@ -24,13 +24,10 @@ from tests.helpers import utils
 @pytest.mark.parametrize(['test', 'code_ref'], [
     ('examples/test_simple.py', 'examples/test_simple.py:test_simple'),
     ('examples/params/test_in_class_parameterized.py',
-     'examples/params/test_in_class_parameterized.py:'
-     'Tests.test_in_class_parameterized'),
-    ('examples/hierarchy/test_in_class.py',
-     'examples/hierarchy/test_in_class.py:Tests.test_in_class'),
+     'examples/params/test_in_class_parameterized.py:Tests.test_in_class_parameterized'),
+    ('examples/hierarchy/test_in_class.py', 'examples/hierarchy/test_in_class.py:Tests.test_in_class'),
     ('examples/hierarchy/test_in_class_in_class.py',
-     'examples/hierarchy/test_in_class_in_class.py:'
-     'Tests.Test.test_in_class_in_class')
+     'examples/hierarchy/test_in_class_in_class.py:Tests.Test.test_in_class_in_class')
 ])
 def test_code_reference(mock_client_init, test, code_ref):
     """Verify different tests have correct code reference.
@@ -39,14 +36,11 @@ def test_code_reference(mock_client_init, test, code_ref):
     :param test:             a test to run
     :param code_ref:         an expected code reference value
     """
-    variables = utils.DEFAULT_VARIABLES
-    result = utils.run_pytest_tests(tests=[test],
-                                    variables=variables)
+    result = utils.run_pytest_tests(tests=[test])
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
     mock_client = mock_client_init.return_value
-    assert mock_client.start_test_item.call_count > 0, \
-        '"start_test_item" called incorrect number of times'
+    assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
 
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[-1][1]

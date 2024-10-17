@@ -13,17 +13,20 @@
 
 """This module includes integration tests for the debug mode switch."""
 
-import pytest
 from unittest import mock
+
+import pytest
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@pytest.mark.parametrize(['mode', 'expected_mode'], [('DEFAULT', 'DEFAULT'),
-                                                     ('DEBUG', 'DEBUG'),
-                                                     (None, 'DEFAULT')])
+@pytest.mark.parametrize(['mode', 'expected_mode'], [
+    ('DEFAULT', 'DEFAULT'),
+    ('DEBUG', 'DEBUG'),
+    (None, 'DEFAULT')
+])
 def test_launch_mode(mock_client_init, mode, expected_mode):
     """Verify different launch modes are passed to `start_launch` method.
 
@@ -36,8 +39,7 @@ def test_launch_mode(mock_client_init, mode, expected_mode):
     if mode is not None:
         variables['rp_mode'] = mode
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_simple.py'],
-                                    variables=variables)
+    result = utils.run_pytest_tests(tests=['examples/test_simple.py'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
     assert mock_client_init.call_count == 1, "client wasn't initialized"

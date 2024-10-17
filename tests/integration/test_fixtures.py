@@ -12,13 +12,14 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from unittest import mock
+
+from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 
-# TODO: finish these tests
-
-
-def test_fixture_simple():
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_fixture_simple(mock_client_init):
     variables = utils.DEFAULT_VARIABLES
-    result = utils.run_pytest_tests(tests=['examples/fixtures/before_test/test_fixture_setup.py'], variables=variables)
+    result = utils.run_pytest_tests(tests=['examples/fixtures/test_fixture_setup'], variables=variables)
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
