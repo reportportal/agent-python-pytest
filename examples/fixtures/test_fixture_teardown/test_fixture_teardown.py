@@ -24,17 +24,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-class TestClassOne:
-    def test_fixture_class_setup_first(self, mocked_config):
-        assert mocked_config is not None
-
-    def test_fixture_class_setup_second(self, mocked_config):
-        assert mocked_config is not None
+from time import sleep
 
 
-class TestClassTwo:
-    def test_fixture_class_setup_forth(self, mocked_config):
-        assert mocked_config is not None
-
-    def test_fixture_class_setup_fifth(self, mocked_config):
-        assert mocked_config is not None
+def test_fixture_teardown(mocked_config):
+    sleep(0.001)
+    assert mocked_config is not None

@@ -12,12 +12,18 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from unittest import mock
+import logging
 
 import pytest
+from reportportal_client import RPLogger
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
+logging.setLoggerClass(RPLogger)
+
+LOG_MESSAGE_SETUP = 'Log message for setup and return None'
 
 
 @pytest.fixture
 def mocked_config():
-    print('setup')
-    return mock.Mock()
+    LOGGER.warn(LOG_MESSAGE_SETUP)

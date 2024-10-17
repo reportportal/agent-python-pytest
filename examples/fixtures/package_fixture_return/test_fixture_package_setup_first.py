@@ -24,17 +24,5 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-class TestClassOne:
-    def test_fixture_class_setup_first(self, mocked_config):
-        assert mocked_config is not None
-
-    def test_fixture_class_setup_second(self, mocked_config):
-        assert mocked_config is not None
-
-
-class TestClassTwo:
-    def test_fixture_class_setup_forth(self, mocked_config):
-        assert mocked_config is not None
-
-    def test_fixture_class_setup_fifth(self, mocked_config):
-        assert mocked_config is not None
+def test_fixture_package_setup_first(mocked_config):
+    assert mocked_config is not None

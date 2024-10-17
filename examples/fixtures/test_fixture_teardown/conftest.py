@@ -12,12 +12,22 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import logging
 from unittest import mock
 
 import pytest
+from reportportal_client import RPLogger
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
+logging.setLoggerClass(RPLogger)
+
+LOG_MESSAGE_BEFORE_YIELD = 'Log message before yield'
+LOG_MESSAGE_TEARDOWN = 'Log message for teardown'
 
 
 @pytest.fixture
 def mocked_config():
+    logging.error(LOG_MESSAGE_BEFORE_YIELD)
     yield mock.Mock()
-    print('teardown')
+    logging.error(LOG_MESSAGE_TEARDOWN)

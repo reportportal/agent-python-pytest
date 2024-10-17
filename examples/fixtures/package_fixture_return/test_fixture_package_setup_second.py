@@ -24,9 +24,5 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-def test_fixture_package_setup_first(mocked_config):
-    assert mocked_config is not None
-
-
 def test_fixture_package_setup_second(mocked_config):
     assert mocked_config is not None

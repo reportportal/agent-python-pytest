@@ -25,9 +25,5 @@
 #  limitations under the License.
 
 
-def test_fixture_session_setup_first(mocked_config):
-    assert mocked_config is not None
-
-
 def test_fixture_session_setup_second(mocked_config):
     assert mocked_config is not None
