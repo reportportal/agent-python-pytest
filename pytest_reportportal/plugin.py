@@ -24,7 +24,7 @@ import dill as pickle
 import pytest
 # noinspection PyPackageRequirements
 import requests
-from pytest import Config, FixtureDef, FixtureRequest, Parser, Session, Item
+from pytest import Config, FixtureRequest, Parser, Session, Item
 from reportportal_client import RPLogHandler, RP
 from reportportal_client.errors import ResponseError
 from reportportal_client.helpers import timestamp
@@ -327,14 +327,14 @@ def report_fixture(request: FixtureRequest, name: str, error_msg: str) -> None:
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_setup(fixturedef: FixtureDef, request: FixtureRequest) -> None:
+def pytest_fixture_setup(fixturedef, request: FixtureRequest) -> None:
     yield from report_fixture(
         request, f'{fixturedef.scope} fixture setup: {fixturedef.argname}',
         f'{fixturedef.scope} fixture setup failed: {fixturedef.argname}')
 
 
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_post_finalizer(fixturedef: FixtureDef, request: FixtureRequest) -> None:
+def pytest_fixture_post_finalizer(fixturedef, request: FixtureRequest) -> None:
     yield from report_fixture(
         request, f'{fixturedef.scope} fixture teardown: {fixturedef.argname}',
         f'{fixturedef.scope} fixture teardown failed: {fixturedef.argname}')
