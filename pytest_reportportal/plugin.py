@@ -24,7 +24,7 @@ import dill as pickle
 import pytest
 # noinspection PyPackageRequirements
 import requests
-from pytest import Config, FixtureRequest, Parser, Session, Item
+from pytest import Session, Item
 from reportportal_client import RPLogHandler, RP
 from reportportal_client.errors import ResponseError
 from reportportal_client.helpers import timestamp
@@ -62,7 +62,8 @@ def pytest_configure_node(node: Any) -> None:
     node.workerinput['py_test_service'] = pickle.dumps(node.config.py_test_service)
 
 
-def is_control(config: Config) -> bool:
+# no 'config' type for backward compatibility for older pytest versions
+def is_control(config) -> bool:
     """Validate workerinput attribute of the Config object.
 
     True if the code, running the given pytest.config object,
@@ -148,7 +149,8 @@ def pytest_sessionfinish(session: Session) -> None:
     config.py_test_service.stop()
 
 
-def register_markers(config: Config) -> None:
+# no 'config' type for backward compatibility for older pytest versions
+def register_markers(config) -> None:
     """Register plugin's markers, to avoid declaring them in `pytest.ini`.
 
     :param config: Object of the pytest Config class
@@ -186,8 +188,8 @@ def check_connection(agent_config: AgentConfig):
         return False
 
 
-# noinspection PyProtectedMember
-def pytest_configure(config: Config) -> None:
+# no 'config' type for backward compatibility for older pytest versions
+def pytest_configure(config) -> None:
     """Update Config object with attributes required for reporting to RP.
 
     :param config: Object of the pytest Config class
@@ -198,6 +200,7 @@ def pytest_configure(config: Config) -> None:
             config.getoption('--collect-only', default=False) or
             config.getoption('--setup-plan', default=False) or
             not config.option.rp_enabled)
+    # noinspection PyProtectedMember
     if not config._rp_enabled:
         return
 
@@ -294,7 +297,8 @@ def pytest_runtest_makereport(item: Item) -> None:
     service.process_results(item, report)
 
 
-def report_fixture(request: FixtureRequest, name: str, error_msg: str) -> None:
+# no 'request' type for backward compatibility for older pytest versions
+def report_fixture(request, name: str, error_msg: str) -> None:
     """Report fixture setup and teardown.
 
     :param request:    Object of the FixtureRequest class
@@ -326,23 +330,24 @@ def report_fixture(request: FixtureRequest, name: str, error_msg: str) -> None:
         reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
 
 
-# no 'fixturedef' type for backward compatibility for older pytest versions
+# no types for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_setup(fixturedef, request: FixtureRequest) -> None:
+def pytest_fixture_setup(fixturedef, request) -> None:
     yield from report_fixture(
         request, f'{fixturedef.scope} fixture setup: {fixturedef.argname}',
         f'{fixturedef.scope} fixture setup failed: {fixturedef.argname}')
 
 
-# no 'fixturedef' type for backward compatibility for older pytest versions
+# no types for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_post_finalizer(fixturedef, request: FixtureRequest) -> None:
+def pytest_fixture_post_finalizer(fixturedef, request) -> None:
     yield from report_fixture(
         request, f'{fixturedef.scope} fixture teardown: {fixturedef.argname}',
         f'{fixturedef.scope} fixture teardown failed: {fixturedef.argname}')
 
 
-def pytest_addoption(parser: Parser) -> None:
+# no types for backward compatibility for older pytest versions
+def pytest_addoption(parser) -> None:
     """Add support for the RP-related options.
 
     :param parser: Object of the Parser class
