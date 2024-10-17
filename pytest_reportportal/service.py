@@ -27,7 +27,6 @@ from aenum import auto, Enum, unique
 from pytest import Class, Function, Module, Package, Item, Session, PytestWarning
 from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import Issue, ExternalIssue
-from typing_extensions import TypeVar
 
 from .config import AgentConfig
 
@@ -107,9 +106,6 @@ class LeafType(Enum):
     DIR = auto()
     CODE = auto()
     ROOT = auto()
-
-
-Leaf = TypeVar('Leaf', bound=LeafType)
 
 
 @unique
@@ -247,7 +243,7 @@ class PyTestServiceClass:
         path.reverse()
         return path
 
-    def _get_leaf(self, leaf_type: Leaf, parent_item: Optional[Dict[str, Any]], item: Optional[Item],
+    def _get_leaf(self, leaf_type: LeafType, parent_item: Optional[Dict[str, Any]], item: Optional[Item],
                   item_id: Optional[str] = None) -> Dict[str, Any]:
         """Construct a leaf for the itest tree.
 
