@@ -189,6 +189,7 @@ def check_connection(agent_config: AgentConfig):
 
 
 # no 'config' type for backward compatibility for older pytest versions
+# noinspection PyProtectedMember
 def pytest_configure(config) -> None:
     """Update Config object with attributes required for reporting to RP.
 
@@ -200,7 +201,6 @@ def pytest_configure(config) -> None:
             config.getoption('--collect-only', default=False) or
             config.getoption('--setup-plan', default=False) or
             not config.option.rp_enabled)
-    # noinspection PyProtectedMember
     if not config._rp_enabled:
         return
 
