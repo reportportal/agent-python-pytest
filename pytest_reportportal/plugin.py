@@ -22,7 +22,9 @@ from typing import Any
 import _pytest.logging
 import dill as pickle
 import pytest
+# noinspection PyPackageRequirements
 import requests
+# noinspection PyPackageRequirements
 from pluggy import Result
 from pytest import Config, FixtureDef, FixtureRequest, Parser, Session, Item
 from reportportal_client import RPLogHandler, RP, current
@@ -174,18 +176,15 @@ def check_connection(agent_config: AgentConfig):
     :param agent_config: Instance of the AgentConfig class
     :return True on successful connection check, either False
     """
-    url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint,
-                                          agent_config.rp_project)
+    url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint, agent_config.rp_project)
     headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_api_key)}
     try:
-        resp = requests.get(url, headers=headers,
-                            verify=agent_config.rp_verify_ssl)
+        resp = requests.get(url, headers=headers, verify=agent_config.rp_verify_ssl)
         resp.raise_for_status()
         return True
     except requests.exceptions.RequestException as exc:
         log.exception(exc)
-        log.error("Unable to connect to Report Portal, the launch won't be"
-                  " reported")
+        log.error("Unable to connect to Report Portal, the launch won't be reported")
         return False
 
 
@@ -305,14 +304,14 @@ def report_fixture(request: FixtureRequest, name: str, error_msg: str) -> None:
     :param error_msg:  Error message
     """
     config = request.config
-    # noinspection PyUnresolvedReferences, PyProtectedMember
-    agent_config = config._reporter_config
-    # noinspection PyUnresolvedReferences, PyProtectedMember
-    if not config._rp_enabled or not agent_config.rp_report_fixtures:
+    enabled = getattr(config, '_rp_enabled', False)
+    agent_config = getattr(config, '_reporter_config', None)
+    service = getattr(config, 'py_test_service', None)
+    if not enabled or not agent_config.rp_report_fixtures or not service:
         yield
         return
 
-    reporter = StepReporter(current())
+    reporter = StepReporter(service.rp)
     item_id = reporter.start_nested_step(name, timestamp())
 
     try:
