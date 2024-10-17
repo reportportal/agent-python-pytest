@@ -326,6 +326,7 @@ def report_fixture(request: FixtureRequest, name: str, error_msg: str) -> None:
         reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
 
 
+# no 'fixturedef' type for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
 def pytest_fixture_setup(fixturedef, request: FixtureRequest) -> None:
     yield from report_fixture(
@@ -333,6 +334,7 @@ def pytest_fixture_setup(fixturedef, request: FixtureRequest) -> None:
         f'{fixturedef.scope} fixture setup failed: {fixturedef.argname}')
 
 
+# no 'fixturedef' type for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
 def pytest_fixture_post_finalizer(fixturedef, request: FixtureRequest) -> None:
     yield from report_fixture(
