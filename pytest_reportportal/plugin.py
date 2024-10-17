@@ -24,8 +24,6 @@ import dill as pickle
 import pytest
 # noinspection PyPackageRequirements
 import requests
-# noinspection PyPackageRequirements
-from pluggy import Result
 from pytest import Config, FixtureDef, FixtureRequest, Parser, Session, Item
 from reportportal_client import RPLogHandler, RP
 from reportportal_client.errors import ResponseError
@@ -315,7 +313,7 @@ def report_fixture(request: FixtureRequest, name: str, error_msg: str) -> None:
     item_id = reporter.start_nested_step(name, timestamp())
 
     try:
-        outcome: Result = yield
+        outcome = yield
         if outcome.exception:
             log.error(error_msg)
             log.exception(outcome.exception)
