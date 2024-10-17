@@ -24,9 +24,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from time import sleep
 
-
-def test_fixture_teardown(fixture_teardown_config):
-    sleep(0.001)
-    assert fixture_teardown_config is not None
+def test_fixture_setup(mocked_config):
+    assert mocked_config is not None

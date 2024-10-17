@@ -26,6 +26,6 @@ LOG_MESSAGE_SETUP = 'Log message for setup'
 
 
 @pytest.fixture
-def mocked_config():
+def fixture_setup_config():
     logging.error(LOG_MESSAGE_SETUP)
     return mock.Mock()
