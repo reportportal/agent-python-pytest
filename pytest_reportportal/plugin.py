@@ -27,7 +27,7 @@ import requests
 # noinspection PyPackageRequirements
 from pluggy import Result
 from pytest import Config, FixtureDef, FixtureRequest, Parser, Session, Item
-from reportportal_client import RPLogHandler, RP, current
+from reportportal_client import RPLogHandler, RP
 from reportportal_client.errors import ResponseError
 from reportportal_client.helpers import timestamp
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
