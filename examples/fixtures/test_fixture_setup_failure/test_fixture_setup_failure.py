@@ -24,6 +24,17 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import logging
+
+from reportportal_client import RPLogger
+
+LOGGER = logging.getLogger(__name__)
+LOGGER.setLevel(logging.DEBUG)
+logging.setLoggerClass(RPLogger)
+
+LOG_MESSAGE_TEST = 'Log message for test of setup failure'
+
 
 def test_fixture_setup_failure(fixture_setup_failure_config):
+    logging.error(LOG_MESSAGE_TEST)
     assert fixture_setup_failure_config is not None

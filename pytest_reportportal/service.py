@@ -864,6 +864,28 @@ class PyTestServiceClass:
         }
         self.rp.log(**sl_rq)
 
+    def report_fixture(self, name: str, error_msg: str) -> None:
+        """Report fixture setup and teardown.
+
+        :param name:       Name of the fixture
+        :param error_msg:  Error message
+        """
+        reporter = self.rp.step_reporter
+        item_id = reporter.start_nested_step(name, timestamp())
+
+        try:
+            outcome = yield
+            if outcome.exception:
+                log.error(error_msg)
+                log.exception(outcome.exception)
+                reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
+            else:
+                reporter.finish_nested_step(item_id, timestamp(), 'PASSED')
+        except Exception as e:
+            log.error('Failed to report fixture: %s', name)
+            log.exception(e)
+            reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
+
     def start(self) -> None:
         """Start servicing Report Portal requests."""
         self.parent_item_id = self._config.rp_parent_item_id

@@ -27,9 +27,7 @@ import requests
 from pytest import Session, Item
 from reportportal_client import RPLogHandler, RP
 from reportportal_client.errors import ResponseError
-from reportportal_client.helpers import timestamp
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
-from reportportal_client.steps import StepReporter
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from pytest_reportportal.config import AgentConfig
@@ -297,7 +295,6 @@ def pytest_runtest_makereport(item: Item) -> None:
     service.process_results(item, report)
 
 
-# no 'request' type for backward compatibility for older pytest versions
 def report_fixture(request, name: str, error_msg: str) -> None:
     """Report fixture setup and teardown.
 
@@ -313,21 +310,7 @@ def report_fixture(request, name: str, error_msg: str) -> None:
         yield
         return
 
-    reporter = StepReporter(service.rp)
-    item_id = reporter.start_nested_step(name, timestamp())
-
-    try:
-        outcome = yield
-        if outcome.exception:
-            log.error(error_msg)
-            log.exception(outcome.exception)
-            reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
-        else:
-            reporter.finish_nested_step(item_id, timestamp(), 'PASSED')
-    except Exception as e:
-        log.error('Failed to report fixture: %s', name)
-        log.exception(e)
-        reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
+    yield from service.report_fixture(name, error_msg)
 
 
 # no types for backward compatibility for older pytest versions
@@ -351,6 +334,12 @@ def pytest_fixture_post_finalizer(fixturedef, request) -> None:
     :param fixturedef: represents definition of the texture class
     :param request:    represents fixture execution metadata
     """
+    if fixturedef.cached_result and fixturedef.cached_result[2]:
+        exception = fixturedef.cached_result[2][0]
+        if exception and isinstance(exception, BaseException):
+            yield
+            return
+
     yield from report_fixture(
         request, f'{fixturedef.scope} fixture teardown: {fixturedef.argname}',
         f'{fixturedef.scope} fixture teardown failed: {fixturedef.argname}')
