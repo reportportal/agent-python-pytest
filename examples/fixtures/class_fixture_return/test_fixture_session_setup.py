@@ -25,16 +25,16 @@
 #  limitations under the License.
 
 class TestClassOne:
-    def test_fixture_class_setup_first(self, mocked_config):
-        assert mocked_config is not None
+    def test_fixture_class_setup_first(self, class_fixture_return_config):
+        assert class_fixture_return_config is not None
 
-    def test_fixture_class_setup_second(self, mocked_config):
-        assert mocked_config is not None
+    def test_fixture_class_setup_second(self, class_fixture_return_config):
+        assert class_fixture_return_config is not None
 
 
 class TestClassTwo:
-    def test_fixture_class_setup_forth(self, mocked_config):
-        assert mocked_config is not None
+    def test_fixture_class_setup_forth(self, class_fixture_return_config):
+        assert class_fixture_return_config is not None
 
-    def test_fixture_class_setup_fifth(self, mocked_config):
-        assert mocked_config is not None
+    def test_fixture_class_setup_fifth(self, class_fixture_return_config):
+        assert class_fixture_return_config is not None

@@ -24,9 +24,9 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-def test_fixture_module_setup_first(mocked_config):
-    assert mocked_config is not None
+def test_fixture_module_setup_first(module_fixture_return_config):
+    assert module_fixture_return_config is not None
 
 
-def test_fixture_module_setup_second(mocked_config):
-    assert mocked_config is not None
+def test_fixture_module_setup_second(module_fixture_return_config):
+    assert module_fixture_return_config is not None

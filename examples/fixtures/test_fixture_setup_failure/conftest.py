@@ -25,6 +25,6 @@ LOG_MESSAGE_SETUP = 'Log message for setup failure'
 
 
 @pytest.fixture
-def mocked_config():
+def fixture_setup_failure_config():
     logging.error(LOG_MESSAGE_SETUP)
     raise Exception('Fixture setup failed')

@@ -18,6 +18,6 @@ import pytest
 
 
 @pytest.fixture(scope='package')
-def mocked_config():
+def package_fixture_return_config():
     print('setup')
     return mock.Mock()

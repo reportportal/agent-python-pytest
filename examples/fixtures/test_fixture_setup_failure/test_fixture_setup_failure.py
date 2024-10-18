@@ -25,5 +25,5 @@
 #  limitations under the License.
 
 
-def test_fixture_setup(mocked_config):
-    assert mocked_config is not None
+def test_fixture_setup_failure(fixture_setup_failure_config):
+    assert fixture_setup_failure_config is not None

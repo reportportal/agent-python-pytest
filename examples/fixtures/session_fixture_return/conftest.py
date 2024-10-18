@@ -18,6 +18,6 @@ import pytest
 
 
 @pytest.fixture(scope='session')
-def mocked_config():
+def session_fixture_return_config():
     print('setup')
     return mock.Mock()
