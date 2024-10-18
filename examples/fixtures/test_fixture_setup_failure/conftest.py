@@ -13,7 +13,6 @@
 #  limitations under the License.
 
 import logging
-from unittest import mock
 
 import pytest
 from reportportal_client import RPLogger
