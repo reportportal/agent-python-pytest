@@ -24,6 +24,8 @@ from examples.fixtures.test_fixture_setup_failure.conftest import LOG_MESSAGE_SE
 from examples.fixtures.test_fixture_teardown.conftest import LOG_MESSAGE_BEFORE_YIELD, LOG_MESSAGE_TEARDOWN
 from examples.fixtures.test_fixture_teardown_failure.conftest import (
     LOG_MESSAGE_BEFORE_YIELD as LOG_MESSAGE_BEFORE_YIELD_FAILURE, LOG_MESSAGE_TEARDOWN as LOG_MESSAGE_TEARDOWN_FAILURE)
+from examples.fixtures.test_fixture_yield_none.conftest import LOG_MESSAGE_SETUP as LOG_MESSAGE_BEFORE_YIELD_NONE
+from examples.fixtures.test_fixture_return_none.conftest import LOG_MESSAGE_SETUP as LOG_MESSAGE_BEFORE_RETURN_NONE
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
@@ -266,3 +268,92 @@ def test_fixture_teardown_failure(mock_client_init):
     assert log_call_kwargs['item_id'] == \
            ('examples/fixtures/test_fixture_teardown_failure/test_fixture_teardown_failure.py::'
             'test_fixture_teardown_failure_1')
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_fixture_yield_none(mock_client_init):
+    mock_client = mock_client_init.return_value
+    mock_client.step_reporter = StepReporter(mock_client)
+    set_current(mock_client)
+    mock_client.start_test_item.side_effect = generate_item_id
+    mock_client.finish_test_item.side_effect = remove_last_item_id
+    mock_client.current_item.side_effect = get_last_item_id
+
+    variables = dict(utils.DEFAULT_VARIABLES)
+    variables['rp_report_fixtures'] = True
+    result = utils.run_pytest_tests(tests=['examples/fixtures/test_fixture_yield_none'], variables=variables)
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    start_count = mock_client.start_test_item.call_count
+    finish_count = mock_client.finish_test_item.call_count
+    assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+
+    call_args = mock_client.start_test_item.call_args_list
+    setup_call_args = call_args[1][0]
+    setup_step_name = 'function fixture setup: test_fixture_setup_yield_none'
+    assert setup_call_args[0] == setup_step_name
+
+    setup_call_kwargs = call_args[1][1]
+    assert not setup_call_kwargs['has_stats']
+
+    teardown_call_args = call_args[-1][0]
+    teardown_step_name = 'function fixture teardown: test_fixture_setup_yield_none'
+    assert teardown_call_args[0] == teardown_step_name
+
+    setup_call_kwargs = call_args[-1][1]
+    assert not setup_call_kwargs['has_stats']
+
+    log_count = mock_client.log.call_count
+    assert log_count == 1, 'Incorrect number of "log" calls'
+
+    log_call_args_list = mock_client.log.call_args_list
+    log_call_args = log_call_args_list[0][0]
+    log_call_kwargs = log_call_args_list[0][1]
+
+    assert log_call_args[1] == LOG_MESSAGE_BEFORE_YIELD_NONE
+    assert log_call_kwargs['item_id'] == f'{setup_step_name}_1'
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_fixture_return_none(mock_client_init):
+    mock_client = mock_client_init.return_value
+    mock_client.step_reporter = StepReporter(mock_client)
+    set_current(mock_client)
+    mock_client.start_test_item.side_effect = generate_item_id
+    mock_client.finish_test_item.side_effect = remove_last_item_id
+    mock_client.current_item.side_effect = get_last_item_id
+
+    variables = dict(utils.DEFAULT_VARIABLES)
+    variables['rp_report_fixtures'] = True
+    result = utils.run_pytest_tests(tests=['examples/fixtures/test_fixture_return_none'], variables=variables)
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    start_count = mock_client.start_test_item.call_count
+    finish_count = mock_client.finish_test_item.call_count
+    assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+
+    call_args = mock_client.start_test_item.call_args_list
+    setup_call_args = call_args[1][0]
+    setup_step_name = 'function fixture setup: test_fixture_setup_config_none'
+    assert setup_call_args[0] == setup_step_name
+
+    setup_call_kwargs = call_args[1][1]
+    assert not setup_call_kwargs['has_stats']
+
+    teardown_call_args = call_args[-1][0]
+    teardown_step_name = 'function fixture teardown: test_fixture_setup_config_none'
+    assert teardown_call_args[0] == teardown_step_name
+
+    setup_call_kwargs = call_args[-1][1]
+    assert not setup_call_kwargs['has_stats']
+
+    log_count = mock_client.log.call_count
+    assert log_count == 1, 'Incorrect number of "log" calls'
+
+    log_call_args_list = mock_client.log.call_args_list
+    log_call_args = log_call_args_list[0][0]
+    log_call_kwargs = log_call_args_list[0][1]
+
+    assert log_call_args[1] == LOG_MESSAGE_BEFORE_RETURN_NONE
+    assert log_call_kwargs['item_id'] == f'{setup_step_name}_1'
+

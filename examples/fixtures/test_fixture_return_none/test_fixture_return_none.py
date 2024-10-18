@@ -26,4 +26,4 @@
 
 
 def test_fixture_setup_none(test_fixture_setup_config_none):
-    assert test_fixture_setup_config_none is not None
+    assert test_fixture_setup_config_none is None
