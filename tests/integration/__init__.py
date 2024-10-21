@@ -240,7 +240,5 @@ HIERARCHY_TEST_EXPECTED_ITEMS = [
 
 HIERARCHY_TEST_PARAMETERS = [
     (test, HIERARCHY_TEST_VARIABLES[idx], HIERARCHY_TEST_EXPECTED_ITEMS[idx])
-    for
-    idx, test in
-    enumerate(HIERARCHY_TESTS)
+    for idx, test in enumerate(HIERARCHY_TESTS)
 ]

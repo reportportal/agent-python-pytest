@@ -13,10 +13,11 @@
 
 """This module includes integration test for issue type reporting."""
 
+from unittest import mock
+
 import pytest
 from delayed_assert import expect, assert_expectations
 from reportportal_client.core.rp_issues import Issue
-from unittest import mock
 
 from examples import test_issue_id
 from pytest_reportportal.service import NOT_ISSUE
@@ -72,8 +73,7 @@ def test_issue_report(mock_client_init):
 
     variables = {'rp_issue_system_url': ISSUE_URL_PATTERN}
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'],
-                                    variables=variables)
+    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'], variables=variables)
     assert int(result) == 1, 'Exit code should be 1 (test failed)'
 
     call_args = mock_client.finish_test_item.call_args_list
@@ -87,9 +87,8 @@ def test_issue_report(mock_client_init):
     comments = issue.comment.split('\n')
     assert len(comments) == 1
     comment = comments[0]
-    assert comment == "* {}: [{}]({})" \
-        .format(test_issue_id.REASON, test_issue_id.ID,
-                ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID))
+    assert comment == "* {}: [{}]({})".format(
+        test_issue_id.REASON, test_issue_id.ID, ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID))
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -112,9 +111,11 @@ def test_passed_no_issue_report(mock_client_init):
     assert 'issue' not in finish_test_step or finish_test_step['issue'] is None
 
 
-@pytest.mark.parametrize(('flag_value', 'expected_issue'), [(True, None),
-                                                            (False, NOT_ISSUE),
-                                                            (None, None)])
+@pytest.mark.parametrize(('flag_value', 'expected_issue'), [
+    (True, None),
+    (False, NOT_ISSUE),
+    (None, None)
+])
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
     """Verify 'rp_is_skipped_an_issue' option handling.
@@ -131,10 +132,7 @@ def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
         variables['rp_is_skipped_an_issue'] = flag_value
     variables.update(utils.DEFAULT_VARIABLES.items())
 
-    result = utils.run_pytest_tests(
-        tests=['examples/skip/test_simple_skip.py'],
-        variables=variables
-    )
+    result = utils.run_pytest_tests(tests=['examples/skip/test_simple_skip.py'], variables=variables)
 
     assert int(result) == 0, 'Exit code should be 0 (no failures)'
     call_args = mock_client.finish_test_item.call_args_list

@@ -39,8 +39,7 @@ def verify_start_item_parameters(mock_client, expected_items):
 @pytest.mark.parametrize(('test', 'variables', 'expected_items'),
                          HIERARCHY_TEST_PARAMETERS)
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_hierarchy_parameters(mock_client_init, test, variables,
-                                 expected_items):
+def test_rp_hierarchy_parameters(mock_client_init, test, variables, expected_items):
     """Verify suite hierarchy with `rp_hierarchy_dirs=True`.
 
     :param mock_client_init: Pytest fixture

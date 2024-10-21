@@ -39,7 +39,6 @@ def test_rp_thread_logs_reporting(mock_client_init):
     )
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
-    assert mock_client.start_launch.call_count == 1, \
-        '"start_launch" method was not called'
+    assert mock_client.start_launch.call_count == 1, '"start_launch" method was not called'
     assert mock_client.log.call_count == 1
     assert mock_thread_client.log.call_count == 2

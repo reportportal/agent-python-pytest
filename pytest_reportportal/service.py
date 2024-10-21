@@ -20,14 +20,14 @@ import threading
 from functools import wraps
 from os import curdir
 from time import time, sleep
-from typing import List, Any, Optional, Set, Dict, Tuple, Union
+from typing import List, Any, Optional, Set, Dict, Tuple, Union, Callable
 
 from _pytest.doctest import DoctestItem
 from aenum import auto, Enum, unique
-from pytest import Class, Function, Module, Package, Item, Session, \
-    PytestWarning
-from reportportal_client.core.rp_issues import Issue, ExternalIssue
+from pytest import Class, Function, Module, Package, Item, Session, PytestWarning
 from reportportal_client.aio import Task
+from reportportal_client.core.rp_issues import Issue, ExternalIssue
+from reportportal_client.helpers import timestamp
 
 from .config import AgentConfig
 
@@ -55,17 +55,11 @@ log = logging.getLogger(__name__)
 MAX_ITEM_NAME_LENGTH: int = 256
 TRUNCATION_STR: str = '...'
 ROOT_DIR: str = str(os.path.abspath(curdir))
-PYTEST_MARKS_IGNORE: Set[str] = {'parametrize', 'usefixtures',
-                                 'filterwarnings'}
+PYTEST_MARKS_IGNORE: Set[str] = {'parametrize', 'usefixtures', 'filterwarnings'}
 NOT_ISSUE: Issue = Issue('NOT_ISSUE')
 ISSUE_DESCRIPTION_LINE_TEMPLATE: str = '* {}:{}'
 ISSUE_DESCRIPTION_URL_TEMPLATE: str = ' [{issue_id}]({url})'
 ISSUE_DESCRIPTION_ID_TEMPLATE: str = ' {issue_id}'
-
-
-def timestamp():
-    """Time for difference between start and finish tests."""
-    return str(int(time() * 1000))
 
 
 def trim_docstring(docstring: str) -> str:
@@ -126,7 +120,7 @@ def check_rp_enabled(func):
         if args and isinstance(args[0], PyTestServiceClass):
             if not args[0].rp:
                 return
-        func(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return wrap
 
@@ -177,7 +171,7 @@ class PyTestServiceClass:
                 self._issue_types[item["shortName"]] = item["locator"]
         return self._issue_types
 
-    def _get_launch_attributes(self, ini_attrs):
+    def _get_launch_attributes(self, ini_attrs: Optional[List[Dict[str, str]]]) -> List[Dict[str, str]]:
         """Generate launch attributes in the format supported by the client.
 
         :param list ini_attrs: List for attributes from the pytest.ini file
@@ -188,7 +182,7 @@ class PyTestServiceClass:
             '{}|{}'.format(self.agent_name, self.agent_version))
         return attributes + dict_to_payload(system_attributes)
 
-    def _build_start_launch_rq(self):
+    def _build_start_launch_rq(self) -> Dict[str, Any]:
         rp_launch_attributes = self._config.rp_launch_attributes
         attributes = gen_attributes(rp_launch_attributes) if rp_launch_attributes else None
 
@@ -215,7 +209,7 @@ class PyTestServiceClass:
         log.debug('ReportPortal - Launch started: id=%s', self._launch_id)
         return self._launch_id
 
-    def _get_item_dirs(self, item):
+    def _get_item_dirs(self, item: Item) -> List[str]:
         """
         Get directory of item.
 
@@ -228,9 +222,8 @@ class PyTestServiceClass:
                                drive="")
         return [d for d in rel_dir.parts(reverse=False) if d.basename]
 
-    def _get_tree_path(self, item):
-        """
-        Get item of parents.
+    def _get_tree_path(self, item: Item) -> List[Item]:
+        """Get item of parents.
 
         :param item: pytest.Item
         :return list of parents
@@ -245,7 +238,8 @@ class PyTestServiceClass:
         path.reverse()
         return path
 
-    def _get_leaf(self, leaf_type, parent_item, item, item_id=None):
+    def _get_leaf(self, leaf_type: LeafType, parent_item: Optional[Dict[str, Any]], item: Optional[Item],
+                  item_id: Optional[str] = None) -> Dict[str, Any]:
         """Construct a leaf for the itest tree.
 
         :param leaf_type:   the leaf type
@@ -259,14 +253,13 @@ class PyTestServiceClass:
             'exec': ExecStatus.CREATED, 'item_id': item_id
         }
 
-    def _build_test_tree(self, session):
+    def _build_test_tree(self, session: Session) -> Dict[str, Any]:
         """Construct a tree of tests and their suites.
 
         :param session: pytest.Session object of the current execution
         :return: a tree of all tests and their suites
         """
-        test_tree = self._get_leaf(LeafType.ROOT, None, None,
-                                   item_id=self.parent_item_id)
+        test_tree = self._get_leaf(LeafType.ROOT, None, None, item_id=self.parent_item_id)
 
         for item in session.items:
             dir_path = self._get_item_dirs(item)
@@ -281,13 +274,11 @@ class PyTestServiceClass:
                     leaf_type = LeafType.CODE
 
                 if leaf not in children_leafs:
-                    children_leafs[leaf] = self._get_leaf(leaf_type,
-                                                          current_leaf,
-                                                          leaf)
+                    children_leafs[leaf] = self._get_leaf(leaf_type, current_leaf, leaf)
                 current_leaf = children_leafs[leaf]
         return test_tree
 
-    def _remove_root_dirs(self, test_tree, max_dir_level, dir_level=0):
+    def _remove_root_dirs(self, test_tree: Dict[str, Any], max_dir_level, dir_level=0) -> None:
         if test_tree['type'] == LeafType.ROOT:
             for item, child_leaf in test_tree['children'].items():
                 self._remove_root_dirs(child_leaf, max_dir_level, 1)
@@ -300,10 +291,9 @@ class PyTestServiceClass:
             for item, child_leaf in test_tree['children'].items():
                 parent_leaf['children'][item] = child_leaf
                 child_leaf['parent'] = parent_leaf
-                self._remove_root_dirs(child_leaf, max_dir_level,
-                                       new_level)
+                self._remove_root_dirs(child_leaf, max_dir_level, new_level)
 
-    def _generate_names(self, test_tree):
+    def _generate_names(self, test_tree: Dict[str, Any]) -> None:
         if test_tree['type'] == LeafType.ROOT:
             test_tree['name'] = 'root'
 
@@ -337,14 +327,13 @@ class PyTestServiceClass:
                     current_name + separator + child_leaf['name']
                 self._merge_leaf_type(child_leaf, leaf_type, separator)
 
-    def _merge_dirs(self, test_tree):
-        self._merge_leaf_type(test_tree, LeafType.DIR,
-                              self._config.rp_dir_path_separator)
+    def _merge_dirs(self, test_tree: Dict[str, Any]) -> None:
+        self._merge_leaf_type(test_tree, LeafType.DIR, self._config.rp_dir_path_separator)
 
-    def _merge_code(self, test_tree):
+    def _merge_code(self, test_tree: Dict[str, Any]) -> None:
         self._merge_leaf_type(test_tree, LeafType.CODE, '::')
 
-    def _build_item_paths(self, leaf, path):
+    def _build_item_paths(self, leaf: Dict[str, Any], path: List[Dict[str, Any]]) -> None:
         if 'children' in leaf and len(leaf['children']) > 0:
             path.append(leaf)
             for name, child_leaf in leaf['children'].items():
@@ -354,9 +343,8 @@ class PyTestServiceClass:
             self._tree_path[leaf['item']] = path + [leaf]
 
     @check_rp_enabled
-    def collect_tests(self, session):
-        """
-        Collect all tests.
+    def collect_tests(self, session: Session) -> None:
+        """Collect all tests.
 
         :param session: pytest.Session
         """
@@ -370,27 +358,20 @@ class PyTestServiceClass:
             self._merge_code(test_tree)
         self._build_item_paths(test_tree, [])
 
-    def _get_item_name(self, name):
-        """
-        Get name of item.
+    def _get_item_name(self, name: str) -> str:
+        """Get name of item.
 
-        :param name: Item name
-        :return: name
+        :param name: Test Item name
+        :return: truncated to maximum length name if needed
         """
         if len(name) > MAX_ITEM_NAME_LENGTH:
-            name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + \
-                   TRUNCATION_STR
-            log.warning(
-                PytestWarning(
-                    'Test leaf ID was truncated to "{}" because of name size '
-                    'constrains on Report Portal'.format(name)
-                )
-            )
+            name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + TRUNCATION_STR
+            log.warning(PytestWarning(
+                f'Test leaf ID was truncated to "{name}" because of name size constrains on Report Portal'))
         return name
 
     def _get_item_description(self, test_item):
-        """
-        Get description of item.
+        """Get description of item.
 
         :param test_item: pytest.Item
         :return string description
@@ -403,7 +384,7 @@ class PyTestServiceClass:
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
 
-    def _lock(self, leaf, func):
+    def _lock(self, leaf: Dict[str, Any], func: Callable[[Dict[str, Any]], Any]) -> Any:
         """
         Lock test tree leaf and execute a function, bypass the leaf to it.
 
@@ -417,16 +398,15 @@ class PyTestServiceClass:
         return func(leaf)
 
     def _build_start_suite_rq(self, leaf):
-        code_ref = str(leaf['item']) if leaf['type'] == LeafType.DIR \
-            else str(leaf['item'].fspath)
+        code_ref = str(leaf['item']) if leaf['type'] == LeafType.DIR else str(leaf['item'].fspath)
+        parent_item_id = self._lock(leaf['parent'], lambda p: p.get('item_id')) if 'parent' in leaf else None
         payload = {
             'name': self._get_item_name(leaf['name']),
             'description': self._get_item_description(leaf['item']),
             'start_time': timestamp(),
             'item_type': 'SUITE',
             'code_ref': code_ref,
-            'parent_item_id': self._lock(leaf['parent'],
-                                         lambda p: p['item_id'])
+            'parent_item_id': parent_item_id
         }
         return payload
 
@@ -443,7 +423,7 @@ class PyTestServiceClass:
         leaf['exec'] = ExecStatus.IN_PROGRESS
 
     @check_rp_enabled
-    def _create_suite_path(self, item):
+    def _create_suite_path(self, item: Item):
         path = self._tree_path[item]
         for leaf in path[1:-1]:
             if leaf['exec'] != ExecStatus.CREATED:
@@ -455,8 +435,7 @@ class PyTestServiceClass:
         # same path on different systems and do not affect Test Case ID on
         # different systems
         path = os.path.relpath(str(item.fspath), ROOT_DIR).replace('\\', '/')
-        method_name = item.originalname if hasattr(item, 'originalname') \
-            and item.originalname is not None \
+        method_name = item.originalname if hasattr(item, 'originalname') and item.originalname is not None \
             else item.name
         parent = item.parent
         classes = [method_name]
@@ -686,7 +665,7 @@ class PyTestServiceClass:
         return self.__unique_id() in self._start_tracker
 
     @check_rp_enabled
-    def start_pytest_item(self, test_item=None):
+    def start_pytest_item(self, test_item: Optional[Item] = None):
         """
         Start pytest_item.
 
@@ -873,6 +852,28 @@ class PyTestServiceClass:
             'attachment': attachment
         }
         self.rp.log(**sl_rq)
+
+    def report_fixture(self, name: str, error_msg: str) -> None:
+        """Report fixture setup and teardown.
+
+        :param name:       Name of the fixture
+        :param error_msg:  Error message
+        """
+        reporter = self.rp.step_reporter
+        item_id = reporter.start_nested_step(name, timestamp())
+
+        try:
+            outcome = yield
+            if outcome.exception:
+                log.error(error_msg)
+                log.exception(outcome.exception)
+                reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
+            else:
+                reporter.finish_nested_step(item_id, timestamp(), 'PASSED')
+        except Exception as e:
+            log.error('Failed to report fixture: %s', name)
+            log.exception(e)
+            reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
 
     def start(self) -> None:
         """Start servicing Report Portal requests."""

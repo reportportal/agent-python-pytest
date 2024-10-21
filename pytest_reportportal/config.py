@@ -67,6 +67,7 @@ class AgentConfig:
     rp_launch_uuid_print: bool
     rp_launch_uuid_print_output: Optional[OutputType]
     rp_http_timeout: Optional[Union[Tuple[float, float], float]]
+    rp_report_fixtures: bool
 
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
@@ -197,6 +198,7 @@ class AgentConfig:
             self.rp_http_timeout = (connect_timeout, read_timeout)
         else:
             self.rp_http_timeout = connect_timeout or read_timeout
+        self.rp_report_fixtures = to_bool(self.find_option(pytest_config, 'rp_report_fixtures', False))
 
     # noinspection PyMethodMayBeStatic
     def find_option(self, pytest_config: Config, option_name: str, default: Any = None) -> Any:

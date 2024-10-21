@@ -21,9 +21,7 @@ from tests.helpers import utils
 def test_connection_close(mock_client_init):
     mock_client = mock_client_init.return_value
 
-    result = utils.run_tests_with_client(
-        mock_client, ['examples/test_rp_logging.py'])
+    result = utils.run_tests_with_client(mock_client, ['examples/test_rp_logging.py'])
 
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
-    assert mock_client.close.call_count == 1, \
-        '"close" method was not called at the end of the test'
+    assert mock_client.close.call_count == 1, '"close" method was not called at the end of the test'

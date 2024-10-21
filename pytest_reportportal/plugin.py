@@ -16,35 +16,39 @@
 import logging
 import os.path
 import time
+from logging import Logger
+from typing import Any
 
 import _pytest.logging
 import dill as pickle
 import pytest
+# noinspection PyPackageRequirements
 import requests
-from reportportal_client import RPLogHandler
+from pytest import Session, Item
+from reportportal_client import RPLogHandler, RP
 from reportportal_client.errors import ResponseError
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
-from .config import AgentConfig
-from .rp_logging import patching_logger_class, patching_thread_class
-from .service import PyTestServiceClass
+from pytest_reportportal.config import AgentConfig
+from pytest_reportportal.rp_logging import patching_logger_class, patching_thread_class
+from pytest_reportportal.service import PyTestServiceClass
 
-log = logging.getLogger(__name__)
+log: Logger = logging.getLogger(__name__)
 
-MANDATORY_PARAMETER_MISSED_PATTERN = \
+MANDATORY_PARAMETER_MISSED_PATTERN: str = \
     'One of the following mandatory parameters is unset: ' + \
     'rp_project: {}, ' + \
     'rp_endpoint: {}, ' + \
     'rp_api_key: {}'
 
-FAILED_LAUNCH_WAIT = 'Failed to initialize reportportal-client service. ' \
-                     + 'Waiting for Launch start timed out. ' \
-                     + 'Reporting is disabled.'
+FAILED_LAUNCH_WAIT: str = 'Failed to initialize reportportal-client service. ' \
+                          + 'Waiting for Launch start timed out. ' \
+                          + 'Reporting is disabled.'
 
 
 @pytest.hookimpl(optionalhook=True)
-def pytest_configure_node(node):
+def pytest_configure_node(node: Any) -> None:
     """Configure xdist node controller.
 
     :param node: Object of the xdist WorkerController class
@@ -56,7 +60,8 @@ def pytest_configure_node(node):
     node.workerinput['py_test_service'] = pickle.dumps(node.config.py_test_service)
 
 
-def is_control(config):
+# no 'config' type for backward compatibility for older pytest versions
+def is_control(config) -> bool:
     """Validate workerinput attribute of the Config object.
 
     True if the code, running the given pytest.config object,
@@ -65,7 +70,7 @@ def is_control(config):
     return not hasattr(config, 'workerinput')
 
 
-def wait_launch(rp_client):
+def wait_launch(rp_client: RP) -> bool:
     """Wait for the launch startup.
 
     :param rp_client: Instance of the ReportPortalService class
@@ -79,7 +84,7 @@ def wait_launch(rp_client):
 
 
 # noinspection PyProtectedMember
-def pytest_sessionstart(session):
+def pytest_sessionstart(session: Session) -> None:
     """Start Report Portal launch.
 
     This method is called every time on control or worker process start, it
@@ -111,7 +116,7 @@ def pytest_sessionstart(session):
                 config._rp_enabled = False
 
 
-def pytest_collection_finish(session):
+def pytest_collection_finish(session: Session) -> None:
     """Collect tests if session is configured.
 
     :param session: Object of the pytest Session class
@@ -125,7 +130,7 @@ def pytest_collection_finish(session):
 
 
 # noinspection PyProtectedMember
-def pytest_sessionfinish(session):
+def pytest_sessionfinish(session: Session) -> None:
     """Finish current test session.
 
     :param session: Object of the pytest Session class
@@ -142,7 +147,8 @@ def pytest_sessionfinish(session):
     config.py_test_service.stop()
 
 
-def register_markers(config):
+# no 'config' type for backward compatibility for older pytest versions
+def register_markers(config) -> None:
     """Register plugin's markers, to avoid declaring them in `pytest.ini`.
 
     :param config: Object of the pytest Config class
@@ -161,30 +167,28 @@ def register_markers(config):
     )
 
 
-def check_connection(agent_config):
+def check_connection(agent_config: AgentConfig):
     """Check connection to RP using provided options.
 
     If connection is successful returns True either False.
     :param agent_config: Instance of the AgentConfig class
     :return True on successful connection check, either False
     """
-    url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint,
-                                          agent_config.rp_project)
+    url = '{0}/api/v1/project/{1}'.format(agent_config.rp_endpoint, agent_config.rp_project)
     headers = {'Authorization': 'bearer {0}'.format(agent_config.rp_api_key)}
     try:
-        resp = requests.get(url, headers=headers,
-                            verify=agent_config.rp_verify_ssl)
+        resp = requests.get(url, headers=headers, verify=agent_config.rp_verify_ssl)
         resp.raise_for_status()
         return True
     except requests.exceptions.RequestException as exc:
         log.exception(exc)
-        log.error("Unable to connect to Report Portal, the launch won't be"
-                  " reported")
+        log.error("Unable to connect to Report Portal, the launch won't be reported")
         return False
 
 
+# no 'config' type for backward compatibility for older pytest versions
 # noinspection PyProtectedMember
-def pytest_configure(config):
+def pytest_configure(config) -> None:
     """Update Config object with attributes required for reporting to RP.
 
     :param config: Object of the pytest Config class
@@ -227,7 +231,7 @@ def pytest_configure(config):
 
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtestloop(session):
+def pytest_runtestloop(session: Session) -> None:
     """
     Control start and finish of all test items in the session.
 
@@ -246,9 +250,8 @@ def pytest_runtestloop(session):
 
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_protocol(item):
-    """
-    Control start and finish of pytest items.
+def pytest_runtest_protocol(item: Item) -> None:
+    """Control start and finish of pytest items.
 
     :param item: Pytest.Item
     :return:     generator object
@@ -262,11 +265,9 @@ def pytest_runtest_protocol(item):
     agent_config = config._reporter_config
     service.start_pytest_item(item)
     log_level = agent_config.rp_log_level or logging.NOTSET
-    log_handler = RPLogHandler(level=log_level,
-                               filter_client_logs=True,
-                               endpoint=agent_config.rp_endpoint,
-                               ignored_record_names=('reportportal_client',
-                                                     'pytest_reportportal'))
+    log_handler = RPLogHandler(
+        level=log_level, filter_client_logs=True, endpoint=agent_config.rp_endpoint,
+        ignored_record_names=('reportportal_client', 'pytest_reportportal'))
     log_format = agent_config.rp_log_format
     if log_format:
         log_handler.setFormatter(logging.Formatter(log_format))
@@ -278,9 +279,8 @@ def pytest_runtest_protocol(item):
 
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item):
-    """
-        Change runtest_makereport function.
+def pytest_runtest_makereport(item: Item) -> None:
+    """Change runtest_makereport function.
 
     :param item: pytest.Item
     :return: None
@@ -295,7 +295,59 @@ def pytest_runtest_makereport(item):
     service.process_results(item, report)
 
 
-def pytest_addoption(parser):
+def report_fixture(request, name: str, error_msg: str) -> None:
+    """Report fixture setup and teardown.
+
+    :param request:    Object of the FixtureRequest class
+    :param name:       Name of the fixture
+    :param error_msg:  Error message
+    """
+    config = request.config
+    enabled = getattr(config, '_rp_enabled', False)
+    agent_config = getattr(config, '_reporter_config', None)
+    service = getattr(config, 'py_test_service', None)
+    if not enabled or not agent_config.rp_report_fixtures or not service:
+        yield
+        return
+
+    yield from service.report_fixture(name, error_msg)
+
+
+# no types for backward compatibility for older pytest versions
+@pytest.hookimpl(hookwrapper=True)
+def pytest_fixture_setup(fixturedef, request) -> None:
+    """Report fixture setup.
+
+    :param fixturedef: represents definition of the texture class
+    :param request:    represents fixture execution metadata
+    """
+    yield from report_fixture(
+        request, f'{fixturedef.scope} fixture setup: {fixturedef.argname}',
+        f'{fixturedef.scope} fixture setup failed: {fixturedef.argname}')
+
+
+# no types for backward compatibility for older pytest versions
+@pytest.hookimpl(hookwrapper=True)
+def pytest_fixture_post_finalizer(fixturedef, request) -> None:
+    """Report fixture teardown.
+
+    :param fixturedef: represents definition of the texture class
+    :param request:    represents fixture execution metadata
+    """
+    cached_result = getattr(fixturedef, 'cached_result', None)
+    if cached_result and cached_result[2]:
+        exception = fixturedef.cached_result[2][0]
+        if exception and isinstance(exception, BaseException):
+            yield
+            return
+
+    yield from report_fixture(
+        request, f'{fixturedef.scope} fixture teardown: {fixturedef.argname}',
+        f'{fixturedef.scope} fixture teardown failed: {fixturedef.argname}')
+
+
+# no types for backward compatibility for older pytest versions
+def pytest_addoption(parser) -> None:
     """Add support for the RP-related options.
 
     :param parser: Object of the Parser class
@@ -343,7 +395,7 @@ def pytest_addoption(parser):
     add_shared_option(
         name='rp_launch_id',
         help_str='Use already existing launch-id. The plugin won\'t control '
-        'the Launch status',
+                 'the Launch status',
     )
     add_shared_option(
         name='rp_launch_description',
@@ -377,7 +429,7 @@ def pytest_addoption(parser):
                  'existing) item.',
     )
     add_shared_option(name='rp_uuid', help_str='Deprecated: use `rp_api_key` '
-                      'instead.')
+                                               'instead.')
     add_shared_option(
         name='rp_api_key',
         help_str='API key of Report Portal. Usually located on UI profile '
@@ -512,4 +564,10 @@ def pytest_addoption(parser):
     parser.addini(
         'rp_read_timeout',
         help='Response read timeout for ReportPortal connection'
+    )
+    parser.addini(
+        'rp_report_fixtures',
+        default=False,
+        type='bool',
+        help='Enable reporting fixtures as test items. Possible values: [True, False]'
     )

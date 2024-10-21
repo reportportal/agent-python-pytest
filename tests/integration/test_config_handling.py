@@ -110,7 +110,7 @@ def test_rp_log_format(mock_client_init):
     expect(mock_client.log.call_count == 1)
     message = mock_client.log.call_args_list[0][0][1]
     expect(len(message) > 0)
-    expect(message == f'(examples.test_rp_logging) {LOG_MESSAGE} (test_rp_logging.py:24)')
+    expect(message == f'(test_rp_logging) {LOG_MESSAGE} (test_rp_logging.py:24)')
     assert_expectations()
 
 

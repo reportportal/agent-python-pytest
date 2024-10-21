@@ -13,24 +13,23 @@
 
 """This module includes integration tests for item statuses report."""
 
+from unittest import mock
+
 import pytest
 from delayed_assert import expect, assert_expectations
-from unittest import mock
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 
-@pytest.mark.parametrize(('test', 'expected_run_status',
-                          'expected_item_status'), [
-                             ('examples/test_simple.py', 0, 'PASSED'),
-                             ('examples/test_simple_fail.py', 1, 'FAILED'),
-                             ('examples/skip/test_simple_skip.py', 0,
-                              'SKIPPED')
-                         ])
+@pytest.mark.parametrize(('test', 'expected_run_status', 'expected_item_status'), [
+    ('examples/test_simple.py', 0, 'PASSED'),
+    ('examples/test_simple_fail.py', 1, 'FAILED'),
+    ('examples/skip/test_simple_skip.py', 0,
+     'SKIPPED')
+])
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_simple_tests(mock_client_init, test, expected_run_status,
-                      expected_item_status):
+def test_simple_tests(mock_client_init, test, expected_run_status, expected_item_status):
     """Verify a simple test creates correct structure and finishes all items.
 
     Report 'None' for suites and launch due to possible parallel execution.
@@ -44,13 +43,11 @@ def test_simple_tests(mock_client_init, test, expected_run_status,
     mock_client.start_test_item.side_effect = utils.item_id_gen
 
     result = utils.run_pytest_tests(tests=[test])
-    assert int(result) == expected_run_status, 'Exit code should be ' + str(
-        expected_run_status)
+    assert int(result) == expected_run_status, 'Exit code should be ' + str(expected_run_status)
 
     start_call_args = mock_client.start_test_item.call_args_list
     finish_call_args = mock_client.finish_test_item.call_args_list
-    assert len(start_call_args) == len(finish_call_args), \
-        'Number of started items should be equal to finished items'
+    assert len(start_call_args) == len(finish_call_args), 'Number of started items should be equal to finished items'
 
     for i in range(len(start_call_args)):
         start_test_step = start_call_args[-1 - i][1]
@@ -60,8 +57,7 @@ def test_simple_tests(mock_client_init, test, expected_run_status,
         if i == 0:
             actual_status = finish_test_step['status']
             expect(actual_status == expected_item_status,
-                   'Invalid item status, actual "{}", expected: "{}"'
-                   .format(actual_status, expected_item_status))
+                   f'Invalid item status, actual "{actual_status}", expected: "{expected_item_status}"')
 
     finish_launch_call_args = mock_client.finish_launch.call_args_list
     expect(len(finish_launch_call_args) == 1)

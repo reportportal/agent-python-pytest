@@ -70,6 +70,7 @@ def mocked_config():
     mocked_config.option.rp_launch_uuid_print = 'False'
     mocked_config.option.rp_launch_uuid_print_output = 'STDOUT'
     mocked_config.option.rp_client_type = 'SYNC'
+    mocked_config.option.rp_report_fixtures = 'False'
     return mocked_config
 
 

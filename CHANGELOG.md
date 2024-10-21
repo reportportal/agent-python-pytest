@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Issue [#375](https://github.com/reportportal/agent-python-pytest/issues/375): Fix max Item name length, by @HardNorth
+### Added
+- Issue [#332](https://github.com/reportportal/agent-python-pytest/issues/332): Support for fixture reporting, by @HardNorth
 
 ## [5.4.2]
 ### Fixed
