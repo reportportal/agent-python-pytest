@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.4.3]
 ### Fixed
 - Issue [#375](https://github.com/reportportal/agent-python-pytest/issues/375): Fix max Item name length, by @HardNorth
 ### Added
