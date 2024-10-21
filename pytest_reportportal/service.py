@@ -20,7 +20,7 @@ import threading
 from functools import wraps
 from os import curdir
 from time import time, sleep
-from typing import List, Any, Optional, Set, Dict, Tuple, Union
+from typing import List, Any, Optional, Set, Dict, Tuple, Union, Callable
 
 from _pytest.doctest import DoctestItem
 from aenum import auto, Enum, unique
@@ -389,7 +389,7 @@ class PyTestServiceClass:
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
 
-    def _lock(self, leaf, func):
+    def _lock(self, leaf: Dict[str, Any], func: Callable[[Dict[str, Any]], Any]) -> Any:
         """
         Lock test tree leaf and execute a function, bypass the leaf to it.
 
