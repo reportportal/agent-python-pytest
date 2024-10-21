@@ -56,11 +56,25 @@ def remove_last_item_id(*_, **__) -> str:
         return ITEM_ID_LIST.pop()
 
 
+def setup_mock(mock_client_init):
+    mock_client = mock_client_init.return_value
+    mock_client.step_reporter = StepReporter(mock_client)
+    return mock_client
+
+
+def setup_mock_for_logging(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    set_current(mock_client)
+    mock_client.start_test_item.side_effect = generate_item_id
+    mock_client.finish_test_item.side_effect = remove_last_item_id
+    mock_client.current_item.side_effect = get_last_item_id
+    return mock_client
+
+
 @pytest.mark.parametrize('switch', [True, False])
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_fixture_on_off(mock_client_init, switch):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
+    mock_client = setup_mock(mock_client_init)
 
     variables = dict(utils.DEFAULT_VARIABLES)
     variables['rp_report_fixtures'] = switch
@@ -74,20 +88,22 @@ def test_fixture_on_off(mock_client_init, switch):
         'Incorrect number of "start_test_item" or "finish_test_item" calls'
 
 
-@mock.patch(REPORT_PORTAL_SERVICE)
-def test_fixture_setup(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
-    set_current(mock_client)
-    mock_client.start_test_item.side_effect = generate_item_id
-    mock_client.finish_test_item.side_effect = remove_last_item_id
-    mock_client.current_item.side_effect = get_last_item_id
-
+def run_tests(test_path, should_fail=False):
     variables = dict(utils.DEFAULT_VARIABLES)
     variables['rp_report_fixtures'] = True
-    test_path = 'examples/fixtures/test_fixture_setup'
     result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    if should_fail:
+        assert int(result) == 1, 'Exit code should be 1 (test failure)'
+    else:
+        assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_fixture_setup(mock_client_init):
+    mock_client = setup_mock_for_logging(mock_client_init)
+
+    test_path = 'examples/fixtures/test_fixture_setup'
+    run_tests(test_path)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
@@ -121,18 +137,10 @@ def test_fixture_setup(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_fixture_teardown(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
-    set_current(mock_client)
-    mock_client.start_test_item.side_effect = generate_item_id
-    mock_client.finish_test_item.side_effect = remove_last_item_id
-    mock_client.current_item.side_effect = get_last_item_id
+    mock_client = setup_mock_for_logging(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/test_fixture_teardown'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    run_tests(test_path)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
@@ -172,27 +180,17 @@ def test_fixture_teardown(mock_client_init):
            'examples/fixtures/test_fixture_teardown/test_fixture_teardown.py::test_fixture_teardown_1'
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_fixture_setup_failure(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
-    set_current(mock_client)
-    mock_client.start_test_item.side_effect = generate_item_id
-    mock_client.finish_test_item.side_effect = remove_last_item_id
-    mock_client.current_item.side_effect = get_last_item_id
+    mock_client = setup_mock_for_logging(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/test_fixture_setup_failure'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 1, 'Exit code should be 1 (test failure)'
+    run_tests(test_path, True)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    if sys.version_info < (3, 8):
-        assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
-    else:
-        assert start_count == finish_count == 2, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == finish_count == 2, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -223,18 +221,10 @@ def test_fixture_setup_failure(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_fixture_teardown_failure(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
-    set_current(mock_client)
-    mock_client.start_test_item.side_effect = generate_item_id
-    mock_client.finish_test_item.side_effect = remove_last_item_id
-    mock_client.current_item.side_effect = get_last_item_id
+    mock_client = setup_mock_for_logging(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/test_fixture_teardown_failure'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 1, 'Exit code should be 1 (test failure)'
+    run_tests(test_path, True)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
@@ -285,18 +275,10 @@ def test_fixture_teardown_failure(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_fixture_yield_none(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
-    set_current(mock_client)
-    mock_client.start_test_item.side_effect = generate_item_id
-    mock_client.finish_test_item.side_effect = remove_last_item_id
-    mock_client.current_item.side_effect = get_last_item_id
+    mock_client = setup_mock_for_logging(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/test_fixture_yield_none'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    run_tests(test_path)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
@@ -331,18 +313,10 @@ def test_fixture_yield_none(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_fixture_return_none(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
-    set_current(mock_client)
-    mock_client.start_test_item.side_effect = generate_item_id
-    mock_client.finish_test_item.side_effect = remove_last_item_id
-    mock_client.current_item.side_effect = get_last_item_id
+    mock_client = setup_mock_for_logging(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/test_fixture_return_none'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    run_tests(test_path)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
@@ -377,18 +351,10 @@ def test_fixture_return_none(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_failure_fixture_teardown(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
-    set_current(mock_client)
-    mock_client.start_test_item.side_effect = generate_item_id
-    mock_client.finish_test_item.side_effect = remove_last_item_id
-    mock_client.current_item.side_effect = get_last_item_id
+    mock_client = setup_mock_for_logging(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/test_failure_fixture_teardown'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 1, 'Exit code should be 1 (test failure)'
+    run_tests(test_path, True)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
@@ -440,14 +406,10 @@ def test_failure_fixture_teardown(mock_client_init):
 @pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_session_fixture_setup(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
+    mock_client = setup_mock(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/session_fixture_return'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    run_tests(test_path)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
@@ -472,14 +434,10 @@ def test_session_fixture_setup(mock_client_init):
 @pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_package_fixture_setup(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
+    mock_client = setup_mock(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/package_fixture_return'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    run_tests(test_path)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
@@ -504,14 +462,10 @@ def test_package_fixture_setup(mock_client_init):
 @pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_module_fixture_setup(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
+    mock_client = setup_mock(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/module_fixture_return'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    run_tests(test_path)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
@@ -533,17 +487,15 @@ def test_module_fixture_setup(mock_client_init):
     assert not setup_call_kwargs['has_stats']
 
 
+
+
 @pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_class_fixture_setup(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
+    mock_client = setup_mock(mock_client_init)
 
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables['rp_report_fixtures'] = True
     test_path = 'examples/fixtures/class_fixture_return'
-    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    run_tests(test_path)
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
