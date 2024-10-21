@@ -27,6 +27,7 @@ from aenum import auto, Enum, unique
 from pytest import Class, Function, Module, Package, Item, Session, PytestWarning
 from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import Issue, ExternalIssue
+from reportportal_client.helpers import timestamp
 
 from .config import AgentConfig
 
@@ -54,17 +55,11 @@ log = logging.getLogger(__name__)
 MAX_ITEM_NAME_LENGTH: int = 256
 TRUNCATION_STR: str = '...'
 ROOT_DIR: str = str(os.path.abspath(curdir))
-PYTEST_MARKS_IGNORE: Set[str] = {'parametrize', 'usefixtures',
-                                 'filterwarnings'}
+PYTEST_MARKS_IGNORE: Set[str] = {'parametrize', 'usefixtures', 'filterwarnings'}
 NOT_ISSUE: Issue = Issue('NOT_ISSUE')
 ISSUE_DESCRIPTION_LINE_TEMPLATE: str = '* {}:{}'
 ISSUE_DESCRIPTION_URL_TEMPLATE: str = ' [{issue_id}]({url})'
 ISSUE_DESCRIPTION_ID_TEMPLATE: str = ' {issue_id}'
-
-
-def timestamp():
-    """Time for difference between start and finish tests."""
-    return str(int(time() * 1000))
 
 
 def trim_docstring(docstring: str) -> str:
@@ -102,7 +97,6 @@ def trim_docstring(docstring: str) -> str:
 @unique
 class LeafType(Enum):
     """This class stores test item path types."""
-
     DIR = auto()
     CODE = auto()
     ROOT = auto()
@@ -111,7 +105,6 @@ class LeafType(Enum):
 @unique
 class ExecStatus(Enum):
     """This class stores test item path types."""
-
     CREATED = auto()
     IN_PROGRESS = auto()
     FINISHED = auto()
@@ -125,7 +118,7 @@ def check_rp_enabled(func):
         if args and isinstance(args[0], PyTestServiceClass):
             if not args[0].rp:
                 return
-        func(*args, **kwargs)
+        return func(*args, **kwargs)
 
     return wrap
 
@@ -176,7 +169,7 @@ class PyTestServiceClass:
                 self._issue_types[item["shortName"]] = item["locator"]
         return self._issue_types
 
-    def _get_launch_attributes(self, ini_attrs):
+    def _get_launch_attributes(self, ini_attrs: Optional[List[Dict[str, str]]]) -> List[Dict[str, str]]:
         """Generate launch attributes in the format supported by the client.
 
         :param list ini_attrs: List for attributes from the pytest.ini file
@@ -187,7 +180,7 @@ class PyTestServiceClass:
             '{}|{}'.format(self.agent_name, self.agent_version))
         return attributes + dict_to_payload(system_attributes)
 
-    def _build_start_launch_rq(self):
+    def _build_start_launch_rq(self) -> Dict[str, Any]:
         rp_launch_attributes = self._config.rp_launch_attributes
         attributes = gen_attributes(rp_launch_attributes) if rp_launch_attributes else None
 
