@@ -97,6 +97,7 @@ def trim_docstring(docstring: str) -> str:
 @unique
 class LeafType(Enum):
     """This class stores test item path types."""
+
     DIR = auto()
     CODE = auto()
     ROOT = auto()
@@ -105,6 +106,7 @@ class LeafType(Enum):
 @unique
 class ExecStatus(Enum):
     """This class stores test item path types."""
+
     CREATED = auto()
     IN_PROGRESS = auto()
     FINISHED = auto()
