@@ -2,6 +2,12 @@
 
 ## [Unreleased]
 ### Fixed
+- Issue [#375](https://github.com/reportportal/agent-python-pytest/issues/375): Fix max Item name length, by @HardNorth
+### Added
+- Issue [#332](https://github.com/reportportal/agent-python-pytest/issues/332): Support for fixture reporting, by @HardNorth
+
+## [5.4.2]
+### Fixed
 - Issue [#368](https://github.com/reportportal/agent-python-pytest/issues/368): Distutils in the agent, by @HardNorth
 - Pytest Tavern plugin support, by @virdok
 ### Added

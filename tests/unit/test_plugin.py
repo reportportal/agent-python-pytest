@@ -366,7 +366,8 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_launch_timeout',
         'rp_client_type',
         'rp_connect_timeout',
-        'rp_read_timeout'
+        'rp_read_timeout',
+        'rp_report_fixtures'
     )
     mock_parser = mock.MagicMock(spec=Parser)
 

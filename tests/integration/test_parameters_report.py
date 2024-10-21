@@ -25,8 +25,7 @@ from tests.helpers import utils
     ('examples/test_simple.py', None),
     ('examples/params/test_in_class_parameterized.py', {'param': 'param'}),
     ('examples/params/test_different_parameter_types.py',
-     {'integer': 1, 'floating_point': 1.5, 'boolean': True,
-      'none': None})
+     {'integer': 1, 'floating_point': 1.5, 'boolean': True, 'none': None})
 ])
 def test_parameters(mock_client_init, test, expected_params):
     """Verify different tests have correct parameters.
@@ -35,14 +34,11 @@ def test_parameters(mock_client_init, test, expected_params):
     :param test:             a test to run
     :param expected_params:  an expected parameter dictionary
     """
-    variables = utils.DEFAULT_VARIABLES
-    result = utils.run_pytest_tests(tests=[test],
-                                    variables=variables)
+    result = utils.run_pytest_tests(tests=[test])
     assert int(result) == 0, 'Exit code should be 0 (no errors)'
 
     mock_client = mock_client_init.return_value
-    assert mock_client.start_test_item.call_count > 0, \
-        '"start_test_item" called incorrect number of times'
+    assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
 
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[-1][1]
