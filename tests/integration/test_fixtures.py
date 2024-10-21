@@ -487,8 +487,6 @@ def test_module_fixture_setup(mock_client_init):
     assert not setup_call_kwargs['has_stats']
 
 
-
-
 @pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_class_fixture_setup(mock_client_init):
