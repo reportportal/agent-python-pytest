@@ -25,5 +25,5 @@ LOG_MESSAGE_SETUP = 'Log message for setup and return None'
 
 
 @pytest.fixture
-def test_fixture_setup_config_none():
+def test_fixture_return_none_config():
     LOGGER.warning(LOG_MESSAGE_SETUP)

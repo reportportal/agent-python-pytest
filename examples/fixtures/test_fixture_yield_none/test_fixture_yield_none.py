@@ -25,5 +25,5 @@
 #  limitations under the License.
 
 
-def test_fixture_yield_none(test_fixture_setup_yield_none):
-    assert test_fixture_setup_yield_none is None
+def test_fixture_yield_none(test_fixture_yield_none_config):
+    assert test_fixture_yield_none_config is None

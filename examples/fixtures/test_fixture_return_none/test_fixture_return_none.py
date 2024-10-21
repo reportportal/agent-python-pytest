@@ -25,5 +25,5 @@
 #  limitations under the License.
 
 
-def test_fixture_setup_none(test_fixture_setup_config_none):
-    assert test_fixture_setup_config_none is None
+def test_fixture_setup_none(test_fixture_return_none_config):
+    assert test_fixture_return_none_config is None

@@ -35,6 +35,6 @@ logging.setLoggerClass(RPLogger)
 LOG_MESSAGE_TEST = 'Log message for test of setup failure'
 
 
-def test_fixture_setup_failure(fixture_setup_failure_config):
+def test_fixture_setup_failure(test_fixture_setup_failure_config):
     logging.error(LOG_MESSAGE_TEST)
-    assert fixture_setup_failure_config is not None
+    assert test_fixture_setup_failure_config is not None

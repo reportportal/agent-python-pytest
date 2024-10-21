@@ -25,6 +25,6 @@ LOG_MESSAGE_SETUP = 'Log message for setup and yield None'
 
 
 @pytest.fixture
-def test_fixture_setup_yield_none():
+def test_fixture_yield_none_config():
     LOGGER.warning(LOG_MESSAGE_SETUP)
     yield None
