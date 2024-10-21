@@ -403,16 +403,14 @@ class PyTestServiceClass:
         return func(leaf)
 
     def _build_start_suite_rq(self, leaf):
-        code_ref = str(leaf['item']) if leaf['type'] == LeafType.DIR \
-            else str(leaf['item'].fspath)
+        code_ref = str(leaf['item']) if leaf['type'] == LeafType.DIR else str(leaf['item'].fspath)
         payload = {
             'name': self._get_item_name(leaf['name']),
             'description': self._get_item_description(leaf['item']),
             'start_time': timestamp(),
             'item_type': 'SUITE',
             'code_ref': code_ref,
-            'parent_item_id': self._lock(leaf['parent'],
-                                         lambda p: p['item_id'])
+            'parent_item_id': self._lock(leaf['parent'], lambda p: p['item_id'])
         }
         return payload
 
