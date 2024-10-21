@@ -11,7 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
-
+import sys
 from collections import defaultdict
 from unittest import mock
 
@@ -19,19 +19,18 @@ import pytest
 from reportportal_client import set_current
 from reportportal_client.steps import StepReporter
 
+from examples.fixtures.test_failure_fixture_teardown.conftest import (
+    LOG_MESSAGE_BEFORE_YIELD as LOG_MESSAGE_BEFORE_YIELD_TEST_FAILURE,
+    LOG_MESSAGE_TEARDOWN as LOG_MESSAGE_TEARDOWN_TEST_FAILURE)
+from examples.fixtures.test_fixture_return_none.conftest import LOG_MESSAGE_SETUP as LOG_MESSAGE_BEFORE_RETURN_NONE
 from examples.fixtures.test_fixture_setup.conftest import LOG_MESSAGE_SETUP as SINGLE_SETUP_MESSAGE
 from examples.fixtures.test_fixture_setup_failure.conftest import LOG_MESSAGE_SETUP as LOG_MESSAGE_SETUP_FAILURE
 from examples.fixtures.test_fixture_teardown.conftest import LOG_MESSAGE_BEFORE_YIELD, LOG_MESSAGE_TEARDOWN
 from examples.fixtures.test_fixture_teardown_failure.conftest import (
     LOG_MESSAGE_BEFORE_YIELD as LOG_MESSAGE_BEFORE_YIELD_FAILURE, LOG_MESSAGE_TEARDOWN as LOG_MESSAGE_TEARDOWN_FAILURE)
 from examples.fixtures.test_fixture_yield_none.conftest import LOG_MESSAGE_SETUP as LOG_MESSAGE_BEFORE_YIELD_NONE
-from examples.fixtures.test_fixture_return_none.conftest import LOG_MESSAGE_SETUP as LOG_MESSAGE_BEFORE_RETURN_NONE
-from examples.fixtures.test_failure_fixture_teardown.conftest import (
-    LOG_MESSAGE_BEFORE_YIELD as LOG_MESSAGE_BEFORE_YIELD_TEST_FAILURE,
-    LOG_MESSAGE_TEARDOWN as LOG_MESSAGE_TEARDOWN_TEST_FAILURE)
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
-
 
 ITEM_ID_DICT = defaultdict(lambda: 0)
 ITEM_ID_LIST = []
@@ -185,7 +184,10 @@ def test_fixture_setup_failure(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 2, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    if sys.version_info < (3, 8):
+        assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    else:
+        assert start_count == finish_count == 2, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -421,6 +423,7 @@ def test_failure_fixture_teardown(mock_client_init):
             'test_failure_fixture_teardown_1')
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_session_fixture_setup(mock_client_init):
     mock_client = mock_client_init.return_value
@@ -450,6 +453,7 @@ def test_session_fixture_setup(mock_client_init):
     assert not setup_call_kwargs['has_stats']
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_package_fixture_setup(mock_client_init):
     mock_client = mock_client_init.return_value
@@ -479,6 +483,7 @@ def test_package_fixture_setup(mock_client_init):
     assert not setup_call_kwargs['has_stats']
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_module_fixture_setup(mock_client_init):
     mock_client = mock_client_init.return_value
@@ -508,6 +513,7 @@ def test_module_fixture_setup(mock_client_init):
     assert not setup_call_kwargs['has_stats']
 
 
+@pytest.mark.skipif(sys.version_info < (3, 8), reason='Python 3.8+ required due to bugs in older versions')
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_class_fixture_setup(mock_client_init):
     mock_client = mock_client_init.return_value

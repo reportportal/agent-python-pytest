@@ -334,7 +334,8 @@ def pytest_fixture_post_finalizer(fixturedef, request) -> None:
     :param fixturedef: represents definition of the texture class
     :param request:    represents fixture execution metadata
     """
-    if fixturedef.cached_result and fixturedef.cached_result[2]:
+    cached_result = getattr(fixturedef, 'cached_result', None)
+    if cached_result and cached_result[2]:
         exception = fixturedef.cached_result[2][0]
         if exception and isinstance(exception, BaseException):
             yield
