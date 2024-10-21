@@ -419,3 +419,128 @@ def test_failure_fixture_teardown(mock_client_init):
     assert log_call_kwargs['item_id'] == \
            ('examples/fixtures/test_failure_fixture_teardown/test_failure_fixture_teardown.py::'
             'test_failure_fixture_teardown_1')
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_session_fixture_setup(mock_client_init):
+    mock_client = mock_client_init.return_value
+    mock_client.step_reporter = StepReporter(mock_client)
+
+    variables = dict(utils.DEFAULT_VARIABLES)
+    variables['rp_report_fixtures'] = True
+    result = utils.run_pytest_tests(tests=['examples/fixtures/session_fixture_return'], variables=variables)
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    start_count = mock_client.start_test_item.call_count
+    finish_count = mock_client.finish_test_item.call_count
+    assert start_count == finish_count == 4, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+
+    call_args = mock_client.start_test_item.call_args_list
+    setup_call_args = call_args[1][0]
+    step_name = 'session fixture setup: session_fixture_return_config'
+    assert setup_call_args[0] == step_name
+
+    setup_call_kwargs = call_args[1][1]
+    assert not setup_call_kwargs['has_stats']
+
+    teardown_call_args = call_args[-1][0]
+    assert teardown_call_args[0] == 'session fixture teardown: session_fixture_return_config'
+
+    setup_call_kwargs = call_args[-1][1]
+    assert not setup_call_kwargs['has_stats']
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_package_fixture_setup(mock_client_init):
+    mock_client = mock_client_init.return_value
+    mock_client.step_reporter = StepReporter(mock_client)
+
+    variables = dict(utils.DEFAULT_VARIABLES)
+    variables['rp_report_fixtures'] = True
+    result = utils.run_pytest_tests(tests=['examples/fixtures/package_fixture_return'], variables=variables)
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    start_count = mock_client.start_test_item.call_count
+    finish_count = mock_client.finish_test_item.call_count
+    assert start_count == finish_count == 4, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+
+    call_args = mock_client.start_test_item.call_args_list
+    setup_call_args = call_args[1][0]
+    step_name = 'package fixture setup: package_fixture_return_config'
+    assert setup_call_args[0] == step_name
+
+    setup_call_kwargs = call_args[1][1]
+    assert not setup_call_kwargs['has_stats']
+
+    teardown_call_args = call_args[-1][0]
+    assert teardown_call_args[0] == 'package fixture teardown: package_fixture_return_config'
+
+    setup_call_kwargs = call_args[-1][1]
+    assert not setup_call_kwargs['has_stats']
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_module_fixture_setup(mock_client_init):
+    mock_client = mock_client_init.return_value
+    mock_client.step_reporter = StepReporter(mock_client)
+
+    variables = dict(utils.DEFAULT_VARIABLES)
+    variables['rp_report_fixtures'] = True
+    result = utils.run_pytest_tests(tests=['examples/fixtures/module_fixture_return'], variables=variables)
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    start_count = mock_client.start_test_item.call_count
+    finish_count = mock_client.finish_test_item.call_count
+    assert start_count == finish_count == 4, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+
+    call_args = mock_client.start_test_item.call_args_list
+    setup_call_args = call_args[1][0]
+    step_name = 'module fixture setup: module_fixture_return_config'
+    assert setup_call_args[0] == step_name
+
+    setup_call_kwargs = call_args[1][1]
+    assert not setup_call_kwargs['has_stats']
+
+    teardown_call_args = call_args[-1][0]
+    assert teardown_call_args[0] == 'module fixture teardown: module_fixture_return_config'
+
+    setup_call_kwargs = call_args[-1][1]
+    assert not setup_call_kwargs['has_stats']
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_class_fixture_setup(mock_client_init):
+    mock_client = mock_client_init.return_value
+    mock_client.step_reporter = StepReporter(mock_client)
+
+    variables = dict(utils.DEFAULT_VARIABLES)
+    variables['rp_report_fixtures'] = True
+    result = utils.run_pytest_tests(tests=['examples/fixtures/class_fixture_return'], variables=variables)
+    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+
+    start_count = mock_client.start_test_item.call_count
+    finish_count = mock_client.finish_test_item.call_count
+    assert start_count == finish_count == 8, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+
+    call_args = mock_client.start_test_item.call_args_list
+    setup_call_args = call_args[1][0]
+    step_name = 'class fixture setup: class_fixture_return_config'
+    assert setup_call_args[0] == step_name
+    setup_call_kwargs = call_args[1][1]
+    assert not setup_call_kwargs['has_stats']
+
+    setup_call_args = call_args[-3][0]
+    assert setup_call_args[0] == step_name
+    setup_call_kwargs = call_args[-3][1]
+    assert not setup_call_kwargs['has_stats']
+
+    teardown_step_name = 'class fixture teardown: class_fixture_return_config'
+    teardown_call_args = call_args[-5][0]
+    assert teardown_call_args[0] == teardown_step_name
+    setup_call_kwargs = call_args[-5][1]
+    assert not setup_call_kwargs['has_stats']
+
+    teardown_call_args = call_args[-1][0]
+    assert teardown_call_args[0] == teardown_step_name
+    setup_call_kwargs = call_args[-1][1]
+    assert not setup_call_kwargs['has_stats']
