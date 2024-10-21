@@ -358,21 +358,16 @@ class PyTestServiceClass:
             self._merge_code(test_tree)
         self._build_item_paths(test_tree, [])
 
-    def _get_item_name(self, name):
+    def _get_item_name(self, name: str) -> str:
         """Get name of item.
 
-        :param name: Item name
-        :return: name
+        :param name: Test Item name
+        :return: truncated to maximum length name if needed
         """
         if len(name) > MAX_ITEM_NAME_LENGTH:
-            name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + \
-                   TRUNCATION_STR
-            log.warning(
-                PytestWarning(
-                    'Test leaf ID was truncated to "{}" because of name size '
-                    'constrains on Report Portal'.format(name)
-                )
-            )
+            name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + TRUNCATION_STR
+            log.warning(PytestWarning(
+                f'Test leaf ID was truncated to "{name}" because of name size constrains on Report Portal'))
         return name
 
     def _get_item_description(self, test_item):
