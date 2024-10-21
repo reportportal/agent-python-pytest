@@ -27,6 +27,6 @@
 from time import sleep
 
 
-def test_fixture_teardown(fixture_teardown_config):
+def test_fixture_teardown(test_fixture_teardown_config):
     sleep(0.001)
-    assert fixture_teardown_config is not None
+    assert test_fixture_teardown_config is not None

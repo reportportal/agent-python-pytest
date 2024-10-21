@@ -27,7 +27,7 @@ LOG_MESSAGE_TEARDOWN = 'Log message for teardown'
 
 
 @pytest.fixture
-def fixture_teardown_config():
+def test_fixture_teardown_config():
     logging.error(LOG_MESSAGE_BEFORE_YIELD)
     yield mock.Mock()
     logging.error(LOG_MESSAGE_TEARDOWN)
