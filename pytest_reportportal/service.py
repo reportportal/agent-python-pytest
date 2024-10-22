@@ -52,7 +52,7 @@ from reportportal_client.helpers import (
 
 log = logging.getLogger(__name__)
 
-MAX_ITEM_NAME_LENGTH: int = 256
+MAX_ITEM_NAME_LENGTH: int = 1024
 TRUNCATION_STR: str = '...'
 ROOT_DIR: str = str(os.path.abspath(curdir))
 PYTEST_MARKS_IGNORE: Set[str] = {'parametrize', 'usefixtures', 'filterwarnings'}
