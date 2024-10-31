@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.4.5]
 ### Fixed
 - Issue [#379](https://github.com/reportportal/agent-python-pytest/issues/379): Fix TypeError when using pytest.skip() in fixtures, by @HardNorth
 
