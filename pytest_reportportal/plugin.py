@@ -295,20 +295,31 @@ def pytest_runtest_makereport(item: Item) -> None:
     service.process_results(item, report)
 
 
-def report_fixture(request, name: str, error_msg: str) -> None:
+def report_fixture(request, fixturedef, name: str, error_msg: str) -> None:
     """Report fixture setup and teardown.
 
     :param request:    Object of the FixtureRequest class
+    :param fixturedef: represents definition of the texture class
     :param name:       Name of the fixture
     :param error_msg:  Error message
     """
     config = request.config
     enabled = getattr(config, '_rp_enabled', False)
-    agent_config = getattr(config, '_reporter_config', None)
     service = getattr(config, 'py_test_service', None)
-    if not enabled or not agent_config.rp_report_fixtures or not service:
+    agent_config = getattr(config, '_reporter_config', object())
+    report_fixtures = getattr(agent_config, 'rp_report_fixtures', False)
+    if not enabled or not service or not report_fixtures:
         yield
         return
+
+    cached_result = getattr(fixturedef, 'cached_result', None)
+    if cached_result and hasattr(cached_result, '__getitem__'):
+        result = fixturedef.cached_result[2]
+        if hasattr(result, '__getitem__'):
+            result = result[0]
+        if result and isinstance(result, BaseException):
+            yield
+            return
 
     yield from service.report_fixture(name, error_msg)
 
@@ -322,7 +333,7 @@ def pytest_fixture_setup(fixturedef, request) -> None:
     :param request:    represents fixture execution metadata
     """
     yield from report_fixture(
-        request, f'{fixturedef.scope} fixture setup: {fixturedef.argname}',
+        request, fixturedef, f'{fixturedef.scope} fixture setup: {fixturedef.argname}',
         f'{fixturedef.scope} fixture setup failed: {fixturedef.argname}')
 
 
@@ -334,15 +345,8 @@ def pytest_fixture_post_finalizer(fixturedef, request) -> None:
     :param fixturedef: represents definition of the texture class
     :param request:    represents fixture execution metadata
     """
-    cached_result = getattr(fixturedef, 'cached_result', None)
-    if cached_result and cached_result[2]:
-        exception = fixturedef.cached_result[2][0]
-        if exception and isinstance(exception, BaseException):
-            yield
-            return
-
     yield from report_fixture(
-        request, f'{fixturedef.scope} fixture teardown: {fixturedef.argname}',
+        request, fixturedef, f'{fixturedef.scope} fixture teardown: {fixturedef.argname}',
         f'{fixturedef.scope} fixture teardown failed: {fixturedef.argname}')
 
 

@@ -11,6 +11,7 @@
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
+
 import sys
 from collections import defaultdict
 from unittest import mock
@@ -522,3 +523,30 @@ def test_class_fixture_setup(mock_client_init):
     assert teardown_call_args[0] == teardown_step_name
     setup_call_kwargs = call_args[-1][1]
     assert not setup_call_kwargs['has_stats']
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_fixture_setup_skip(mock_client_init):
+    mock_client = setup_mock_for_logging(mock_client_init)
+
+    test_path = 'examples/fixtures/test_fixture_skipped/test_fixture_skipped.py'
+    run_tests(test_path, False)
+
+    call_args = mock_client.start_test_item.call_args_list
+    setup_call_args = call_args[2][0]
+    fixture_name = 'skip_fixture'
+    step_name = f'function fixture setup: {fixture_name}'
+    assert setup_call_args[0] == step_name
+
+    setup_call_kwargs = call_args[2][1]
+    assert not setup_call_kwargs['has_stats']
+
+    log_count = mock_client.log.call_count
+    assert log_count == 1, 'Incorrect number of "log" calls'
+
+    call_args = mock_client.finish_test_item.call_args_list
+    finish_call_kwargs = call_args[1][1]
+    assert finish_call_kwargs['status'] == 'PASSED'
+
+    finish_call_kwargs = call_args[-1][1]
+    assert finish_call_kwargs['status'] == 'SKIPPED'

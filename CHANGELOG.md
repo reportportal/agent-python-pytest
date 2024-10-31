@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 ### Fixed
+- Issue [#379](https://github.com/reportportal/agent-python-pytest/issues/379): Fix TypeError when using pytest.skip() in fixtures, by @HardNorth
+
+## [5.4.4]
+### Fixed
 - Issue [#375](https://github.com/reportportal/agent-python-pytest/issues/375): Fix max Item name length, by @HardNorth
 
 ## [5.4.3]
