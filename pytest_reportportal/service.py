@@ -50,7 +50,7 @@ from reportportal_client.helpers import (
     get_package_version
 )
 
-log = logging.getLogger(__name__)
+LOGGER = logging.getLogger(__name__)
 
 MAX_ITEM_NAME_LENGTH: int = 1024
 TRUNCATION_STR: str = '...'
@@ -204,9 +204,9 @@ class PyTestServiceClass:
         :return: item ID
         """
         sl_pt = self._build_start_launch_rq()
-        log.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
+        LOGGER.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
         self._launch_id = self.rp.start_launch(**sl_pt)
-        log.debug('ReportPortal - Launch started: id=%s', self._launch_id)
+        LOGGER.debug('ReportPortal - Launch started: id=%s', self._launch_id)
         return self._launch_id
 
     def _get_item_dirs(self, item: Item) -> List[str]:
@@ -366,7 +366,7 @@ class PyTestServiceClass:
         """
         if len(name) > MAX_ITEM_NAME_LENGTH:
             name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + TRUNCATION_STR
-            log.warning(PytestWarning(
+            LOGGER.warning(PytestWarning(
                 f'Test leaf ID was truncated to "{name}" because of name size constrains on Report Portal'))
         return name
 
@@ -411,8 +411,7 @@ class PyTestServiceClass:
         return payload
 
     def _start_suite(self, suite_rq):
-        log.debug('ReportPortal - Start Suite: request_body=%s',
-                  suite_rq)
+        LOGGER.debug('ReportPortal - Start Suite: request_body=%s', suite_rq)
         return self.rp.start_test_item(**suite_rq)
 
     def _create_suite(self, leaf):
@@ -655,7 +654,7 @@ class PyTestServiceClass:
         return payload
 
     def _start_step(self, step_rq):
-        log.debug('ReportPortal - Start TestItem: request_body=%s', step_rq)
+        LOGGER.debug('ReportPortal - Start TestItem: request_body=%s', step_rq)
         return self.rp.start_test_item(**step_rq)
 
     def __unique_id(self):
@@ -729,11 +728,11 @@ class PyTestServiceClass:
         return payload
 
     def _finish_step(self, finish_rq):
-        log.debug('ReportPortal - Finish TestItem: request_body=%s', finish_rq)
+        LOGGER.debug('ReportPortal - Finish TestItem: request_body=%s', finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
     def _finish_suite(self, finish_rq):
-        log.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
+        LOGGER.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
     def _build_finish_suite_rq(self, leaf):
@@ -815,7 +814,7 @@ class PyTestServiceClass:
         return finish_rq
 
     def _finish_launch(self, finish_rq):
-        log.debug('ReportPortal - Finish launch: request_body=%s', finish_rq)
+        LOGGER.debug('ReportPortal - Finish launch: request_body=%s', finish_rq)
         self.rp.finish_launch(**finish_rq)
 
     @check_rp_enabled
@@ -828,8 +827,19 @@ class PyTestServiceClass:
         # To finish launch session str parameter is needed
         self._finish_launch(self._build_finish_launch_rq())
 
+    def _build_log(self, item_id: str, message: str, log_level: str, attachment: Optional[Any] = None):
+        sl_rq = {
+            'item_id': item_id,
+            'time': timestamp(),
+            'message': message,
+            'level': log_level,
+        }
+        if attachment:
+            sl_rq['attachment'] = attachment
+        return sl_rq
+
     @check_rp_enabled
-    def post_log(self, test_item, message, log_level='INFO', attachment=None):
+    def post_log(self, test_item, message: str, log_level: str = 'INFO', attachment: Optional[Any] = None):
         """
         Send a log message to the Report Portal.
 
@@ -841,16 +851,11 @@ class PyTestServiceClass:
         :return: None
         """
         if log_level not in self._log_levels:
-            log.warning('Incorrect loglevel = %s. Force set to INFO. '
-                        'Available levels: %s.', log_level, self._log_levels)
+            LOGGER.warning('Incorrect loglevel = %s. Force set to INFO. '
+                           'Available levels: %s.', log_level, self._log_levels)
         item_id = self._tree_path[test_item][-1]['item_id']
-        sl_rq = {
-            'item_id': item_id,
-            'time': timestamp(),
-            'message': message,
-            'level': log_level,
-            'attachment': attachment
-        }
+
+        sl_rq = self._build_log(item_id, message, log_level, attachment)
         self.rp.log(**sl_rq)
 
     def report_fixture(self, name: str, error_msg: str) -> None:
@@ -864,15 +869,15 @@ class PyTestServiceClass:
 
         try:
             outcome = yield
-            if outcome.exception:
-                log.error(error_msg)
-                log.exception(outcome.exception)
-                reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
-            else:
-                reporter.finish_nested_step(item_id, timestamp(), 'PASSED')
+            exception = outcome.exception
+            status = 'PASSED'
+            if exception:
+                if type(exception).__name__ != 'Skipped':
+                    status = 'FAILED'
+            reporter.finish_nested_step(item_id, timestamp(), status)
         except Exception as e:
-            log.error('Failed to report fixture: %s', name)
-            log.exception(e)
+            LOGGER.error('Failed to report fixture: %s', name)
+            LOGGER.exception(e)
             reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
 
     def start(self) -> None:
@@ -883,9 +888,9 @@ class PyTestServiceClass:
                 self._config.rp_ignore_attributes or []
             ).union({'parametrize'})
         )
-        log.debug('ReportPortal - Init service: endpoint=%s, '
-                  'project=%s, api_key=%s', self._config.rp_endpoint,
-                  self._config.rp_project, self._config.rp_api_key)
+        LOGGER.debug('ReportPortal - Init service: endpoint=%s, '
+                     'project=%s, api_key=%s', self._config.rp_endpoint,
+                     self._config.rp_project, self._config.rp_api_key)
         launch_id = self._launch_id
         if self._config.rp_launch_id:
             launch_id = self._config.rp_launch_id
