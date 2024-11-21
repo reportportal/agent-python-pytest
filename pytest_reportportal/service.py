@@ -218,9 +218,8 @@ class PyTestServiceClass:
         """
         root_path = item.session.config.rootdir.strpath
         dir_path = item.fspath.new(basename="")
-        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
-                               drive="")
-        return [d for d in rel_dir.parts(reverse=False) if d.basename]
+        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="", drive="")
+        return [str(d) for d in rel_dir.parts(reverse=False) if d.basename]
 
     def _get_tree_path(self, item: Item) -> List[Item]:
         """Get item of parents.
