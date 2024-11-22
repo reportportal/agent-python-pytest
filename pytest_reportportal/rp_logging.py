@@ -18,6 +18,7 @@ import logging
 import threading
 from contextlib import contextmanager
 from functools import wraps
+from typing import Any
 
 from reportportal_client import current, set_current
 from reportportal_client import RPLogger
@@ -116,23 +117,22 @@ def patching_logger_class():
     try:
         def wrap_log(original_func):
             @wraps(original_func)
-            def _log(self, *args, **kwargs):
-                attachment = kwargs.pop('attachment', None)
+            def _log(self, *args: list[Any], **kwargs: dict[str, Any]):
+                my_kwargs = kwargs.copy()
+                attachment = my_kwargs.pop('attachment', None)
                 if attachment is not None:
-                    kwargs.setdefault('extra', {}).update(
-                        {'attachment': attachment})
+                    my_kwargs.setdefault('extra', {}).update({'attachment': attachment})
+
                 #  Python 3.11 start catches stack frames in wrappers,
                 #  so add additional stack level skip to not show it
                 if sys.version_info >= (3, 11):
-                    my_kwargs = kwargs.copy()
-                    if 'stacklevel' in kwargs:
+                    if 'stacklevel' in my_kwargs:
                         my_kwargs['stacklevel'] = my_kwargs['stacklevel'] + 1
                     else:
                         my_kwargs['stacklevel'] = 2
                     return original_func(self, *args, **my_kwargs)
                 else:
-                    return original_func(self, *args, **kwargs)
-
+                    return original_func(self, *args, **my_kwargs)
             return _log
 
         def wrap_makeRecord(original_func):
