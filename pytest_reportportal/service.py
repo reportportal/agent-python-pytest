@@ -167,6 +167,8 @@ class PyTestServiceClass:
         project_settings = self.project_settings
         if not isinstance(self.project_settings, dict):
             project_settings = project_settings.blocking_result()
+        if not project_settings:
+            return self._issue_types
         for values in project_settings["subTypes"].values():
             for item in values:
                 self._issue_types[item["shortName"]] = item["locator"]
@@ -864,6 +866,10 @@ class PyTestServiceClass:
         :param name:       Name of the fixture
         :param error_msg:  Error message
         """
+        if not self.rp:
+            yield
+            return
+
         reporter = self.rp.step_reporter
         item_id = reporter.start_nested_step(name, timestamp())
 
@@ -874,6 +880,7 @@ class PyTestServiceClass:
             if exception:
                 if type(exception).__name__ != 'Skipped':
                     status = 'FAILED'
+                    self.post_log(name, error_msg, log_level='ERROR')
             reporter.finish_nested_step(item_id, timestamp(), status)
         except Exception as e:
             LOGGER.error('Failed to report fixture: %s', name)
