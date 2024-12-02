@@ -431,8 +431,8 @@ class PyTestServiceClass:
                 continue
             self._lock(leaf, lambda p: self._create_suite(p))
 
-    def _get_item_name(self, mark, leaf: Dict[str, Any]) -> str:
-        return leaf['name']
+    def _get_item_name(self, mark) -> Optional[str]:
+        pass
 
     def _get_code_ref(self, item):
         # Generate script path from work dir, use only backslashes to have the
@@ -565,9 +565,13 @@ class PyTestServiceClass:
         :return: Item Name string
         """
         item = leaf['item']
+        name = leaf['name']
         names = [m for m in item.iter_markers() if m.name == 'name']
         if len(names) > 0:
-            return self._get_item_name(names[0], leaf)
+            mark_name = self._get_item_name(names[0])
+            if mark_name:
+                name = mark_name
+        return name
 
     def _get_parameters(self, item):
         """
