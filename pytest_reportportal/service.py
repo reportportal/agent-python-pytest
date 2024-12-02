@@ -431,8 +431,8 @@ class PyTestServiceClass:
                 continue
             self._lock(leaf, lambda p: self._create_suite(p))
 
-    def _get_item_name(self, mark) -> str:
-        pass
+    def _get_item_name(self, mark, leaf: Dict[str, Any]) -> str:
+        return leaf['name']
 
     def _get_code_ref(self, item):
         # Generate script path from work dir, use only backslashes to have the
@@ -557,16 +557,17 @@ class PyTestServiceClass:
         else:
             return {'value': attribute_tuple[1]}
 
-    def _process_item_name(self, item) -> str:
+    def _process_item_name(self, leaf: Dict[str, Any]) -> str:
         """
         Process Item Name if set.
 
-        :param item: Pytest.Item
+        :param leaf: item context
         :return: Item Name string
         """
+        item = leaf['item']
         names = [m for m in item.iter_markers() if m.name == 'name']
         if len(names) > 0:
-            return self._get_item_name(names[0])
+            return self._get_item_name(names[0], leaf)
 
     def _get_parameters(self, item):
         """
@@ -632,7 +633,7 @@ class PyTestServiceClass:
         :param leaf: item context
         """
         item = leaf['item']
-        leaf['name'] = self._get_item_name(item)
+        leaf['name'] = self._process_item_name(leaf)
         leaf['parameters'] = self._get_parameters(item)
         leaf['code_ref'] = self._get_code_ref(item)
         leaf['test_case_id'] = self._process_test_case_id(leaf)
