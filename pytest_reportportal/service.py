@@ -24,6 +24,7 @@ from typing import List, Any, Optional, Set, Dict, Tuple, Union, Callable
 
 from _pytest.doctest import DoctestItem
 from aenum import auto, Enum, unique
+from py.path import local
 from pytest import Class, Function, Module, Package, Item, Session, PytestWarning
 from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import Issue, ExternalIssue
@@ -167,6 +168,8 @@ class PyTestServiceClass:
         project_settings = self.project_settings
         if not isinstance(self.project_settings, dict):
             project_settings = project_settings.blocking_result()
+        if not project_settings:
+            return self._issue_types
         for values in project_settings["subTypes"].values():
             for item in values:
                 self._issue_types[item["shortName"]] = item["locator"]
@@ -210,7 +213,7 @@ class PyTestServiceClass:
         LOGGER.debug('ReportPortal - Launch started: id=%s', self._launch_id)
         return self._launch_id
 
-    def _get_item_dirs(self, item: Item) -> List[str]:
+    def _get_item_dirs(self, item: Item) -> List[local]:
         """
         Get directory of item.
 
@@ -219,8 +222,7 @@ class PyTestServiceClass:
         """
         root_path = item.session.config.rootdir.strpath
         dir_path = item.fspath.new(basename="")
-        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
-                               drive="")
+        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="", drive="")
         return [d for d in rel_dir.parts(reverse=False) if d.basename]
 
     def _get_tree_path(self, item: Item) -> List[Item]:
@@ -874,6 +876,10 @@ class PyTestServiceClass:
         :param name:       Name of the fixture
         :param error_msg:  Error message
         """
+        if not self.rp:
+            yield
+            return
+
         reporter = self.rp.step_reporter
         item_id = reporter.start_nested_step(name, timestamp())
 
@@ -884,6 +890,7 @@ class PyTestServiceClass:
             if exception:
                 if type(exception).__name__ != 'Skipped':
                     status = 'FAILED'
+                    self.post_log(name, error_msg, log_level='ERROR')
             reporter.finish_nested_step(item_id, timestamp(), status)
         except Exception as e:
             LOGGER.error('Failed to report fixture: %s', name)
