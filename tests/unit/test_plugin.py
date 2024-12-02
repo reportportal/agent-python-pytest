@@ -353,6 +353,7 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_hierarchy_code',
         'rp_hierarchy_dirs_level',
         'rp_hierarchy_dirs',
+        'rp_display_suite_test_file',
         'rp_hierarchy_dir_path_separator',
         'rp_issue_system_url',
         'rp_bts_issue_url',
