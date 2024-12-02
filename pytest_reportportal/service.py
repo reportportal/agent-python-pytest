@@ -511,10 +511,8 @@ class PyTestServiceClass:
         issues = ""
         for i, issue_id in enumerate(issue_ids):
             issue_url = issue_urls[i]
-            template = ISSUE_DESCRIPTION_URL_TEMPLATE if issue_url \
-                else ISSUE_DESCRIPTION_ID_TEMPLATE
-            issues += template.format(issue_id=issue_id,
-                                      url=issue_url)
+            template = ISSUE_DESCRIPTION_URL_TEMPLATE if issue_url else ISSUE_DESCRIPTION_ID_TEMPLATE
+            issues += template.format(issue_id=issue_id, url=issue_url)
         return ISSUE_DESCRIPTION_LINE_TEMPLATE.format(reason, issues)
 
     def _get_issue(self, mark):
@@ -525,8 +523,7 @@ class PyTestServiceClass:
         """
         default_url = self._config.rp_bts_issue_url
 
-        issue_description_line = \
-            self._get_issue_description_line(mark, default_url)
+        issue_description_line = self._get_issue_description_line(mark, default_url)
 
         # Set issue_type only for first issue mark
         issue_short_name = None
@@ -534,22 +531,19 @@ class PyTestServiceClass:
             issue_short_name = mark.kwargs["issue_type"]
 
         # default value
-        issue_short_name = "TI" if issue_short_name is None else \
-            issue_short_name
+        issue_short_name = "TI" if issue_short_name is None else issue_short_name
 
         registered_issues = self.issue_types
         issue = None
         if issue_short_name in registered_issues:
-            issue = Issue(registered_issues[issue_short_name],
-                          issue_description_line)
+            issue = Issue(registered_issues[issue_short_name], issue_description_line)
 
         if issue and self._config.rp_bts_project and self._config.rp_bts_url:
             issue_ids = self._get_issue_ids(mark)
             issue_urls = self._get_issue_urls(mark, default_url)
             for issue_id, issue_url in zip(issue_ids, issue_urls):
                 issue.external_issue_add(
-                    ExternalIssue(bts_url=self._config.rp_bts_url,
-                                  bts_project=self._config.rp_bts_project,
+                    ExternalIssue(bts_url=self._config.rp_bts_url, bts_project=self._config.rp_bts_project,
                                   ticket_id=issue_id, url=issue_url)
                 )
         return issue
