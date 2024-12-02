@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Support for `Python 3.13`, by @HardNorth
 ### Fixed
 - Agent crash if Client could not be initialized, by @HardNorth
 ### Changed
