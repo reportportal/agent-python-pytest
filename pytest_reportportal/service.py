@@ -360,7 +360,7 @@ class PyTestServiceClass:
             self._merge_code(test_tree)
         self._build_item_paths(test_tree, [])
 
-    def _get_item_name(self, name: str) -> str:
+    def _truncate_item_name(self, name: str) -> str:
         """Get name of item.
 
         :param name: Test Item name
@@ -403,7 +403,7 @@ class PyTestServiceClass:
         code_ref = str(leaf['item']) if leaf['type'] == LeafType.DIR else str(leaf['item'].fspath)
         parent_item_id = self._lock(leaf['parent'], lambda p: p.get('item_id')) if 'parent' in leaf else None
         payload = {
-            'name': self._get_item_name(leaf['name']),
+            'name': self._truncate_item_name(leaf['name']),
             'description': self._get_item_description(leaf['item']),
             'start_time': timestamp(),
             'item_type': 'SUITE',
@@ -431,6 +431,9 @@ class PyTestServiceClass:
                 continue
             self._lock(leaf, lambda p: self._create_suite(p))
 
+    def _get_item_name(self, mark) -> str:
+        pass
+
     def _get_code_ref(self, item):
         # Generate script path from work dir, use only backslashes to have the
         # same path on different systems and do not affect Test Case ID on
@@ -451,7 +454,7 @@ class PyTestServiceClass:
         class_path = '.'.join(classes)
         return '{0}:{1}'.format(path, class_path)
 
-    def _get_test_case_id(self, mark, leaf):
+    def _get_test_case_id(self, mark, leaf) -> str:
         parameters = leaf.get('parameters', None)
         parameterized = True
         selected_params = None
@@ -515,7 +518,7 @@ class PyTestServiceClass:
             issues += template.format(issue_id=issue_id, url=issue_url)
         return ISSUE_DESCRIPTION_LINE_TEMPLATE.format(reason, issues)
 
-    def _get_issue(self, mark):
+    def _get_issue(self, mark) -> Issue:
         """Add issues description and issue_type to the test item.
 
         :param mark: pytest mark
@@ -554,6 +557,17 @@ class PyTestServiceClass:
         else:
             return {'value': attribute_tuple[1]}
 
+    def _process_item_name(self, item) -> str:
+        """
+        Process Item Name if set.
+
+        :param item: Pytest.Item
+        :return: Item Name string
+        """
+        names = [m for m in item.iter_markers() if m.name == 'name']
+        if len(names) > 0:
+            return self._get_item_name(names[0])
+
     def _get_parameters(self, item):
         """
         Get params of item.
@@ -575,7 +589,7 @@ class PyTestServiceClass:
             return self._get_test_case_id(tc_ids[0], leaf)
         return self._get_test_case_id(None, leaf)
 
-    def _process_issue(self, item):
+    def _process_issue(self, item) -> Issue:
         """
         Process Issue if set.
 
@@ -611,20 +625,21 @@ class PyTestServiceClass:
         return [self._to_attribute(attribute)
                 for attribute in attributes]
 
-    def _process_metadata_item_start(self, leaf):
+    def _process_metadata_item_start(self, leaf: Dict[str, Any]):
         """
         Process all types of item metadata for its start event.
 
         :param leaf: item context
         """
         item = leaf['item']
+        leaf['name'] = self._get_item_name(item)
         leaf['parameters'] = self._get_parameters(item)
         leaf['code_ref'] = self._get_code_ref(item)
         leaf['test_case_id'] = self._process_test_case_id(leaf)
         leaf['issue'] = self._process_issue(item)
         leaf['attributes'] = self._process_attributes(item)
 
-    def _process_metadata_item_finish(self, leaf):
+    def _process_metadata_item_finish(self, leaf: Dict[str, Any]):
         """
         Process all types of item metadata for its finish event.
 
@@ -637,7 +652,7 @@ class PyTestServiceClass:
     def _build_start_step_rq(self, leaf):
         payload = {
             'attributes': leaf.get('attributes', None),
-            'name': self._get_item_name(leaf['name']),
+            'name': self._truncate_item_name(leaf['name']),
             'description': self._get_item_description(leaf['item']),
             'start_time': timestamp(),
             'item_type': 'STEP',
@@ -674,10 +689,6 @@ class PyTestServiceClass:
             self.start()
 
         self._create_suite_path(test_item)
-
-        # Item type should be sent as "STEP" until we upgrade to RPv6.
-        # Details at:
-        # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
         current_leaf = self._tree_path[test_item][-1]
         self._process_metadata_item_start(current_leaf)
         item_id = self._start_step(self._build_start_step_rq(current_leaf))
