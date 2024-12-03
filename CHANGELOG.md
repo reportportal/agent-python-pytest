@@ -1,6 +1,16 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Support for `Python 3.13`, by @HardNorth
+- Support for `name` Pytest marker, by @HardNorth
+- `rp_hierarchy_test_file` configuration parameter, which controls display of test file name in the hierarchy, by @ramir-dn, @HardNorth
+### Fixed
+- Agent crash if Client could not be initialized, by @HardNorth
+### Changed
+- Client version updated on [5.5.10](https://github.com/reportportal/client-Python/releases/tag/5.5.10), by @HardNorth
+
+## [5.4.5]
 ### Fixed
 - Issue [#379](https://github.com/reportportal/agent-python-pytest/issues/379): Fix TypeError when using pytest.skip() in fixtures, by @HardNorth
 

@@ -24,6 +24,7 @@ from typing import List, Any, Optional, Set, Dict, Tuple, Union, Callable
 
 from _pytest.doctest import DoctestItem
 from aenum import auto, Enum, unique
+from py.path import local
 from pytest import Class, Function, Module, Package, Item, Session, PytestWarning
 from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import Issue, ExternalIssue
@@ -99,6 +100,7 @@ class LeafType(Enum):
     """This class stores test item path types."""
 
     DIR = auto()
+    FILE = auto()
     CODE = auto()
     ROOT = auto()
 
@@ -166,6 +168,8 @@ class PyTestServiceClass:
         project_settings = self.project_settings
         if not isinstance(self.project_settings, dict):
             project_settings = project_settings.blocking_result()
+        if not project_settings:
+            return self._issue_types
         for values in project_settings["subTypes"].values():
             for item in values:
                 self._issue_types[item["shortName"]] = item["locator"]
@@ -209,7 +213,7 @@ class PyTestServiceClass:
         LOGGER.debug('ReportPortal - Launch started: id=%s', self._launch_id)
         return self._launch_id
 
-    def _get_item_dirs(self, item: Item) -> List[str]:
+    def _get_item_dirs(self, item: Item) -> List[local]:
         """
         Get directory of item.
 
@@ -218,8 +222,7 @@ class PyTestServiceClass:
         """
         root_path = item.session.config.rootdir.strpath
         dir_path = item.fspath.new(basename="")
-        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="",
-                               drive="")
+        rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="", drive="")
         return [d for d in rel_dir.parts(reverse=False) if d.basename]
 
     def _get_tree_path(self, item: Item) -> List[Item]:
@@ -238,7 +241,7 @@ class PyTestServiceClass:
         path.reverse()
         return path
 
-    def _get_leaf(self, leaf_type: LeafType, parent_item: Optional[Dict[str, Any]], item: Optional[Item],
+    def _get_leaf(self, leaf_type, parent_item: Optional[Dict[str, Any]], item: Optional[Item],
                   item_id: Optional[str] = None) -> Dict[str, Any]:
         """Construct a leaf for the itest tree.
 
@@ -270,7 +273,9 @@ class PyTestServiceClass:
                 children_leafs = current_leaf['children']
 
                 leaf_type = LeafType.DIR
-                if i >= len(dir_path):
+                if i == len(dir_path):
+                    leaf_type = LeafType.FILE
+                if i > len(dir_path):
                     leaf_type = LeafType.CODE
 
                 if leaf not in children_leafs:
@@ -278,11 +283,12 @@ class PyTestServiceClass:
                 current_leaf = children_leafs[leaf]
         return test_tree
 
-    def _remove_root_dirs(self, test_tree: Dict[str, Any], max_dir_level, dir_level=0) -> None:
+    def _remove_root_dirs(self, test_tree: Dict[str, Any], max_dir_level: int, dir_level: int = 0) -> None:
         if test_tree['type'] == LeafType.ROOT:
-            for item, child_leaf in test_tree['children'].items():
+            items = list(test_tree['children'].items())
+            for item, child_leaf in items:
                 self._remove_root_dirs(child_leaf, max_dir_level, 1)
-                return
+            return
         if test_tree['type'] == LeafType.DIR and dir_level <= max_dir_level:
             new_level = dir_level + 1
             parent_leaf = test_tree['parent']
@@ -293,6 +299,21 @@ class PyTestServiceClass:
                 child_leaf['parent'] = parent_leaf
                 self._remove_root_dirs(child_leaf, max_dir_level, new_level)
 
+    def _remove_file_names(self, test_tree: Dict[str, Any]) -> None:
+        if test_tree['type'] != LeafType.FILE:
+            items = list(test_tree['children'].items())
+            for item, child_leaf in items:
+                self._remove_file_names(child_leaf)
+            return
+        if not self._config.rp_hierarchy_test_file:
+            parent_leaf = test_tree['parent']
+            current_item = test_tree['item']
+            del parent_leaf['children'][current_item]
+            for item, child_leaf in test_tree['children'].items():
+                parent_leaf['children'][item] = child_leaf
+                child_leaf['parent'] = parent_leaf
+                self._remove_file_names(child_leaf)
+
     def _generate_names(self, test_tree: Dict[str, Any]) -> None:
         if test_tree['type'] == LeafType.ROOT:
             test_tree['name'] = 'root'
@@ -300,7 +321,7 @@ class PyTestServiceClass:
         if test_tree['type'] == LeafType.DIR:
             test_tree['name'] = test_tree['item'].basename
 
-        if test_tree['type'] == LeafType.CODE:
+        if test_tree['type'] in {LeafType.CODE, LeafType.FILE}:
             item = test_tree['item']
             if isinstance(item, Module):
                 test_tree['name'] = os.path.split(str(item.fspath))[1]
@@ -310,11 +331,11 @@ class PyTestServiceClass:
         for item, child_leaf in test_tree['children'].items():
             self._generate_names(child_leaf)
 
-    def _merge_leaf_type(self, test_tree, leaf_type, separator):
+    def _merge_leaf_types(self, test_tree: Dict[str, Any], leaf_types: Set, separator: str):
         child_items = list(test_tree['children'].items())
-        if test_tree['type'] != leaf_type:
+        if test_tree['type'] not in leaf_types:
             for item, child_leaf in child_items:
-                self._merge_leaf_type(child_leaf, leaf_type, separator)
+                self._merge_leaf_types(child_leaf, leaf_types, separator)
         elif len(test_tree['children'].items()) > 0:
             parent_leaf = test_tree['parent']
             current_item = test_tree['item']
@@ -323,15 +344,14 @@ class PyTestServiceClass:
             for item, child_leaf in child_items:
                 parent_leaf['children'][item] = child_leaf
                 child_leaf['parent'] = parent_leaf
-                child_leaf['name'] = \
-                    current_name + separator + child_leaf['name']
-                self._merge_leaf_type(child_leaf, leaf_type, separator)
+                child_leaf['name'] = current_name + separator + child_leaf['name']
+                self._merge_leaf_types(child_leaf, leaf_types, separator)
 
     def _merge_dirs(self, test_tree: Dict[str, Any]) -> None:
-        self._merge_leaf_type(test_tree, LeafType.DIR, self._config.rp_dir_path_separator)
+        self._merge_leaf_types(test_tree, {LeafType.DIR}, self._config.rp_dir_path_separator)
 
     def _merge_code(self, test_tree: Dict[str, Any]) -> None:
-        self._merge_leaf_type(test_tree, LeafType.CODE, '::')
+        self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE}, '::')
 
     def _build_item_paths(self, leaf: Dict[str, Any], path: List[Dict[str, Any]]) -> None:
         if 'children' in leaf and len(leaf['children']) > 0:
@@ -351,6 +371,7 @@ class PyTestServiceClass:
         # Create a test tree to be able to apply mutations
         test_tree = self._build_test_tree(session)
         self._remove_root_dirs(test_tree, self._config.rp_dir_level)
+        self._remove_file_names(test_tree)
         self._generate_names(test_tree)
         if not self._config.rp_hierarchy_dirs:
             self._merge_dirs(test_tree)
@@ -358,7 +379,7 @@ class PyTestServiceClass:
             self._merge_code(test_tree)
         self._build_item_paths(test_tree, [])
 
-    def _get_item_name(self, name: str) -> str:
+    def _truncate_item_name(self, name: str) -> str:
         """Get name of item.
 
         :param name: Test Item name
@@ -401,7 +422,7 @@ class PyTestServiceClass:
         code_ref = str(leaf['item']) if leaf['type'] == LeafType.DIR else str(leaf['item'].fspath)
         parent_item_id = self._lock(leaf['parent'], lambda p: p.get('item_id')) if 'parent' in leaf else None
         payload = {
-            'name': self._get_item_name(leaf['name']),
+            'name': self._truncate_item_name(leaf['name']),
             'description': self._get_item_description(leaf['item']),
             'start_time': timestamp(),
             'item_type': 'SUITE',
@@ -429,6 +450,9 @@ class PyTestServiceClass:
                 continue
             self._lock(leaf, lambda p: self._create_suite(p))
 
+    def _get_item_name(self, mark) -> Optional[str]:
+        return mark.kwargs.get('name', mark.args[0] if mark.args else None)
+
     def _get_code_ref(self, item):
         # Generate script path from work dir, use only backslashes to have the
         # same path on different systems and do not affect Test Case ID on
@@ -449,7 +473,7 @@ class PyTestServiceClass:
         class_path = '.'.join(classes)
         return '{0}:{1}'.format(path, class_path)
 
-    def _get_test_case_id(self, mark, leaf):
+    def _get_test_case_id(self, mark, leaf) -> str:
         parameters = leaf.get('parameters', None)
         parameterized = True
         selected_params = None
@@ -509,13 +533,11 @@ class PyTestServiceClass:
         issues = ""
         for i, issue_id in enumerate(issue_ids):
             issue_url = issue_urls[i]
-            template = ISSUE_DESCRIPTION_URL_TEMPLATE if issue_url \
-                else ISSUE_DESCRIPTION_ID_TEMPLATE
-            issues += template.format(issue_id=issue_id,
-                                      url=issue_url)
+            template = ISSUE_DESCRIPTION_URL_TEMPLATE if issue_url else ISSUE_DESCRIPTION_ID_TEMPLATE
+            issues += template.format(issue_id=issue_id, url=issue_url)
         return ISSUE_DESCRIPTION_LINE_TEMPLATE.format(reason, issues)
 
-    def _get_issue(self, mark):
+    def _get_issue(self, mark) -> Issue:
         """Add issues description and issue_type to the test item.
 
         :param mark: pytest mark
@@ -523,8 +545,7 @@ class PyTestServiceClass:
         """
         default_url = self._config.rp_bts_issue_url
 
-        issue_description_line = \
-            self._get_issue_description_line(mark, default_url)
+        issue_description_line = self._get_issue_description_line(mark, default_url)
 
         # Set issue_type only for first issue mark
         issue_short_name = None
@@ -532,22 +553,19 @@ class PyTestServiceClass:
             issue_short_name = mark.kwargs["issue_type"]
 
         # default value
-        issue_short_name = "TI" if issue_short_name is None else \
-            issue_short_name
+        issue_short_name = "TI" if issue_short_name is None else issue_short_name
 
         registered_issues = self.issue_types
         issue = None
         if issue_short_name in registered_issues:
-            issue = Issue(registered_issues[issue_short_name],
-                          issue_description_line)
+            issue = Issue(registered_issues[issue_short_name], issue_description_line)
 
         if issue and self._config.rp_bts_project and self._config.rp_bts_url:
             issue_ids = self._get_issue_ids(mark)
             issue_urls = self._get_issue_urls(mark, default_url)
             for issue_id, issue_url in zip(issue_ids, issue_urls):
                 issue.external_issue_add(
-                    ExternalIssue(bts_url=self._config.rp_bts_url,
-                                  bts_project=self._config.rp_bts_project,
+                    ExternalIssue(bts_url=self._config.rp_bts_url, bts_project=self._config.rp_bts_project,
                                   ticket_id=issue_id, url=issue_url)
                 )
         return issue
@@ -557,6 +575,22 @@ class PyTestServiceClass:
             return {'key': attribute_tuple[0], 'value': attribute_tuple[1]}
         else:
             return {'value': attribute_tuple[1]}
+
+    def _process_item_name(self, leaf: Dict[str, Any]) -> str:
+        """
+        Process Item Name if set.
+
+        :param leaf: item context
+        :return: Item Name string
+        """
+        item = leaf['item']
+        name = leaf['name']
+        names = [m for m in item.iter_markers() if m.name == 'name']
+        if len(names) > 0:
+            mark_name = self._get_item_name(names[0])
+            if mark_name:
+                name = mark_name
+        return name
 
     def _get_parameters(self, item):
         """
@@ -579,7 +613,7 @@ class PyTestServiceClass:
             return self._get_test_case_id(tc_ids[0], leaf)
         return self._get_test_case_id(None, leaf)
 
-    def _process_issue(self, item):
+    def _process_issue(self, item) -> Issue:
         """
         Process Issue if set.
 
@@ -604,6 +638,8 @@ class PyTestServiceClass:
                     for issue_id in self._get_issue_ids(marker):
                         attributes.add((marker.name, issue_id))
                 continue
+            if marker.name == 'name':
+                continue
             if marker.name in self._config.rp_ignore_attributes \
                     or marker.name in PYTEST_MARKS_IGNORE:
                 continue
@@ -612,23 +648,23 @@ class PyTestServiceClass:
             else:
                 attributes.add((None, marker.name))
 
-        return [self._to_attribute(attribute)
-                for attribute in attributes]
+        return [self._to_attribute(attribute) for attribute in attributes]
 
-    def _process_metadata_item_start(self, leaf):
+    def _process_metadata_item_start(self, leaf: Dict[str, Any]):
         """
         Process all types of item metadata for its start event.
 
         :param leaf: item context
         """
         item = leaf['item']
+        leaf['name'] = self._process_item_name(leaf)
         leaf['parameters'] = self._get_parameters(item)
         leaf['code_ref'] = self._get_code_ref(item)
         leaf['test_case_id'] = self._process_test_case_id(leaf)
         leaf['issue'] = self._process_issue(item)
         leaf['attributes'] = self._process_attributes(item)
 
-    def _process_metadata_item_finish(self, leaf):
+    def _process_metadata_item_finish(self, leaf: Dict[str, Any]):
         """
         Process all types of item metadata for its finish event.
 
@@ -641,7 +677,7 @@ class PyTestServiceClass:
     def _build_start_step_rq(self, leaf):
         payload = {
             'attributes': leaf.get('attributes', None),
-            'name': self._get_item_name(leaf['name']),
+            'name': self._truncate_item_name(leaf['name']),
             'description': self._get_item_description(leaf['item']),
             'start_time': timestamp(),
             'item_type': 'STEP',
@@ -678,10 +714,6 @@ class PyTestServiceClass:
             self.start()
 
         self._create_suite_path(test_item)
-
-        # Item type should be sent as "STEP" until we upgrade to RPv6.
-        # Details at:
-        # https://github.com/reportportal/agent-Python-RobotFramework/issues/56
         current_leaf = self._tree_path[test_item][-1]
         self._process_metadata_item_start(current_leaf)
         item_id = self._start_step(self._build_start_step_rq(current_leaf))
@@ -864,6 +896,10 @@ class PyTestServiceClass:
         :param name:       Name of the fixture
         :param error_msg:  Error message
         """
+        if not self.rp:
+            yield
+            return
+
         reporter = self.rp.step_reporter
         item_id = reporter.start_nested_step(name, timestamp())
 
@@ -874,6 +910,7 @@ class PyTestServiceClass:
             if exception:
                 if type(exception).__name__ != 'Skipped':
                     status = 'FAILED'
+                    self.post_log(name, error_msg, log_level='ERROR')
             reporter.finish_nested_step(item_id, timestamp(), status)
         except Exception as e:
             LOGGER.error('Failed to report fixture: %s', name)

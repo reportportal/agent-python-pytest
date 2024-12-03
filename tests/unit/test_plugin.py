@@ -55,8 +55,8 @@ def test_logger_handle_attachment(mock_handler, logger, log_level):
     log_call("Some {} message".format(log_level), attachment=attachment)
     expect(mock_handler.call_count == 1,
            'logger.handle called more than 1 time')
-    expect(getattr(mock_handler.call_args[0][0], "attachment") == attachment,
-           'record.attachment in args doesn\'t match real value')
+    expect(getattr(mock_handler.call_args[0][0], 'attachment') == attachment,
+           "record.attachment in args doesn't match real value")
     assert_expectations()
 
 
@@ -327,6 +327,7 @@ def test_pytest_sessionfinish(mocked_session):
 
 def test_pytest_addoption_adds_correct_ini_file_arguments():
     """Test the correct list of options are available in the .ini file."""
+    mock_parser = mock.MagicMock(spec=Parser)
     expected_argument_names = (
         'rp_launch',
         'rp_launch_id',
@@ -354,6 +355,7 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_hierarchy_dirs_level',
         'rp_hierarchy_dirs',
         'rp_hierarchy_dir_path_separator',
+        'rp_hierarchy_test_file',
         'rp_issue_system_url',
         'rp_bts_issue_url',
         'rp_bts_project',
@@ -369,7 +371,6 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         'rp_read_timeout',
         'rp_report_fixtures'
     )
-    mock_parser = mock.MagicMock(spec=Parser)
 
     pytest_addoption(mock_parser)
 

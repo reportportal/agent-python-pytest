@@ -14,7 +14,6 @@
 """This module includes integration tests for different suite hierarchy."""
 
 import pytest
-from delayed_assert import expect, assert_expectations
 from unittest import mock
 
 from tests import REPORT_PORTAL_SERVICE
@@ -29,11 +28,10 @@ def verify_start_item_parameters(mock_client, expected_items):
     call_args = mock_client.start_test_item.call_args_list
     for i, call in enumerate(call_args):
         start_kwargs = call[1]
-        expect(start_kwargs['name'] == expected_items[i]['name'])
-        expect(start_kwargs['item_type'] == expected_items[i]['item_type'])
+        assert start_kwargs['name'] == expected_items[i]['name']
+        assert start_kwargs['item_type'] == expected_items[i]['item_type']
         verification = expected_items[i]['parent_item_id']
-        expect(verification(start_kwargs['parent_item_id']))
-    assert_expectations()
+        assert verification(start_kwargs['parent_item_id'])
 
 
 @pytest.mark.parametrize(('test', 'variables', 'expected_items'),

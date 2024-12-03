@@ -165,6 +165,9 @@ def register_markers(config) -> None:
                    "params [parameter names as list] - use only specified"
                    "parameters"
     )
+    config.addinivalue_line(
+        "markers", "name(name): report the test case with a custom Name."
+    )
 
 
 def check_connection(agent_config: AgentConfig):
@@ -505,6 +508,11 @@ def pytest_addoption(parser) -> None:
         'rp_hierarchy_dir_path_separator',
         default=os.path.sep,
         help='Path separator to display directories in test hierarchy')
+    parser.addini(
+        'rp_hierarchy_test_file',
+        default=True,
+        type='bool',
+        help='Show file name in hierarchy')
     parser.addini(
         'rp_issue_system_url',
         default='',

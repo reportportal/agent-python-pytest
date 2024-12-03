@@ -19,8 +19,8 @@ from typing import Optional, Union, Any, Tuple
 
 from _pytest.config import Config
 from reportportal_client import OutputType, ClientType
-from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from reportportal_client.helpers import to_bool
+from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 try:
     # This try/except can go away once we support pytest >= 5.4.0
@@ -40,6 +40,7 @@ class AgentConfig:
     rp_hierarchy_code: bool
     rp_dir_level: int
     rp_hierarchy_dirs: bool
+    rp_hierarchy_test_file: bool
     rp_dir_path_separator: str
     rp_ignore_attributes: set
     rp_is_skipped_an_issue: bool
@@ -71,24 +72,16 @@ class AgentConfig:
 
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
-        self.rp_rerun = (pytest_config.option.rp_rerun or
-                         pytest_config.getini('rp_rerun'))
+        self.rp_rerun = (pytest_config.option.rp_rerun or pytest_config.getini('rp_rerun'))
         self.rp_endpoint = self.find_option(pytest_config, 'rp_endpoint')
-        self.rp_hierarchy_code = self.find_option(pytest_config,
-                                                  'rp_hierarchy_code')
-        self.rp_dir_level = int(self.find_option(pytest_config,
-                                                 'rp_hierarchy_dirs_level'))
-        self.rp_hierarchy_dirs = self.find_option(pytest_config,
-                                                  'rp_hierarchy_dirs')
-        self.rp_dir_path_separator = \
-            self.find_option(pytest_config, 'rp_hierarchy_dir_path_separator')
+        self.rp_hierarchy_code = to_bool(self.find_option(pytest_config, 'rp_hierarchy_code'))
+        self.rp_dir_level = int(self.find_option(pytest_config, 'rp_hierarchy_dirs_level'))
+        self.rp_hierarchy_dirs = to_bool(self.find_option(pytest_config, 'rp_hierarchy_dirs'))
+        self.rp_dir_path_separator = self.find_option(pytest_config, 'rp_hierarchy_dir_path_separator')
+        self.rp_hierarchy_test_file = to_bool(self.find_option(pytest_config, 'rp_hierarchy_test_file'))
         self.rp_ignore_attributes = set(self.find_option(pytest_config, 'rp_ignore_attributes') or [])
-        self.rp_is_skipped_an_issue = self.find_option(
-            pytest_config,
-            'rp_is_skipped_an_issue'
-        )
-        self.rp_issue_id_marks = self.find_option(pytest_config,
-                                                  'rp_issue_id_marks')
+        self.rp_is_skipped_an_issue = self.find_option(pytest_config, 'rp_is_skipped_an_issue')
+        self.rp_issue_id_marks = self.find_option(pytest_config, 'rp_issue_id_marks')
         self.rp_bts_issue_url = self.find_option(pytest_config, 'rp_bts_issue_url')
         if not self.rp_bts_issue_url:
             self.rp_bts_issue_url = self.find_option(pytest_config, 'rp_issue_system_url')
@@ -103,14 +96,10 @@ class AgentConfig:
         self.rp_bts_url = self.find_option(pytest_config, 'rp_bts_url')
         self.rp_launch = self.find_option(pytest_config, 'rp_launch')
         self.rp_launch_id = self.find_option(pytest_config, 'rp_launch_id')
-        self.rp_launch_attributes = self.find_option(pytest_config,
-                                                     'rp_launch_attributes')
-        self.rp_launch_description = self.find_option(pytest_config,
-                                                      'rp_launch_description')
-        self.rp_log_batch_size = int(self.find_option(pytest_config,
-                                                      'rp_log_batch_size'))
-        batch_payload_size = self.find_option(
-            pytest_config, 'rp_log_batch_payload_size')
+        self.rp_launch_attributes = self.find_option(pytest_config, 'rp_launch_attributes')
+        self.rp_launch_description = self.find_option(pytest_config, 'rp_launch_description')
+        self.rp_log_batch_size = int(self.find_option(pytest_config, 'rp_log_batch_size'))
+        batch_payload_size = self.find_option(pytest_config, 'rp_log_batch_payload_size')
         if batch_payload_size:
             self.rp_log_batch_payload_size = int(batch_payload_size)
         else:
@@ -119,16 +108,10 @@ class AgentConfig:
         self.rp_log_format = self.find_option(pytest_config, 'rp_log_format')
         self.rp_thread_logging = to_bool(self.find_option(pytest_config, 'rp_thread_logging') or False)
         self.rp_mode = self.find_option(pytest_config, 'rp_mode')
-        self.rp_parent_item_id = self.find_option(pytest_config,
-                                                  'rp_parent_item_id')
-        self.rp_project = self.find_option(pytest_config,
-                                           'rp_project')
-        self.rp_rerun_of = self.find_option(pytest_config,
-                                            'rp_rerun_of')
-        self.rp_skip_connection_test = str(
-            self.find_option(pytest_config,
-                             'rp_skip_connection_test')).lower() in (
-                                           'true', '1', 'yes', 'y')
+        self.rp_parent_item_id = self.find_option(pytest_config, 'rp_parent_item_id')
+        self.rp_project = self.find_option(pytest_config, 'rp_project')
+        self.rp_rerun_of = self.find_option(pytest_config, 'rp_rerun_of')
+        self.rp_skip_connection_test = to_bool(self.find_option(pytest_config, 'rp_skip_connection_test'))
 
         rp_api_retries_str = self.find_option(pytest_config, 'rp_api_retries')
         rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
@@ -179,8 +162,7 @@ class AgentConfig:
             self.rp_verify_ssl = to_bool(rp_verify_ssl)
         except (ValueError, AttributeError):
             self.rp_verify_ssl = rp_verify_ssl
-        self.rp_launch_timeout = int(
-            self.find_option(pytest_config, 'rp_launch_timeout'))
+        self.rp_launch_timeout = int(self.find_option(pytest_config, 'rp_launch_timeout'))
 
         self.rp_launch_uuid_print = to_bool(self.find_option(pytest_config, 'rp_launch_uuid_print') or 'False')
         print_output = self.find_option(pytest_config, 'rp_launch_uuid_print_output')
@@ -215,10 +197,7 @@ class AgentConfig:
         :param default:       value to be returned if not found
         :return: option value
         """
-        value = (
-                getattr(pytest_config.option, option_name, None) or
-                pytest_config.getini(option_name)
-        )
+        value = (getattr(pytest_config.option, option_name, None) or pytest_config.getini(option_name))
         if isinstance(value, bool):
             return value
         return value or default
