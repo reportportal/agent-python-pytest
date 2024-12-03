@@ -505,14 +505,14 @@ def pytest_addoption(parser) -> None:
         type='bool',
         help='Enables hierarchy for directories')
     parser.addini(
-        'rp_display_suite_test_file',
-        default=True,
-        type='bool',
-        help='Show file name in hierarchy. Depends on rp_hierarchy_dirs_level to get deep enough')
-    parser.addini(
         'rp_hierarchy_dir_path_separator',
         default=os.path.sep,
         help='Path separator to display directories in test hierarchy')
+    parser.addini(
+        'rp_hierarchy_test_file',
+        default=True,
+        type='bool',
+        help='Show file name in hierarchy. Depends on rp_hierarchy_dirs_level to get deep enough')
     parser.addini(
         'rp_issue_system_url',
         default='',

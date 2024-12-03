@@ -241,7 +241,7 @@ class PyTestServiceClass:
         path.reverse()
         return path
 
-    def _get_leaf(self, leaf_type: LeafType, parent_item: Optional[Dict[str, Any]], item: Optional[Item],
+    def _get_leaf(self, leaf_type, parent_item: Optional[Dict[str, Any]], item: Optional[Item],
                   item_id: Optional[str] = None) -> Dict[str, Any]:
         """Construct a leaf for the itest tree.
 
@@ -283,27 +283,36 @@ class PyTestServiceClass:
                 current_leaf = children_leafs[leaf]
         return test_tree
 
-    def _remove_node(self, test_tree: Dict[str, Any], max_dir_level, dir_level, recursive):
-        parent_leaf = test_tree['parent']
-        current_item = test_tree['item']
-        del parent_leaf['children'][current_item]
-        for item, child_leaf in test_tree['children'].items():
-            parent_leaf['children'][item] = child_leaf
-            child_leaf['parent'] = parent_leaf
-            if recursive:
-                self._remove_root_dirs(child_leaf, max_dir_level, dir_level + 1)
-
-    def _remove_root_dirs(self, test_tree: Dict[str, Any], max_dir_level, dir_level=0) -> None:
+    def _remove_root_dirs(self, test_tree: Dict[str, Any], max_dir_level: int, dir_level: int = 0) -> None:
         if test_tree['type'] == LeafType.ROOT:
-            for child_leaf in list(test_tree['children'].values()):
+            items = list(test_tree['children'].items())
+            for item, child_leaf in items:
                 self._remove_root_dirs(child_leaf, max_dir_level, 1)
             return
         if test_tree['type'] == LeafType.DIR and dir_level <= max_dir_level:
-            self._remove_node(test_tree, max_dir_level, dir_level, recursive=True)
+            new_level = dir_level + 1
+            parent_leaf = test_tree['parent']
+            current_item = test_tree['item']
+            del parent_leaf['children'][current_item]
+            for item, child_leaf in test_tree['children'].items():
+                parent_leaf['children'][item] = child_leaf
+                child_leaf['parent'] = parent_leaf
+                self._remove_root_dirs(child_leaf, max_dir_level, new_level)
+
+    def _remove_file_names(self, test_tree: Dict[str, Any]) -> None:
+        if test_tree['type'] != LeafType.FILE:
+            items = list(test_tree['children'].items())
+            for item, child_leaf in items:
+                self._remove_file_names(child_leaf)
             return
-        if test_tree['type'] == LeafType.FILE and not self._config.rp_display_suite_test_file:
-            self._remove_node(test_tree, max_dir_level, dir_level, recursive=False)
-            return
+        if not self._config.rp_hierarchy_test_file:
+            parent_leaf = test_tree['parent']
+            current_item = test_tree['item']
+            del parent_leaf['children'][current_item]
+            for item, child_leaf in test_tree['children'].items():
+                parent_leaf['children'][item] = child_leaf
+                child_leaf['parent'] = parent_leaf
+                self._remove_file_names(child_leaf)
 
     def _generate_names(self, test_tree: Dict[str, Any]) -> None:
         if test_tree['type'] == LeafType.ROOT:
@@ -312,7 +321,7 @@ class PyTestServiceClass:
         if test_tree['type'] == LeafType.DIR:
             test_tree['name'] = test_tree['item'].basename
 
-        if test_tree['type'] in [LeafType.CODE, LeafType.FILE]:
+        if test_tree['type'] in {LeafType.CODE, LeafType.FILE}:
             item = test_tree['item']
             if isinstance(item, Module):
                 test_tree['name'] = os.path.split(str(item.fspath))[1]
@@ -322,7 +331,7 @@ class PyTestServiceClass:
         for item, child_leaf in test_tree['children'].items():
             self._generate_names(child_leaf)
 
-    def _merge_leaf_types(self, test_tree, leaf_types, separator):
+    def _merge_leaf_types(self, test_tree: Dict[str, Any], leaf_types: Set, separator: str):
         child_items = list(test_tree['children'].items())
         if test_tree['type'] not in leaf_types:
             for item, child_leaf in child_items:
@@ -335,15 +344,14 @@ class PyTestServiceClass:
             for item, child_leaf in child_items:
                 parent_leaf['children'][item] = child_leaf
                 child_leaf['parent'] = parent_leaf
-                child_leaf['name'] = \
-                    current_name + separator + child_leaf['name']
+                child_leaf['name'] = current_name + separator + child_leaf['name']
                 self._merge_leaf_types(child_leaf, leaf_types, separator)
 
     def _merge_dirs(self, test_tree: Dict[str, Any]) -> None:
-        self._merge_leaf_types(test_tree, [LeafType.DIR], self._config.rp_dir_path_separator)
+        self._merge_leaf_types(test_tree, {LeafType.DIR}, self._config.rp_dir_path_separator)
 
     def _merge_code(self, test_tree: Dict[str, Any]) -> None:
-        self._merge_leaf_types(test_tree, [LeafType.CODE, LeafType.FILE], '::')
+        self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE}, '::')
 
     def _build_item_paths(self, leaf: Dict[str, Any], path: List[Dict[str, Any]]) -> None:
         if 'children' in leaf and len(leaf['children']) > 0:
@@ -363,6 +371,7 @@ class PyTestServiceClass:
         # Create a test tree to be able to apply mutations
         test_tree = self._build_test_tree(session)
         self._remove_root_dirs(test_tree, self._config.rp_dir_level)
+        self._remove_file_names(test_tree)
         self._generate_names(test_tree)
         if not self._config.rp_hierarchy_dirs:
             self._merge_dirs(test_tree)

@@ -40,7 +40,7 @@ class AgentConfig:
     rp_hierarchy_code: bool
     rp_dir_level: int
     rp_hierarchy_dirs: bool
-    rp_display_suite_test_file: bool
+    rp_hierarchy_test_file: bool
     rp_dir_path_separator: str
     rp_ignore_attributes: set
     rp_is_skipped_an_issue: bool
@@ -77,7 +77,7 @@ class AgentConfig:
         self.rp_hierarchy_code = self.find_option(pytest_config, 'rp_hierarchy_code')
         self.rp_dir_level = int(self.find_option(pytest_config, 'rp_hierarchy_dirs_level'))
         self.rp_hierarchy_dirs = self.find_option(pytest_config, 'rp_hierarchy_dirs')
-        self.rp_display_suite_test_file = self.find_option(pytest_config, 'rp_display_suite_test_file')
+        self.rp_hierarchy_test_file = self.find_option(pytest_config, 'rp_hierarchy_test_file')
         self.rp_dir_path_separator = self.find_option(pytest_config, 'rp_hierarchy_dir_path_separator')
         self.rp_ignore_attributes = set(self.find_option(pytest_config, 'rp_ignore_attributes') or [])
         self.rp_is_skipped_an_issue = self.find_option(pytest_config, 'rp_is_skipped_an_issue')
