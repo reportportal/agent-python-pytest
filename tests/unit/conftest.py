@@ -71,6 +71,10 @@ def mocked_config():
     mocked_config.option.rp_launch_uuid_print_output = 'STDOUT'
     mocked_config.option.rp_client_type = 'SYNC'
     mocked_config.option.rp_report_fixtures = 'False'
+    mocked_config.option.rp_hierarchy_code = 'False'
+    mocked_config.option.rp_hierarchy_dirs = 'False'
+    mocked_config.option.rp_hierarchy_test_file = 'True'
+    mocked_config.option.rp_skip_connection_test = 'False'
     return mocked_config
 
 

@@ -512,7 +512,7 @@ def pytest_addoption(parser) -> None:
         'rp_hierarchy_test_file',
         default=True,
         type='bool',
-        help='Show file name in hierarchy. Depends on rp_hierarchy_dirs_level to get deep enough')
+        help='Show file name in hierarchy')
     parser.addini(
         'rp_issue_system_url',
         default='',
