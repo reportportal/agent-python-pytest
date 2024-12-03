@@ -16,9 +16,9 @@ from unittest import mock
 
 import pytest
 
-from custom_name.test_custom_name_args import TEST_NAME_ARGS
-from custom_name.test_custom_name_empty import TEST_NAME_EMPTY
-from custom_name.test_custom_name_kwargs import TEST_NAME_KWARGS
+from examples.custom_name.test_custom_name_args import TEST_NAME_ARGS
+from examples.custom_name.test_custom_name_empty import TEST_NAME_EMPTY
+from examples.custom_name.test_custom_name_kwargs import TEST_NAME_KWARGS
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
