@@ -442,7 +442,7 @@ class PyTestServiceClass:
             self._lock(leaf, lambda p: self._create_suite(p))
 
     def _get_item_name(self, mark) -> Optional[str]:
-        pass
+        return mark.kwargs.get('name', mark.args[0] if mark.args else None)
 
     def _get_code_ref(self, item):
         # Generate script path from work dir, use only backslashes to have the

@@ -165,6 +165,9 @@ def register_markers(config) -> None:
                    "params [parameter names as list] - use only specified"
                    "parameters"
     )
+    config.addinivalue_line(
+        "markers", "name(name): report the test case with a custom Name."
+    )
 
 
 def check_connection(agent_config: AgentConfig):
