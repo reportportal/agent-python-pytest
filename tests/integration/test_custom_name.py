@@ -41,3 +41,4 @@ def test_custom_attribute_report(mock_client_init, test, expected):
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[0][1]
     assert step_call_args['name'] == expected, 'Incorrect item name'
+    assert step_call_args['attributes'] == [], 'No attributes should be added for the test item'

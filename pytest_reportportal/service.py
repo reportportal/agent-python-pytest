@@ -629,6 +629,8 @@ class PyTestServiceClass:
                     for issue_id in self._get_issue_ids(marker):
                         attributes.add((marker.name, issue_id))
                 continue
+            if marker.name == 'name':
+                continue
             if marker.name in self._config.rp_ignore_attributes \
                     or marker.name in PYTEST_MARKS_IGNORE:
                 continue
@@ -637,8 +639,7 @@ class PyTestServiceClass:
             else:
                 attributes.add((None, marker.name))
 
-        return [self._to_attribute(attribute)
-                for attribute in attributes]
+        return [self._to_attribute(attribute) for attribute in attributes]
 
     def _process_metadata_item_start(self, leaf: Dict[str, Any]):
         """
