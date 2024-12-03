@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.4.6]
 ### Added
 - Support for `Python 3.13`, by @HardNorth
 - Support for `name` Pytest marker, by @HardNorth
