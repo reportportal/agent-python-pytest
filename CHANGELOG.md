@@ -3,6 +3,8 @@
 ## [Unreleased]
 ### Added
 - Support for `Python 3.13`, by @HardNorth
+- Support for `name` Pytest marker, by @HardNorth
+- `rp_hierarchy_test_file` configuration parameter, which controls display of test file name in the hierarchy, by @ramir-dn, @HardNorth
 ### Fixed
 - Agent crash if Client could not be initialized, by @HardNorth
 ### Changed
