@@ -4,7 +4,7 @@
 
 ## [5.4.7]
 ### Added
-- Escaping of binary symbol '\0' in parameters, by @HardNorth
+- Issue [#382](https://github.com/reportportal/agent-python-pytest/issues/382): Escaping of binary symbol '\0' in parameters, by @HardNorth
 
 ## [5.4.6]
 ### Added
