@@ -592,14 +592,17 @@ class PyTestServiceClass:
                 name = mark_name
         return name
 
-    def _get_parameters(self, item):
+    def _get_parameters(self, item) -> Optional[Dict[str, Any]]:
         """
         Get params of item.
 
         :param item: Pytest.Item
         :return: dict of params
         """
-        return item.callspec.params if hasattr(item, 'callspec') else None
+        params = item.callspec.params if hasattr(item, 'callspec') else None
+        if not params:
+            return None
+        return {str(k): v.replace('\0', '\\0') if isinstance(v, str) else v for k, v in params.items()}
 
     def _process_test_case_id(self, leaf):
         """
@@ -650,7 +653,7 @@ class PyTestServiceClass:
 
         return [self._to_attribute(attribute) for attribute in attributes]
 
-    def _process_metadata_item_start(self, leaf: Dict[str, Any]):
+    def _process_metadata_item_start(self, leaf: Dict[str, Any]) -> None:
         """
         Process all types of item metadata for its start event.
 
@@ -664,7 +667,7 @@ class PyTestServiceClass:
         leaf['issue'] = self._process_issue(item)
         leaf['attributes'] = self._process_attributes(item)
 
-    def _process_metadata_item_finish(self, leaf: Dict[str, Any]):
+    def _process_metadata_item_finish(self, leaf: Dict[str, Any]) -> None:
         """
         Process all types of item metadata for its finish event.
 
@@ -674,7 +677,7 @@ class PyTestServiceClass:
         leaf['attributes'] = self._process_attributes(item)
         leaf['issue'] = self._process_issue(item)
 
-    def _build_start_step_rq(self, leaf):
+    def _build_start_step_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
         payload = {
             'attributes': leaf.get('attributes', None),
             'name': self._truncate_item_name(leaf['name']),
@@ -683,8 +686,7 @@ class PyTestServiceClass:
             'item_type': 'STEP',
             'code_ref': leaf.get('code_ref', None),
             'parameters': leaf.get('parameters', None),
-            'parent_item_id': self._lock(leaf['parent'],
-                                         lambda p: p['item_id']),
+            'parent_item_id': self._lock(leaf['parent'], lambda p: p['item_id']),
             'test_case_id': leaf.get('test_case_id', None)
         }
         return payload
