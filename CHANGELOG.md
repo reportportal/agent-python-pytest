@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 ### Added
+- Escaping of binary symbol '\0' in parameters, by @HardNorth
+
+## [5.4.6]
+### Added
 - Support for `Python 3.13`, by @HardNorth
 - Support for `name` Pytest marker, by @HardNorth
 - `rp_hierarchy_test_file` configuration parameter, which controls display of test file name in the hierarchy, by @ramir-dn, @HardNorth
