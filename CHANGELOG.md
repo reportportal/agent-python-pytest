@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.4.7]
 ### Added
 - Escaping of binary symbol '\0' in parameters, by @HardNorth
 
