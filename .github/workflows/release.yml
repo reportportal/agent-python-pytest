@@ -19,7 +19,7 @@ on:
     paths-ignore:
       - '.github/**'
       - CHANGELOG.md
-      - README.rst
+      - README.md
       - CONTRIBUTING.rst
 
 env:
