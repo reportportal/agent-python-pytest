@@ -17,7 +17,7 @@ import logging
 import os.path
 import time
 from logging import Logger
-from typing import Any
+from typing import Any, Generator, Optional
 
 import _pytest.logging
 import dill as pickle
@@ -234,7 +234,7 @@ def pytest_configure(config) -> None:
 
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtestloop(session: Session) -> None:
+def pytest_runtestloop(session: Session) -> Generator[None, Any, None]:
     """
     Control start and finish of all test items in the session.
 
@@ -253,7 +253,7 @@ def pytest_runtestloop(session: Session) -> None:
 
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_protocol(item: Item) -> None:
+def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
     """Control start and finish of pytest items.
 
     :param item: Pytest.Item
@@ -282,23 +282,21 @@ def pytest_runtest_protocol(item: Item) -> None:
 
 # noinspection PyProtectedMember
 @pytest.hookimpl(hookwrapper=True)
-def pytest_runtest_makereport(item: Item) -> None:
+def pytest_runtest_makereport(item: Item) -> Generator[None, Any, None]:
     """Change runtest_makereport function.
 
     :param item: pytest.Item
     :return: None
     """
-    config = item.config
-    if not config._rp_enabled:
-        yield
+    result = yield
+    if not item.config._rp_enabled:
         return
-
-    report = (yield).get_result()
+    report = result.get_result()
     service = item.config.py_test_service
     service.process_results(item, report)
 
 
-def report_fixture(request, fixturedef, name: str, error_msg: str) -> None:
+def report_fixture(request, fixturedef, name: str, error_msg: str) -> Generator[Any | None, Any | None, None]:
     """Report fixture setup and teardown.
 
     :param request:    Object of the FixtureRequest class
@@ -329,7 +327,7 @@ def report_fixture(request, fixturedef, name: str, error_msg: str) -> None:
 
 # no types for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_setup(fixturedef, request) -> None:
+def pytest_fixture_setup(fixturedef, request) -> Generator[Optional[Any], Optional[Any], None]:
     """Report fixture setup.
 
     :param fixturedef: represents definition of the texture class
@@ -342,7 +340,7 @@ def pytest_fixture_setup(fixturedef, request) -> None:
 
 # no types for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_post_finalizer(fixturedef, request) -> None:
+def pytest_fixture_post_finalizer(fixturedef, request) -> Generator[Optional[Any], Optional[Any], None]:
     """Report fixture teardown.
 
     :param fixturedef: represents definition of the texture class
