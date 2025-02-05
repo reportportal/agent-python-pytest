@@ -1,3 +1,4 @@
 delayed-assert
 pytest-cov
 pytest-parallel
+pytest-bdd>=3.1.0

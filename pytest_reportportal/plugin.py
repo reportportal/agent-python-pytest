@@ -34,6 +34,13 @@ from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.rp_logging import patching_logger_class, patching_thread_class
 from pytest_reportportal.service import PyTestServiceClass
 
+try:
+    # noinspection PyPackageRequirements
+    from pytest_bdd import given
+    PYTEST_BDD = True
+except ImportError:
+    PYTEST_BDD = False
+
 log: Logger = logging.getLogger(__name__)
 
 MANDATORY_PARAMETER_MISSED_PATTERN: str = \
