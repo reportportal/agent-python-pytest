@@ -7,6 +7,8 @@
 ## [5.4.7]
 ### Added
 - Issue [#382](https://github.com/reportportal/agent-python-pytest/issues/382): Escaping of binary symbol '\0' in parameters, by @HardNorth
+### Changed
+- Client version updated on [5.6.0](https://github.com/reportportal/client-Python/releases/tag/5.6.0), by @HardNorth
 
 ## [5.4.6]
 ### Added
