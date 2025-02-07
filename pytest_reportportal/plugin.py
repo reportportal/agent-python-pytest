@@ -36,7 +36,7 @@ from pytest_reportportal.service import PyTestServiceClass
 
 try:
     # noinspection PyPackageRequirements
-    from pytest_bdd import given
+    from pytest_bdd import given  # noqa: F401
     PYTEST_BDD = True
 except ImportError:
     PYTEST_BDD = False
