@@ -415,7 +415,7 @@ def test_failure_fixture_teardown(mock_client_init):
     log_call_kwargs = log_call_args_list[1][1]
 
     assert log_call_kwargs["message"].endswith(
-        "examples/fixtures/test_failure_fixture_teardown/test_failure_fixture_teardown.py:28: AssertionError"
+        "examples/fixtures/test_failure_fixture_teardown/test_failure_fixture_teardown.py:29: AssertionError"
     )
     assert log_call_kwargs["item_id"] == (
         "examples/fixtures/test_failure_fixture_teardown/test_failure_fixture_teardown.py::"
