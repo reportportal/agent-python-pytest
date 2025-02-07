@@ -19,15 +19,15 @@ import sys
 import threading
 from functools import wraps
 from os import curdir
-from time import time, sleep
-from typing import List, Any, Optional, Set, Dict, Tuple, Union, Callable, Generator
+from time import sleep, time
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Union
 
 from _pytest.doctest import DoctestItem
-from aenum import auto, Enum, unique
+from aenum import Enum, auto, unique
 from py.path import local
-from pytest import Class, Function, Module, Package, Item, Session, PytestWarning
+from pytest import Class, Function, Item, Module, Package, PytestWarning, Session
 from reportportal_client.aio import Task
-from reportportal_client.core.rp_issues import Issue, ExternalIssue
+from reportportal_client.core.rp_issues import ExternalIssue, Issue
 from reportportal_client.helpers import timestamp
 
 from .config import AgentConfig
@@ -37,30 +37,25 @@ try:
     from pytest import Instance
 except ImportError:
     # in pytest >= 7.0 this type was removed
-    Instance = type('dummy', (), {})
+    Instance = type("dummy", (), {})
 try:
     from pytest import Dir
 except ImportError:
     # in pytest < 8.0 there is no such type
-    Dir = type('dummy', (), {})
+    Dir = type("dummy", (), {})
 from reportportal_client import RP, create_client
-from reportportal_client.helpers import (
-    dict_to_payload,
-    gen_attributes,
-    get_launch_sys_attrs,
-    get_package_version
-)
+from reportportal_client.helpers import dict_to_payload, gen_attributes, get_launch_sys_attrs, get_package_version
 
 LOGGER = logging.getLogger(__name__)
 
 MAX_ITEM_NAME_LENGTH: int = 1024
-TRUNCATION_STR: str = '...'
+TRUNCATION_STR: str = "..."
 ROOT_DIR: str = str(os.path.abspath(curdir))
-PYTEST_MARKS_IGNORE: Set[str] = {'parametrize', 'usefixtures', 'filterwarnings'}
-NOT_ISSUE: Issue = Issue('NOT_ISSUE')
-ISSUE_DESCRIPTION_LINE_TEMPLATE: str = '* {}:{}'
-ISSUE_DESCRIPTION_URL_TEMPLATE: str = ' [{issue_id}]({url})'
-ISSUE_DESCRIPTION_ID_TEMPLATE: str = ' {issue_id}'
+PYTEST_MARKS_IGNORE: Set[str] = {"parametrize", "usefixtures", "filterwarnings"}
+NOT_ISSUE: Issue = Issue("NOT_ISSUE")
+ISSUE_DESCRIPTION_LINE_TEMPLATE: str = "* {}:{}"
+ISSUE_DESCRIPTION_URL_TEMPLATE: str = " [{issue_id}]({url})"
+ISSUE_DESCRIPTION_ID_TEMPLATE: str = " {issue_id}"
 
 
 def trim_docstring(docstring: str) -> str:
@@ -71,7 +66,7 @@ def trim_docstring(docstring: str) -> str:
     :return: trimmed docstring
     """
     if not docstring:
-        return ''
+        return ""
     # Convert tabs to spaces (following the normal Python rules)
     # and split into a list of lines:
     lines = docstring.expandtabs().splitlines()
@@ -92,7 +87,7 @@ def trim_docstring(docstring: str) -> str:
     while trimmed and not trimmed[0]:
         trimmed.pop(0)
     # Return a single string:
-    return '\n'.join(trimmed)
+    return "\n".join(trimmed)
 
 
 @unique
@@ -148,10 +143,10 @@ class PyTestServiceClass:
         self._config = agent_config
         self._issue_types = {}
         self._tree_path = {}
-        self._log_levels = ('TRACE', 'DEBUG', 'INFO', 'WARN', 'ERROR')
+        self._log_levels = ("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
         self._start_tracker = set()
         self._launch_id = None
-        self.agent_name = 'pytest-reportportal'
+        self.agent_name = "pytest-reportportal"
         self.agent_version = get_package_version(self.agent_name)
         self.ignored_attributes = []
         self.parent_item_id = None
@@ -182,8 +177,7 @@ class PyTestServiceClass:
         """
         attributes = ini_attrs or []
         system_attributes = get_launch_sys_attrs()
-        system_attributes['agent'] = (
-            '{}|{}'.format(self.agent_name, self.agent_version))
+        system_attributes["agent"] = "{}|{}".format(self.agent_name, self.agent_version)
         return attributes + dict_to_payload(system_attributes)
 
     def _build_start_launch_rq(self) -> Dict[str, Any]:
@@ -191,12 +185,12 @@ class PyTestServiceClass:
         attributes = gen_attributes(rp_launch_attributes) if rp_launch_attributes else None
 
         start_rq = {
-            'attributes': self._get_launch_attributes(attributes),
-            'name': self._config.rp_launch,
-            'start_time': timestamp(),
-            'description': self._config.rp_launch_description,
-            'rerun': self._config.rp_rerun,
-            'rerun_of': self._config.rp_rerun_of
+            "attributes": self._get_launch_attributes(attributes),
+            "name": self._config.rp_launch,
+            "start_time": timestamp(),
+            "description": self._config.rp_launch_description,
+            "rerun": self._config.rp_rerun,
+            "rerun_of": self._config.rp_rerun_of,
         }
         return start_rq
 
@@ -208,9 +202,9 @@ class PyTestServiceClass:
         :return: item ID
         """
         sl_pt = self._build_start_launch_rq()
-        LOGGER.debug('ReportPortal - Start launch: request_body=%s', sl_pt)
+        LOGGER.debug("ReportPortal - Start launch: request_body=%s", sl_pt)
         self._launch_id = self.rp.start_launch(**sl_pt)
-        LOGGER.debug('ReportPortal - Launch started: id=%s', self._launch_id)
+        LOGGER.debug("ReportPortal - Launch started: id=%s", self._launch_id)
         return self._launch_id
 
     def _get_item_dirs(self, item: Item) -> List[local]:
@@ -241,8 +235,9 @@ class PyTestServiceClass:
         path.reverse()
         return path
 
-    def _get_leaf(self, leaf_type, parent_item: Optional[Dict[str, Any]], item: Optional[Item],
-                  item_id: Optional[str] = None) -> Dict[str, Any]:
+    def _get_leaf(
+        self, leaf_type, parent_item: Optional[Dict[str, Any]], item: Optional[Item], item_id: Optional[str] = None
+    ) -> Dict[str, Any]:
         """Construct a leaf for the itest tree.
 
         :param leaf_type:   the leaf type
@@ -251,9 +246,13 @@ class PyTestServiceClass:
         :return: a leaf
         """
         return {
-            'children': {}, 'type': leaf_type, 'item': item,
-            'parent': parent_item, 'lock': threading.Lock(),
-            'exec': ExecStatus.CREATED, 'item_id': item_id
+            "children": {},
+            "type": leaf_type,
+            "item": item,
+            "parent": parent_item,
+            "lock": threading.Lock(),
+            "exec": ExecStatus.CREATED,
+            "item_id": item_id,
         }
 
     def _build_test_tree(self, session: Session) -> Dict[str, Any]:
@@ -270,7 +269,7 @@ class PyTestServiceClass:
 
             current_leaf = test_tree
             for i, leaf in enumerate(dir_path + class_path):
-                children_leafs = current_leaf['children']
+                children_leafs = current_leaf["children"]
 
                 leaf_type = LeafType.DIR
                 if i == len(dir_path):
@@ -284,83 +283,83 @@ class PyTestServiceClass:
         return test_tree
 
     def _remove_root_dirs(self, test_tree: Dict[str, Any], max_dir_level: int, dir_level: int = 0) -> None:
-        if test_tree['type'] == LeafType.ROOT:
-            items = list(test_tree['children'].items())
+        if test_tree["type"] == LeafType.ROOT:
+            items = list(test_tree["children"].items())
             for item, child_leaf in items:
                 self._remove_root_dirs(child_leaf, max_dir_level, 1)
             return
-        if test_tree['type'] == LeafType.DIR and dir_level <= max_dir_level:
+        if test_tree["type"] == LeafType.DIR and dir_level <= max_dir_level:
             new_level = dir_level + 1
-            parent_leaf = test_tree['parent']
-            current_item = test_tree['item']
-            del parent_leaf['children'][current_item]
-            for item, child_leaf in test_tree['children'].items():
-                parent_leaf['children'][item] = child_leaf
-                child_leaf['parent'] = parent_leaf
+            parent_leaf = test_tree["parent"]
+            current_item = test_tree["item"]
+            del parent_leaf["children"][current_item]
+            for item, child_leaf in test_tree["children"].items():
+                parent_leaf["children"][item] = child_leaf
+                child_leaf["parent"] = parent_leaf
                 self._remove_root_dirs(child_leaf, max_dir_level, new_level)
 
     def _remove_file_names(self, test_tree: Dict[str, Any]) -> None:
-        if test_tree['type'] != LeafType.FILE:
-            items = list(test_tree['children'].items())
+        if test_tree["type"] != LeafType.FILE:
+            items = list(test_tree["children"].items())
             for item, child_leaf in items:
                 self._remove_file_names(child_leaf)
             return
         if not self._config.rp_hierarchy_test_file:
-            parent_leaf = test_tree['parent']
-            current_item = test_tree['item']
-            del parent_leaf['children'][current_item]
-            for item, child_leaf in test_tree['children'].items():
-                parent_leaf['children'][item] = child_leaf
-                child_leaf['parent'] = parent_leaf
+            parent_leaf = test_tree["parent"]
+            current_item = test_tree["item"]
+            del parent_leaf["children"][current_item]
+            for item, child_leaf in test_tree["children"].items():
+                parent_leaf["children"][item] = child_leaf
+                child_leaf["parent"] = parent_leaf
                 self._remove_file_names(child_leaf)
 
     def _generate_names(self, test_tree: Dict[str, Any]) -> None:
-        if test_tree['type'] == LeafType.ROOT:
-            test_tree['name'] = 'root'
+        if test_tree["type"] == LeafType.ROOT:
+            test_tree["name"] = "root"
 
-        if test_tree['type'] == LeafType.DIR:
-            test_tree['name'] = test_tree['item'].basename
+        if test_tree["type"] == LeafType.DIR:
+            test_tree["name"] = test_tree["item"].basename
 
-        if test_tree['type'] in {LeafType.CODE, LeafType.FILE}:
-            item = test_tree['item']
+        if test_tree["type"] in {LeafType.CODE, LeafType.FILE}:
+            item = test_tree["item"]
             if isinstance(item, Module):
-                test_tree['name'] = os.path.split(str(item.fspath))[1]
+                test_tree["name"] = os.path.split(str(item.fspath))[1]
             else:
-                test_tree['name'] = item.name
+                test_tree["name"] = item.name
 
-        for item, child_leaf in test_tree['children'].items():
+        for item, child_leaf in test_tree["children"].items():
             self._generate_names(child_leaf)
 
     def _merge_leaf_types(self, test_tree: Dict[str, Any], leaf_types: Set, separator: str):
-        child_items = list(test_tree['children'].items())
-        if test_tree['type'] not in leaf_types:
+        child_items = list(test_tree["children"].items())
+        if test_tree["type"] not in leaf_types:
             for item, child_leaf in child_items:
                 self._merge_leaf_types(child_leaf, leaf_types, separator)
-        elif len(test_tree['children'].items()) > 0:
-            parent_leaf = test_tree['parent']
-            current_item = test_tree['item']
-            current_name = test_tree['name']
-            del parent_leaf['children'][current_item]
+        elif len(test_tree["children"].items()) > 0:
+            parent_leaf = test_tree["parent"]
+            current_item = test_tree["item"]
+            current_name = test_tree["name"]
+            del parent_leaf["children"][current_item]
             for item, child_leaf in child_items:
-                parent_leaf['children'][item] = child_leaf
-                child_leaf['parent'] = parent_leaf
-                child_leaf['name'] = current_name + separator + child_leaf['name']
+                parent_leaf["children"][item] = child_leaf
+                child_leaf["parent"] = parent_leaf
+                child_leaf["name"] = current_name + separator + child_leaf["name"]
                 self._merge_leaf_types(child_leaf, leaf_types, separator)
 
     def _merge_dirs(self, test_tree: Dict[str, Any]) -> None:
         self._merge_leaf_types(test_tree, {LeafType.DIR}, self._config.rp_dir_path_separator)
 
     def _merge_code(self, test_tree: Dict[str, Any]) -> None:
-        self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE}, '::')
+        self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE}, "::")
 
     def _build_item_paths(self, leaf: Dict[str, Any], path: List[Dict[str, Any]]) -> None:
-        if 'children' in leaf and len(leaf['children']) > 0:
+        if "children" in leaf and len(leaf["children"]) > 0:
             path.append(leaf)
-            for name, child_leaf in leaf['children'].items():
+            for name, child_leaf in leaf["children"].items():
                 self._build_item_paths(child_leaf, path)
             path.pop()
-        elif leaf['type'] != LeafType.ROOT:
-            self._tree_path[leaf['item']] = path + [leaf]
+        elif leaf["type"] != LeafType.ROOT:
+            self._tree_path[leaf["item"]] = path + [leaf]
 
     @check_rp_enabled
     def collect_tests(self, session: Session) -> None:
@@ -386,9 +385,12 @@ class PyTestServiceClass:
         :return: truncated to maximum length name if needed
         """
         if len(name) > MAX_ITEM_NAME_LENGTH:
-            name = name[:MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + TRUNCATION_STR
-            LOGGER.warning(PytestWarning(
-                f'Test leaf ID was truncated to "{name}" because of name size constrains on Report Portal'))
+            name = name[: MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + TRUNCATION_STR
+            LOGGER.warning(
+                PytestWarning(
+                    f'Test leaf ID was truncated to "{name}" because of name size constrains on Report Portal'
+                )
+            )
         return name
 
     def _get_item_description(self, test_item):
@@ -413,87 +415,86 @@ class PyTestServiceClass:
         :param func: a function to execute
         :return: the result of the function bypassed
         """
-        if 'lock' in leaf:
-            with leaf['lock']:
+        if "lock" in leaf:
+            with leaf["lock"]:
                 return func(leaf)
         return func(leaf)
 
     def _build_start_suite_rq(self, leaf):
-        code_ref = str(leaf['item']) if leaf['type'] == LeafType.DIR else str(leaf['item'].fspath)
-        parent_item_id = self._lock(leaf['parent'], lambda p: p.get('item_id')) if 'parent' in leaf else None
+        code_ref = str(leaf["item"]) if leaf["type"] == LeafType.DIR else str(leaf["item"].fspath)
+        parent_item_id = self._lock(leaf["parent"], lambda p: p.get("item_id")) if "parent" in leaf else None
         payload = {
-            'name': self._truncate_item_name(leaf['name']),
-            'description': self._get_item_description(leaf['item']),
-            'start_time': timestamp(),
-            'item_type': 'SUITE',
-            'code_ref': code_ref,
-            'parent_item_id': parent_item_id
+            "name": self._truncate_item_name(leaf["name"]),
+            "description": self._get_item_description(leaf["item"]),
+            "start_time": timestamp(),
+            "item_type": "SUITE",
+            "code_ref": code_ref,
+            "parent_item_id": parent_item_id,
         }
         return payload
 
     def _start_suite(self, suite_rq):
-        LOGGER.debug('ReportPortal - Start Suite: request_body=%s', suite_rq)
+        LOGGER.debug("ReportPortal - Start Suite: request_body=%s", suite_rq)
         return self.rp.start_test_item(**suite_rq)
 
     def _create_suite(self, leaf):
-        if leaf['exec'] != ExecStatus.CREATED:
+        if leaf["exec"] != ExecStatus.CREATED:
             return
         item_id = self._start_suite(self._build_start_suite_rq(leaf))
-        leaf['item_id'] = item_id
-        leaf['exec'] = ExecStatus.IN_PROGRESS
+        leaf["item_id"] = item_id
+        leaf["exec"] = ExecStatus.IN_PROGRESS
 
     @check_rp_enabled
     def _create_suite_path(self, item: Item):
         path = self._tree_path[item]
         for leaf in path[1:-1]:
-            if leaf['exec'] != ExecStatus.CREATED:
+            if leaf["exec"] != ExecStatus.CREATED:
                 continue
             self._lock(leaf, lambda p: self._create_suite(p))
 
     def _get_item_name(self, mark) -> Optional[str]:
-        return mark.kwargs.get('name', mark.args[0] if mark.args else None)
+        return mark.kwargs.get("name", mark.args[0] if mark.args else None)
 
     def _get_code_ref(self, item):
         # Generate script path from work dir, use only backslashes to have the
         # same path on different systems and do not affect Test Case ID on
         # different systems
-        path = os.path.relpath(str(item.fspath), ROOT_DIR).replace('\\', '/')
-        method_name = item.originalname if hasattr(item, 'originalname') and item.originalname is not None \
-            else item.name
+        path = os.path.relpath(str(item.fspath), ROOT_DIR).replace("\\", "/")
+        method_name = (
+            item.originalname if hasattr(item, "originalname") and item.originalname is not None else item.name
+        )
         parent = item.parent
         classes = [method_name]
         while not isinstance(parent, Module):
-            if not isinstance(parent, Instance) and hasattr(parent, 'name'):
+            if not isinstance(parent, Instance) and hasattr(parent, "name"):
                 classes.append(parent.name)
-            if hasattr(parent, 'parent'):
+            if hasattr(parent, "parent"):
                 parent = parent.parent
             else:
                 break
         classes.reverse()
-        class_path = '.'.join(classes)
-        return '{0}:{1}'.format(path, class_path)
+        class_path = ".".join(classes)
+        return "{0}:{1}".format(path, class_path)
 
     def _get_test_case_id(self, mark, leaf) -> str:
-        parameters = leaf.get('parameters', None)
+        parameters = leaf.get("parameters", None)
         parameterized = True
         selected_params = None
         if mark is not None:
-            parameterized = mark.kwargs.get('parameterized', False)
-            selected_params = mark.kwargs.get('params', None)
-        if selected_params is not None and not isinstance(selected_params,
-                                                          list):
+            parameterized = mark.kwargs.get("parameterized", False)
+            selected_params = mark.kwargs.get("params", None)
+        if selected_params is not None and not isinstance(selected_params, list):
             selected_params = [selected_params]
 
         param_str = None
         if parameterized and parameters is not None and len(parameters) > 0:
             if selected_params is not None and len(selected_params) > 0:
-                param_list = [str(parameters.get(param, None)) for param in
-                              selected_params]
+                param_list = [str(parameters.get(param, None)) for param in selected_params]
             else:
                 param_list = [str(param) for param in parameters.values()]
-            param_str = '[{}]'.format(','.join(sorted(param_list)))
+            param_str = "[{}]".format(",".join(sorted(param_list)))
 
-        basic_name_part = leaf['code_ref']
+        basic_name_part = leaf["code_ref"]
         if mark is None:
             if param_str is None:
                 return basic_name_part
@@ -520,8 +521,7 @@ class PyTestServiceClass:
         if not issue_ids:
             return None
         mark_url = mark.kwargs.get("url", None) or default_url
-        return [mark_url.format(issue_id=issue_id) if mark_url else None
-                for issue_id in issue_ids]
+        return [mark_url.format(issue_id=issue_id) if mark_url else None for issue_id in issue_ids]
 
     def _get_issue_description_line(self, mark, default_url):
         issue_ids = self._get_issue_ids(mark)
@@ -565,16 +565,20 @@ class PyTestServiceClass:
             issue_urls = self._get_issue_urls(mark, default_url)
             for issue_id, issue_url in zip(issue_ids, issue_urls):
                 issue.external_issue_add(
-                    ExternalIssue(bts_url=self._config.rp_bts_url, bts_project=self._config.rp_bts_project,
-                                  ticket_id=issue_id, url=issue_url)
+                    ExternalIssue(
+                        bts_url=self._config.rp_bts_url,
+                        bts_project=self._config.rp_bts_project,
+                        ticket_id=issue_id,
+                        url=issue_url,
+                    )
                 )
         return issue
 
     def _to_attribute(self, attribute_tuple):
         if attribute_tuple[0]:
-            return {'key': attribute_tuple[0], 'value': attribute_tuple[1]}
+            return {"key": attribute_tuple[0], "value": attribute_tuple[1]}
         else:
-            return {'value': attribute_tuple[1]}
+            return {"value": attribute_tuple[1]}
 
     def _process_item_name(self, leaf: Dict[str, Any]) -> str:
         """
@@ -583,9 +587,9 @@ class PyTestServiceClass:
         :param leaf: item context
         :return: Item Name string
         """
-        item = leaf['item']
-        name = leaf['name']
-        names = [m for m in item.iter_markers() if m.name == 'name']
+        item = leaf["item"]
+        name = leaf["name"]
+        names = [m for m in item.iter_markers() if m.name == "name"]
         if len(names) > 0:
             mark_name = self._get_item_name(names[0])
             if mark_name:
@@ -599,10 +603,10 @@ class PyTestServiceClass:
         :param item: Pytest.Item
         :return: dict of params
         """
-        params = item.callspec.params if hasattr(item, 'callspec') else None
+        params = item.callspec.params if hasattr(item, "callspec") else None
         if not params:
             return None
-        return {str(k): v.replace('\0', '\\0') if isinstance(v, str) else v for k, v in params.items()}
+        return {str(k): v.replace("\0", "\\0") if isinstance(v, str) else v for k, v in params.items()}
 
     def _process_test_case_id(self, leaf):
         """
@@ -611,7 +615,7 @@ class PyTestServiceClass:
         :param leaf: item context
         :return: Test Case ID string
         """
-        tc_ids = [m for m in leaf['item'].iter_markers() if m.name == 'tc_id']
+        tc_ids = [m for m in leaf["item"].iter_markers() if m.name == "tc_id"]
         if len(tc_ids) > 0:
             return self._get_test_case_id(tc_ids[0], leaf)
         return self._get_test_case_id(None, leaf)
@@ -623,7 +627,7 @@ class PyTestServiceClass:
         :param item: Pytest.Item
         :return: Issue
         """
-        issues = [m for m in item.iter_markers() if m.name == 'issue']
+        issues = [m for m in item.iter_markers() if m.name == "issue"]
         if len(issues) > 0:
             return self._get_issue(issues[0])
 
@@ -636,15 +640,14 @@ class PyTestServiceClass:
         """
         attributes = set()
         for marker in item.iter_markers():
-            if marker.name == 'issue':
+            if marker.name == "issue":
                 if self._config.rp_issue_id_marks:
                     for issue_id in self._get_issue_ids(marker):
                         attributes.add((marker.name, issue_id))
                 continue
-            if marker.name == 'name':
+            if marker.name == "name":
                 continue
-            if marker.name in self._config.rp_ignore_attributes \
-                    or marker.name in PYTEST_MARKS_IGNORE:
+            if marker.name in self._config.rp_ignore_attributes or marker.name in PYTEST_MARKS_IGNORE:
                 continue
             if len(marker.args) > 0:
                 attributes.add((marker.name, str(marker.args[0])))
@@ -659,13 +662,13 @@ class PyTestServiceClass:
 
         :param leaf: item context
         """
-        item = leaf['item']
-        leaf['name'] = self._process_item_name(leaf)
-        leaf['parameters'] = self._get_parameters(item)
-        leaf['code_ref'] = self._get_code_ref(item)
-        leaf['test_case_id'] = self._process_test_case_id(leaf)
-        leaf['issue'] = self._process_issue(item)
-        leaf['attributes'] = self._process_attributes(item)
+        item = leaf["item"]
+        leaf["name"] = self._process_item_name(leaf)
+        leaf["parameters"] = self._get_parameters(item)
+        leaf["code_ref"] = self._get_code_ref(item)
+        leaf["test_case_id"] = self._process_test_case_id(leaf)
+        leaf["issue"] = self._process_issue(item)
+        leaf["attributes"] = self._process_attributes(item)
 
     def _process_metadata_item_finish(self, leaf: Dict[str, Any]) -> None:
         """
@@ -673,30 +676,30 @@ class PyTestServiceClass:
 
         :param leaf: item context
         """
-        item = leaf['item']
-        leaf['attributes'] = self._process_attributes(item)
-        leaf['issue'] = self._process_issue(item)
+        item = leaf["item"]
+        leaf["attributes"] = self._process_attributes(item)
+        leaf["issue"] = self._process_issue(item)
 
     def _build_start_step_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
         payload = {
-            'attributes': leaf.get('attributes', None),
-            'name': self._truncate_item_name(leaf['name']),
-            'description': self._get_item_description(leaf['item']),
-            'start_time': timestamp(),
-            'item_type': 'STEP',
-            'code_ref': leaf.get('code_ref', None),
-            'parameters': leaf.get('parameters', None),
-            'parent_item_id': self._lock(leaf['parent'], lambda p: p['item_id']),
-            'test_case_id': leaf.get('test_case_id', None)
+            "attributes": leaf.get("attributes", None),
+            "name": self._truncate_item_name(leaf["name"]),
+            "description": self._get_item_description(leaf["item"]),
+            "start_time": timestamp(),
+            "item_type": "STEP",
+            "code_ref": leaf.get("code_ref", None),
+            "parameters": leaf.get("parameters", None),
+            "parent_item_id": self._lock(leaf["parent"], lambda p: p["item_id"]),
+            "test_case_id": leaf.get("test_case_id", None),
         }
         return payload
 
     def _start_step(self, step_rq):
-        LOGGER.debug('ReportPortal - Start TestItem: request_body=%s', step_rq)
+        LOGGER.debug("ReportPortal - Start TestItem: request_body=%s", step_rq)
         return self.rp.start_test_item(**step_rq)
 
     def __unique_id(self):
-        return str(os.getpid()) + '-' + str(threading.current_thread().ident)
+        return str(os.getpid()) + "-" + str(threading.current_thread().ident)
 
     def __started(self):
         return self.__unique_id() in self._start_tracker
@@ -719,8 +722,8 @@ class PyTestServiceClass:
         current_leaf = self._tree_path[test_item][-1]
         self._process_metadata_item_start(current_leaf)
         item_id = self._start_step(self._build_start_step_rq(current_leaf))
-        current_leaf['item_id'] = item_id
-        current_leaf['exec'] = ExecStatus.IN_PROGRESS
+        current_leaf["item_id"] = item_id
+        current_leaf["exec"] = ExecStatus.IN_PROGRESS
 
     def process_results(self, test_item, report):
         """
@@ -730,75 +733,74 @@ class PyTestServiceClass:
         :param report:    pytest's result report
         """
         if report.longrepr:
-            self.post_log(test_item, report.longreprtext, log_level='ERROR')
+            self.post_log(test_item, report.longreprtext, log_level="ERROR")
 
         leaf = self._tree_path[test_item][-1]
         # Defining test result
-        if report.when == 'setup':
-            leaf['status'] = 'PASSED'
+        if report.when == "setup":
+            leaf["status"] = "PASSED"
 
         if report.failed:
-            leaf['status'] = 'FAILED'
+            leaf["status"] = "FAILED"
             return
 
         if report.skipped:
-            if leaf['status'] in (None, 'PASSED'):
-                leaf['status'] = 'SKIPPED'
+            if leaf["status"] in (None, "PASSED"):
+                leaf["status"] = "SKIPPED"
 
     def _build_finish_step_rq(self, leaf):
-        issue = leaf.get('issue', None)
-        status = leaf['status']
-        if status == 'SKIPPED' and not self._config.rp_is_skipped_an_issue:
+        issue = leaf.get("issue", None)
+        status = leaf["status"]
+        if status == "SKIPPED" and not self._config.rp_is_skipped_an_issue:
             issue = NOT_ISSUE
-        if status == 'PASSED':
+        if status == "PASSED":
             issue = None
         payload = {
-            'attributes': leaf.get('attributes', None),
-            'end_time': timestamp(),
-            'status': status,
-            'issue': issue,
-            'item_id': leaf['item_id']
+            "attributes": leaf.get("attributes", None),
+            "end_time": timestamp(),
+            "status": status,
+            "issue": issue,
+            "item_id": leaf["item_id"],
         }
         return payload
 
     def _finish_step(self, finish_rq):
-        LOGGER.debug('ReportPortal - Finish TestItem: request_body=%s', finish_rq)
+        LOGGER.debug("ReportPortal - Finish TestItem: request_body=%s", finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
     def _finish_suite(self, finish_rq):
-        LOGGER.debug('ReportPortal - End TestSuite: request_body=%s', finish_rq)
+        LOGGER.debug("ReportPortal - End TestSuite: request_body=%s", finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
     def _build_finish_suite_rq(self, leaf):
-        payload = {
-            'end_time': timestamp(),
-            'item_id': leaf['item_id']
-        }
+        payload = {"end_time": timestamp(), "item_id": leaf["item_id"]}
         return payload
 
     def _proceed_suite_finish(self, leaf):
-        if leaf.get('exec', ExecStatus.FINISHED) == ExecStatus.FINISHED:
+        if leaf.get("exec", ExecStatus.FINISHED) == ExecStatus.FINISHED:
             return
 
         self._finish_suite(self._build_finish_suite_rq(leaf))
-        leaf['exec'] = ExecStatus.FINISHED
+        leaf["exec"] = ExecStatus.FINISHED
 
     def _finish_parents(self, leaf):
-        if 'parent' not in leaf or leaf['parent'] is None \
-                or leaf['parent']['type'] is LeafType.ROOT \
-                or leaf['parent'].get('exec', ExecStatus.FINISHED) == \
-                ExecStatus.FINISHED:
+        if (
+            "parent" not in leaf
+            or leaf["parent"] is None
+            or leaf["parent"]["type"] is LeafType.ROOT
+            or leaf["parent"].get("exec", ExecStatus.FINISHED) == ExecStatus.FINISHED
+        ):
             return
 
-        for item, child_leaf in leaf['parent']['children'].items():
-            current_status = child_leaf['exec']
+        for item, child_leaf in leaf["parent"]["children"].items():
+            current_status = child_leaf["exec"]
             if current_status != ExecStatus.FINISHED:
-                current_status = self._lock(child_leaf, lambda p: p['exec'])
+                current_status = self._lock(child_leaf, lambda p: p["exec"])
                 if current_status != ExecStatus.FINISHED:
                     return
 
-        self._lock(leaf['parent'], lambda p: self._proceed_suite_finish(p))
-        self._finish_parents(leaf['parent'])
+        self._lock(leaf["parent"], lambda p: self._proceed_suite_finish(p))
+        self._finish_parents(leaf["parent"])
 
     @check_rp_enabled
     def finish_pytest_item(self, test_item):
@@ -812,12 +814,11 @@ class PyTestServiceClass:
         leaf = path[-1]
         self._process_metadata_item_finish(leaf)
         self._finish_step(self._build_finish_step_rq(leaf))
-        leaf['exec'] = ExecStatus.FINISHED
+        leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
 
     def _get_items(self, exec_status):
-        return [k for k, v in self._tree_path.items() if
-                v[-1]['exec'] == exec_status]
+        return [k for k, v in self._tree_path.items() if v[-1]["exec"] == exec_status]
 
     def finish_suites(self):
         """
@@ -830,25 +831,24 @@ class PyTestServiceClass:
         """
         # Ensure there is no running items
         finish_time = time()
-        while len(self._get_items(ExecStatus.IN_PROGRESS)) > 0 \
-                and time() - finish_time <= self._config.rp_launch_timeout:
+        while (
+            len(self._get_items(ExecStatus.IN_PROGRESS)) > 0 and time() - finish_time <= self._config.rp_launch_timeout
+        ):
             sleep(0.1)
         skipped_items = self._get_items(ExecStatus.CREATED)
         for item in skipped_items:
             path = list(self._tree_path[item])
             path.reverse()
             for leaf in path[1:-1]:
-                if leaf['exec'] == ExecStatus.IN_PROGRESS:
+                if leaf["exec"] == ExecStatus.IN_PROGRESS:
                     self._lock(leaf, lambda p: self._proceed_suite_finish(p))
 
     def _build_finish_launch_rq(self):
-        finish_rq = {
-            'end_time': timestamp()
-        }
+        finish_rq = {"end_time": timestamp()}
         return finish_rq
 
     def _finish_launch(self, finish_rq):
-        LOGGER.debug('ReportPortal - Finish launch: request_body=%s', finish_rq)
+        LOGGER.debug("ReportPortal - Finish launch: request_body=%s", finish_rq)
         self.rp.finish_launch(**finish_rq)
 
     @check_rp_enabled
@@ -863,17 +863,17 @@ class PyTestServiceClass:
 
     def _build_log(self, item_id: str, message: str, log_level: str, attachment: Optional[Any] = None):
         sl_rq = {
-            'item_id': item_id,
-            'time': timestamp(),
-            'message': message,
-            'level': log_level,
+            "item_id": item_id,
+            "time": timestamp(),
+            "message": message,
+            "level": log_level,
         }
         if attachment:
-            sl_rq['attachment'] = attachment
+            sl_rq["attachment"] = attachment
         return sl_rq
 
     @check_rp_enabled
-    def post_log(self, test_item, message: str, log_level: str = 'INFO', attachment: Optional[Any] = None):
+    def post_log(self, test_item, message: str, log_level: str = "INFO", attachment: Optional[Any] = None):
         """
         Send a log message to the Report Portal.
 
@@ -885,9 +885,10 @@ class PyTestServiceClass:
         :return: None
         """
         if log_level not in self._log_levels:
-            LOGGER.warning('Incorrect loglevel = %s. Force set to INFO. '
-                           'Available levels: %s.', log_level, self._log_levels)
-        item_id = self._tree_path[test_item][-1]['item_id']
+            LOGGER.warning(
+                "Incorrect loglevel = %s. Force set to INFO. " "Available levels: %s.", log_level, self._log_levels
+            )
+        item_id = self._tree_path[test_item][-1]["item_id"]
 
         sl_rq = self._build_log(item_id, message, log_level, attachment)
         self.rp.log(**sl_rq)
@@ -908,28 +909,27 @@ class PyTestServiceClass:
         try:
             outcome = yield
             exception = outcome.exception
-            status = 'PASSED'
+            status = "PASSED"
             if exception:
-                if type(exception).__name__ != 'Skipped':
-                    status = 'FAILED'
-                    self.post_log(name, error_msg, log_level='ERROR')
+                if type(exception).__name__ != "Skipped":
+                    status = "FAILED"
+                    self.post_log(name, error_msg, log_level="ERROR")
             reporter.finish_nested_step(item_id, timestamp(), status)
         except Exception as e:
-            LOGGER.error('Failed to report fixture: %s', name)
+            LOGGER.error("Failed to report fixture: %s", name)
             LOGGER.exception(e)
-            reporter.finish_nested_step(item_id, timestamp(), 'FAILED')
+            reporter.finish_nested_step(item_id, timestamp(), "FAILED")
 
     def start(self) -> None:
         """Start servicing Report Portal requests."""
         self.parent_item_id = self._config.rp_parent_item_id
-        self.ignored_attributes = list(
-            set(
-                self._config.rp_ignore_attributes or []
-            ).union({'parametrize'})
+        self.ignored_attributes = list(set(self._config.rp_ignore_attributes or []).union({"parametrize"}))
+        LOGGER.debug(
+            "ReportPortal - Init service: endpoint=%s, " "project=%s, api_key=%s",
+            self._config.rp_endpoint,
+            self._config.rp_project,
+            self._config.rp_api_key,
         )
-        LOGGER.debug('ReportPortal - Init service: endpoint=%s, '
-                     'project=%s, api_key=%s', self._config.rp_endpoint,
-                     self._config.rp_project, self._config.rp_api_key)
         launch_id = self._launch_id
         if self._config.rp_launch_id:
             launch_id = self._config.rp_launch_id
@@ -947,7 +947,7 @@ class PyTestServiceClass:
             launch_uuid_print=self._config.rp_launch_uuid_print,
             print_output=self._config.rp_launch_uuid_print_output,
             http_timeout=self._config.rp_http_timeout,
-            mode=self._config.rp_mode
+            mode=self._config.rp_mode,
         )
         if hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()

@@ -13,9 +13,9 @@
 
 import pytest
 
-ID = 'ABC-1234'
-REASON = 'some_bug'
-TYPE = 'PB'
+ID = "ABC-1234"
+REASON = "some_bug"
+TYPE = "PB"
 
 
 @pytest.mark.issue(issue_id=ID, reason=REASON, issue_type=TYPE)

@@ -13,7 +13,7 @@
 #  limitations under the License.
 import pytest
 
-TEST_NAME_EMPTY = 'examples/custom_name/test_custom_name_empty.py::test_name_by_mark_empty'
+TEST_NAME_EMPTY = "examples/custom_name/test_custom_name_empty.py::test_name_by_mark_empty"
 
 
 @pytest.mark.name()

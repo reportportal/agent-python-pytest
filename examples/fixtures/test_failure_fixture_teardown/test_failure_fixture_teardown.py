@@ -24,5 +24,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+
 def test_failure_fixture_teardown(test_failure_fixture_teardown_config):
     assert test_failure_fixture_teardown_config is None

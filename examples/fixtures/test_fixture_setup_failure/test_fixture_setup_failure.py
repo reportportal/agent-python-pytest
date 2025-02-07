@@ -32,7 +32,7 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 logging.setLoggerClass(RPLogger)
 
-LOG_MESSAGE_TEST = 'Log message for test of setup failure'
+LOG_MESSAGE_TEST = "Log message for test of setup failure"
 
 
 def test_fixture_setup_failure(test_fixture_setup_failure_config):

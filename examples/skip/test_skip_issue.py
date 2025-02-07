@@ -1,4 +1,5 @@
 """Simple example skipped test."""
+
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -13,12 +14,12 @@
 #  limitations under the License
 import pytest
 
-ID = 'ABC-1234'
-REASON = 'some_bug'
-TYPE = 'PB'
+ID = "ABC-1234"
+REASON = "some_bug"
+TYPE = "PB"
 
 
 @pytest.mark.issue(issue_id=ID, reason=REASON, issue_type=TYPE)
-@pytest.mark.skip(reason='no way of currently testing this')
+@pytest.mark.skip(reason="no way of currently testing this")
 def test_simple_skip():
     assert False

@@ -1,27 +1,31 @@
 # See https://pre-commit.com for more information
 # See https://pre-commit.com/hooks.html for more hooks
 repos:
--   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v3.4.0
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
     hooks:
-    -   id: trailing-whitespace
-    -   id: end-of-file-fixer
-    -   id: check-yaml
-    -   id: check-added-large-files
--   repo: https://github.com/PyCQA/pydocstyle
-    rev: 6.0.0
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+  - repo: https://github.com/PyCQA/pydocstyle
+    rev: 6.3.0
     hooks:
-    -   id: pydocstyle
+      - id: pydocstyle
         exclude: |
-            (?x)^(
-                tests/.* |
-                examples/.*
-            )
--   repo: https://github.com/Lucas-C/pre-commit-hooks-markup
-    rev: v1.0.1
+          (?x)^(
+              tests/.*
+          )
+  - repo: https://github.com/psf/black
+    rev: 24.10.0
     hooks:
-    -   id: rst-linter
--   repo: https://github.com/pycqa/flake8
-    rev: 5.0.4
+      - id: black
+        args: [ '--check', 'robotframework_reportportal', 'tests' ]
+  - repo: https://github.com/pycqa/isort
+    rev: 5.13.2
     hooks:
-    -   id: flake8
+      - id: isort
+  - repo: https://github.com/pycqa/flake8
+    rev: 7.1.1
+    hooks:
+      - id: flake8

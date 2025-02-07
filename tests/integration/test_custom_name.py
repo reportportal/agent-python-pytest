@@ -23,15 +23,18 @@ from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 
-@pytest.mark.parametrize('test, expected', [
-    ('examples/custom_name/test_custom_name_args.py', TEST_NAME_ARGS),
-    ('examples/custom_name/test_custom_name_kwargs.py', TEST_NAME_KWARGS),
-    ('examples/custom_name/test_custom_name_empty.py', TEST_NAME_EMPTY)
-])
+@pytest.mark.parametrize(
+    "test, expected",
+    [
+        ("examples/custom_name/test_custom_name_args.py", TEST_NAME_ARGS),
+        ("examples/custom_name/test_custom_name_kwargs.py", TEST_NAME_KWARGS),
+        ("examples/custom_name/test_custom_name_empty.py", TEST_NAME_EMPTY),
+    ],
+)
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_custom_attribute_report(mock_client_init, test, expected):
     result = utils.run_pytest_tests(tests=[test], variables=utils.DEFAULT_VARIABLES)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     mock_client = mock_client_init.return_value
     start_count = mock_client.start_test_item.call_count
@@ -40,5 +43,5 @@ def test_custom_attribute_report(mock_client_init, test, expected):
 
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[0][1]
-    assert step_call_args['name'] == expected, 'Incorrect item name'
-    assert step_call_args['attributes'] == [], 'No attributes should be added for the test item'
+    assert step_call_args["name"] == expected, "Incorrect item name"
+    assert step_call_args["attributes"] == [], "No attributes should be added for the test item"

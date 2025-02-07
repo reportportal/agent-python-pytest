@@ -25,17 +25,17 @@ def test_custom_attribute_report(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
-    variables = {'markers': 'scope: to which test scope a test relates'}
+    variables = {"markers": "scope: to which test scope a test relates"}
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/attributes/test_one_attribute.py'], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    result = utils.run_pytest_tests(tests=["examples/attributes/test_one_attribute.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     mock_client = mock_client_init.return_value
     assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
 
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[-1][1]
-    assert step_call_args['attributes'] == [{'key': 'scope', 'value': 'smoke'}]
+    assert step_call_args["attributes"] == [{"key": "scope", "value": "smoke"}]
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -44,20 +44,17 @@ def test_custom_attribute_not_reported_if_skip_configured(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
-    variables = {
-        'markers': 'scope: to which test scope a test relates',
-        'rp_ignore_attributes': 'scope'
-    }
+    variables = {"markers": "scope: to which test scope a test relates", "rp_ignore_attributes": "scope"}
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/attributes/test_one_attribute.py'], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    result = utils.run_pytest_tests(tests=["examples/attributes/test_one_attribute.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     mock_client = mock_client_init.return_value
     assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
 
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[-1][1]
-    assert step_call_args['attributes'] == []
+    assert step_call_args["attributes"] == []
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -66,23 +63,21 @@ def test_two_attributes_different_values_report(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
-    variables = {'markers': 'scope: to which test scope a test relates'}
+    variables = {"markers": "scope: to which test scope a test relates"}
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(
-        tests=['examples/attributes/test_two_attributes_with_same_key.py'], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+        tests=["examples/attributes/test_two_attributes_with_same_key.py"], variables=variables
+    )
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     mock_client = mock_client_init.return_value
     assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
 
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[-1][1]
-    actual_attributes = step_call_args['attributes']
+    actual_attributes = step_call_args["attributes"]
 
-    assert utils.attributes_to_tuples(actual_attributes) == {
-        ('scope', 'smoke'),
-        ('scope', 'regression')
-    }
+    assert utils.attributes_to_tuples(actual_attributes) == {("scope", "smoke"), ("scope", "regression")}
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -91,19 +86,17 @@ def test_skip_attribute(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
-    result = utils.run_pytest_tests(tests=['examples/skip/test_simple_skip.py'])
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    result = utils.run_pytest_tests(tests=["examples/skip/test_simple_skip.py"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     mock_client = mock_client_init.return_value
     assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
 
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[-1][1]
-    actual_attributes = step_call_args['attributes']
+    actual_attributes = step_call_args["attributes"]
 
-    assert utils.attributes_to_tuples(actual_attributes) == {
-        (None, 'skip')
-    }
+    assert utils.attributes_to_tuples(actual_attributes) == {(None, "skip")}
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -112,10 +105,10 @@ def test_custom_runtime_attribute_report(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
-    variables = {'markers': 'scope: to which test scope a test relates\nruntime: runtime attribute mark'}
+    variables = {"markers": "scope: to which test scope a test relates\nruntime: runtime attribute mark"}
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/attributes/test_runtime_attribute.py'], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    result = utils.run_pytest_tests(tests=["examples/attributes/test_runtime_attribute.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     mock_client = mock_client_init.return_value
     assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
@@ -123,14 +116,11 @@ def test_custom_runtime_attribute_report(mock_client_init):
 
     start_call_args = mock_client.start_test_item.call_args_list
     start_step_call_args = start_call_args[-1][1]
-    assert start_step_call_args['attributes'] == [
-        {'key': 'scope', 'value': 'smoke'}
-    ]
+    assert start_step_call_args["attributes"] == [{"key": "scope", "value": "smoke"}]
 
     finish_call_args = mock_client.finish_test_item.call_args_list
     finish_step_call_args = finish_call_args[-1][1]
-    actual_attributes = finish_step_call_args['attributes']
-    attribute_tuple_list = [(kv.get('key'), kv['value'])
-                            for kv in actual_attributes]
+    actual_attributes = finish_step_call_args["attributes"]
+    attribute_tuple_list = [(kv.get("key"), kv["value"]) for kv in actual_attributes]
 
-    assert set(attribute_tuple_list) == {('scope', 'smoke'), (None, 'runtime')}
+    assert set(attribute_tuple_list) == {("scope", "smoke"), (None, "runtime")}

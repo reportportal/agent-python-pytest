@@ -13,7 +13,7 @@
 #  limitations under the License.
 import pytest
 
-TEST_NAME_KWARGS = 'Test name by mark, kwargs'
+TEST_NAME_KWARGS = "Test name by mark, kwargs"
 
 
 @pytest.mark.name(name=TEST_NAME_KWARGS)

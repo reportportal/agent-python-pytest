@@ -1,4 +1,5 @@
 """A simple example test with Test Case ID decorator no arguments."""
+
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -15,7 +16,7 @@
 import pytest
 
 
-@pytest.mark.parametrize(('param1', 'param2'), [('value1', 'value2')])
-@pytest.mark.tc_id(params=['param2'])
+@pytest.mark.parametrize(("param1", "param2"), [("value1", "value2")])
+@pytest.mark.tc_id(params=["param2"])
 def test_case_id_decorator(param1, param2):
     assert True

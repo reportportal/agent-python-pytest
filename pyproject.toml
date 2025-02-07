@@ -6,3 +6,11 @@ requires = [
   "wheel==0.40.0",
 ]
 build-backend = "setuptools.build_meta"
+
+[tool.isort]
+line_length = 119
+profile = "black"
+
+[tool.black]
+line-length = 119
+target-version = ["py310"]

@@ -17,7 +17,7 @@ from unittest import mock
 import pytest
 
 
-@pytest.fixture(scope='module')
+@pytest.fixture(scope="module")
 def module_fixture_return_config():
-    print('setup')
+    print("setup")
     return mock.Mock()

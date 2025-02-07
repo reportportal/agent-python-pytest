@@ -28,17 +28,14 @@ def test_rp_thread_logs_reporting(mock_client_init):
 
     def init_thread_client(*_, **__):
         from reportportal_client import set_current
+
         set_current(mock_thread_client)
         return mock_thread_client
 
     mock_client.clone.side_effect = init_thread_client
-    result = utils.run_tests_with_client(
-        mock_client,
-        ['examples/threads/'],
-        args=["--rp-thread-logging"]
-    )
+    result = utils.run_tests_with_client(mock_client, ["examples/threads/"], args=["--rp-thread-logging"])
 
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
     assert mock_client.start_launch.call_count == 1, '"start_launch" method was not called'
     assert mock_client.log.call_count == 1
     assert mock_thread_client.log.call_count == 2
