@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Removed
+- `Python 3.7` support, by @HardNorth
 
 ## [5.4.7]
 ### Added
