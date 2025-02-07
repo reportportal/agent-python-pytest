@@ -537,7 +537,7 @@ class PyTestServiceClass:
             issues += template.format(issue_id=issue_id, url=issue_url)
         return ISSUE_DESCRIPTION_LINE_TEMPLATE.format(reason, issues)
 
-    def _get_issue(self, mark) -> Issue:
+    def _get_issue(self, mark) -> Optional[Issue]:
         """Add issues description and issue_type to the test item.
 
         :param mark: pytest mark
@@ -620,7 +620,7 @@ class PyTestServiceClass:
             return self._get_test_case_id(tc_ids[0], leaf)
         return self._get_test_case_id(None, leaf)
 
-    def _process_issue(self, item) -> Issue:
+    def _process_issue(self, item) -> Optional[Issue]:
         """
         Process Issue if set.
 
