@@ -14,7 +14,8 @@ repos:
       - id: pydocstyle
         exclude: |
           (?x)^(
-              tests/.*
+              tests/.* |
+              examples/.*
           )
   - repo: https://github.com/psf/black
     rev: 24.10.0
