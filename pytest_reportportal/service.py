@@ -20,7 +20,7 @@ import threading
 from functools import wraps
 from os import curdir
 from time import time, sleep
-from typing import List, Any, Optional, Set, Dict, Tuple, Union, Callable
+from typing import List, Any, Optional, Set, Dict, Tuple, Union, Callable, Generator
 
 from _pytest.doctest import DoctestItem
 from aenum import auto, Enum, unique
@@ -892,7 +892,7 @@ class PyTestServiceClass:
         sl_rq = self._build_log(item_id, message, log_level, attachment)
         self.rp.log(**sl_rq)
 
-    def report_fixture(self, name: str, error_msg: str) -> None:
+    def report_fixture(self, name: str, error_msg: str) -> Generator[None, Any, None]:
         """Report fixture setup and teardown.
 
         :param name:       Name of the fixture

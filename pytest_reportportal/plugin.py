@@ -17,7 +17,7 @@ import logging
 import os.path
 import time
 from logging import Logger
-from typing import Any, Generator, Optional
+from typing import Any, Generator
 
 import _pytest.logging
 import dill as pickle
@@ -303,7 +303,7 @@ def pytest_runtest_makereport(item: Item) -> Generator[None, Any, None]:
     service.process_results(item, report)
 
 
-def report_fixture(request, fixturedef, name: str, error_msg: str) -> Generator[Any | None, Any | None, None]:
+def report_fixture(request, fixturedef, name: str, error_msg: str) -> Generator[None, Any, None]:
     """Report fixture setup and teardown.
 
     :param request:    Object of the FixtureRequest class
@@ -334,7 +334,7 @@ def report_fixture(request, fixturedef, name: str, error_msg: str) -> Generator[
 
 # no types for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_setup(fixturedef, request) -> Generator[Optional[Any], Optional[Any], None]:
+def pytest_fixture_setup(fixturedef, request) -> Generator[None, Any, None]:
     """Report fixture setup.
 
     :param fixturedef: represents definition of the texture class
@@ -347,7 +347,7 @@ def pytest_fixture_setup(fixturedef, request) -> Generator[Optional[Any], Option
 
 # no types for backward compatibility for older pytest versions
 @pytest.hookimpl(hookwrapper=True)
-def pytest_fixture_post_finalizer(fixturedef, request) -> Generator[Optional[Any], Optional[Any], None]:
+def pytest_fixture_post_finalizer(fixturedef, request) -> Generator[None, Any, None]:
     """Report fixture teardown.
 
     :param fixturedef: represents definition of the texture class
