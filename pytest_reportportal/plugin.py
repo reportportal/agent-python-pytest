@@ -37,10 +37,12 @@ from pytest_reportportal.service import PyTestServiceClass
 
 try:
     # noinspection PyPackageRequirements
-    from pytest_bdd import given  # noqa: F401
+    from pytest_bdd.parser import Feature, Scenario
 
     PYTEST_BDD = True
 except ImportError:
+    Feature = type("dummy", (), {})
+    Scenario = type("dummy", (), {})
     PYTEST_BDD = False
 
 log: Logger = logging.getLogger(__name__)
@@ -366,6 +368,58 @@ def pytest_fixture_post_finalizer(fixturedef, request) -> Generator[None, Any, N
         f"{fixturedef.scope} fixture teardown: {fixturedef.argname}",
         f"{fixturedef.scope} fixture teardown failed: {fixturedef.argname}",
     )
+
+
+if PYTEST_BDD:
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_bdd_before_scenario(request, feature: Feature, scenario: Scenario) -> Generator[None, Any, None]:
+        """Report BDD scenario start.
+
+        :param request: represents fixture execution metadata
+        :param feature: represents feature file
+        :param scenario: represents scenario from feature file
+        """
+        config = request.config
+        if not config._rp_enabled:
+            yield
+            return
+
+        yield
+        # service = config.py_test_service
+        # agent_config = config._reporter_config
+        # service.start_bdd_scenario(scenario, feature)
+        # log_level = agent_config.rp_log_level or logging.NOTSET
+        # log_handler = RPLogHandler(
+        #     level=log_level,
+        #     filter_client_logs=True,
+        #     endpoint=agent_config.rp_endpoint,
+        #     ignored_record_names=("reportportal_client", "pytest_reportportal"),
+        # )
+        # log_format = agent_config.rp_log_format
+        # if log_format:
+        #     log_handler.setFormatter(logging.Formatter(log_format))
+        # with patching_logger_class():
+        #     with _pytest.logging.catching_logs(log_handler, level=log_level):
+        #         yield
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_bdd_after_scenario(request, feature: Feature, scenario: Scenario) -> Generator[None, Any, None]:
+        """Report BDD scenario finish.
+
+        :param request: represents fixture execution metadata
+        :param feature: represents feature file
+        :param scenario: represents scenario from feature file
+        """
+        config = request.config
+        if not config._rp_enabled:
+            yield
+            return
+
+        yield
+        # service = config.py_test_service
+        # service.finish_bdd_scenario(scenario)
+        # yield
 
 
 # no types for backward compatibility for older pytest versions
