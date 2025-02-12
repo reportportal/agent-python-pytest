@@ -17,7 +17,7 @@ import logging
 import os.path
 import time
 from logging import Logger
-from typing import Any, Generator
+from typing import Any, Callable, Dict, Generator
 
 import _pytest.logging
 import dill as pickle
@@ -37,12 +37,13 @@ from pytest_reportportal.service import PyTestServiceClass
 
 try:
     # noinspection PyPackageRequirements
-    from pytest_bdd.parser import Feature, Scenario
+    from pytest_bdd.parser import Feature, Scenario, Step
 
     PYTEST_BDD = True
 except ImportError:
     Feature = type("dummy", (), {})
     Scenario = type("dummy", (), {})
+    Step = type("dummy", (), {})
     PYTEST_BDD = False
 
 log: Logger = logging.getLogger(__name__)
@@ -274,7 +275,7 @@ def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
         yield
         return
 
-    if item.location[0].endswith("/pytest_bdd/scenario.py"):
+    if PYTEST_BDD and item.location[0].endswith("/pytest_bdd/scenario.py"):
         yield
         return
 
@@ -399,6 +400,61 @@ if PYTEST_BDD:
         :param feature: represents feature file
         :param scenario: represents scenario from feature file
         """
+        config = request.config
+        if not config._rp_enabled:
+            yield
+            return
+
+        yield
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_bdd_before_step(
+        request, feature: Feature, scenario: Scenario, step: Step, step_func: Callable[..., Any]
+    ) -> Generator[None, Any, None]:
+        config = request.config
+        if not config._rp_enabled:
+            yield
+            return
+
+        yield
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_bdd_after_step(
+        request,
+        feature: Feature,
+        scenario: Scenario,
+        step: Step,
+        step_func: Callable[..., Any],
+        step_func_args: Dict[str, Any],
+    ) -> Generator[None, Any, None]:
+        config = request.config
+        if not config._rp_enabled:
+            yield
+            return
+
+        yield
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_bdd_step_error(
+        request,
+        feature: Feature,
+        scenario: Scenario,
+        step: Step,
+        step_func: Callable[..., Any],
+        step_func_args: Dict[str, Any],
+        exception,
+    ) -> Generator[None, Any, None]:
+        config = request.config
+        if not config._rp_enabled:
+            yield
+            return
+
+        yield
+
+    @pytest.hookimpl(hookwrapper=True)
+    def pytest_bdd_step_func_lookup_error(
+        request, feature: Feature, scenario: Scenario, step: Step, exception
+    ) -> Generator[None, Any, None]:
         config = request.config
         if not config._rp_enabled:
             yield

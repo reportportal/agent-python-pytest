@@ -46,12 +46,13 @@ except ImportError:
 
 try:
     # noinspection PyPackageRequirements
-    from pytest_bdd.parser import Feature, Scenario
+    from pytest_bdd.parser import Feature, Scenario, Step
 
     PYTEST_BDD = True
 except ImportError:
     Feature = type("dummy", (), {})
     Scenario = type("dummy", (), {})
+    Step = type("dummy", (), {})
     PYTEST_BDD = False
 
 from reportportal_client import RP, create_client
