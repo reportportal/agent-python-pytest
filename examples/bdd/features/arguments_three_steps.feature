@@ -1,4 +1,4 @@
-Feature: Less step arguments
+Feature: Three step arguments
     Scenario: Arguments for given, when, then, less steps
         Given there are 5 cucumbers
 

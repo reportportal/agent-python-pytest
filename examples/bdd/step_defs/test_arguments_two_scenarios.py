@@ -15,7 +15,7 @@
 from pytest_bdd import scenarios, given, when, then, parsers
 
 
-scenarios("../features/arguments_four_steps.feature")
+scenarios("../features/arguments_two_scenarios.feature")
 
 
 @given(parsers.parse("there are {start:d} cucumbers"), target_fixture="cucumbers")
