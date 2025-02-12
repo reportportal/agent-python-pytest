@@ -25,9 +25,9 @@ from requests.exceptions import RequestException
 from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.plugin import (
     FAILED_LAUNCH_WAIT,
+    LOGGER,
     MANDATORY_PARAMETER_MISSED_PATTERN,
     is_control,
-    LOGGER,
     pytest_addoption,
     pytest_collection_finish,
     pytest_configure,
