@@ -381,7 +381,7 @@ if PYTEST_BDD:
     def pytest_bdd_before_scenario(request, feature: Feature, scenario: Scenario) -> Generator[None, Any, None]:
         """Report BDD scenario start.
 
-        :param request: represents fixture execution metadata
+        :param request: represents item execution metadata
         :param feature: represents feature file
         :param scenario: represents scenario from feature file
         """
@@ -396,7 +396,7 @@ if PYTEST_BDD:
     def pytest_bdd_after_scenario(request, feature: Feature, scenario: Scenario) -> Generator[None, Any, None]:
         """Report BDD scenario finish.
 
-        :param request: represents fixture execution metadata
+        :param request: represents item execution metadata
         :param feature: represents feature file
         :param scenario: represents scenario from feature file
         """
@@ -411,6 +411,14 @@ if PYTEST_BDD:
     def pytest_bdd_before_step(
         request, feature: Feature, scenario: Scenario, step: Step, step_func: Callable[..., Any]
     ) -> Generator[None, Any, None]:
+        """Report BDD step start.
+
+        :param request: represents item execution metadata
+        :param feature: represents feature file
+        :param scenario: represents scenario from feature file
+        :param step: represents step from scenario
+        :param step_func: represents function for step
+        """
         config = request.config
         if not config._rp_enabled:
             yield
@@ -427,6 +435,15 @@ if PYTEST_BDD:
         step_func: Callable[..., Any],
         step_func_args: Dict[str, Any],
     ) -> Generator[None, Any, None]:
+        """Report BDD step finish.
+
+        :param request: represents item execution metadata
+        :param feature: represents feature file
+        :param scenario: represents scenario from feature file
+        :param step: represents step from scenario
+        :param step_func: represents function for step
+        :param step_func_args: represents arguments for step function
+        """
         config = request.config
         if not config._rp_enabled:
             yield
@@ -444,6 +461,16 @@ if PYTEST_BDD:
         step_func_args: Dict[str, Any],
         exception,
     ) -> Generator[None, Any, None]:
+        """Report BDD step error.
+
+        :param request: represents item execution metadata
+        :param feature: represents feature file
+        :param scenario: represents scenario from feature file
+        :param step: represents step from scenario
+        :param step_func: represents function for step
+        :param step_func_args: represents arguments for step function
+        :param exception: represents exception
+        """
         config = request.config
         if not config._rp_enabled:
             yield
@@ -455,6 +482,14 @@ if PYTEST_BDD:
     def pytest_bdd_step_func_lookup_error(
         request, feature: Feature, scenario: Scenario, step: Step, exception
     ) -> Generator[None, Any, None]:
+        """Report BDD step lookup error.
+
+        :param request: represents item execution metadata
+        :param feature: represents feature file
+        :param scenario: represents scenario from feature file
+        :param step: represents step from scenario
+        :param exception: represents exception
+        """
         config = request.config
         if not config._rp_enabled:
             yield
