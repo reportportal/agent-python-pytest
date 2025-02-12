@@ -74,7 +74,7 @@ def test_logger_handle_no_attachment(mock_handler, logger, log_level):
 
 
 @mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.PyTestServiceClass")
+@mock.patch("pytest_reportportal.plugin.PyTestService")
 def test_portal_on_maintenance(mocked_service_class, mocked_config, mocked_session):
     """Test session configuration if RP is in maintenance mode.
 

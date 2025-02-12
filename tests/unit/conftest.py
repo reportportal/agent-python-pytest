@@ -106,7 +106,7 @@ def mocked_item(mocked_session, mocked_module):
 
 @fixture()
 def rp_service(mocked_config):
-    """Prepare instance of the PyTestServiceClass for testing."""
+    """Prepare instance of the PyTestService for testing."""
     service = PyTestService(AgentConfig(mocked_config))
     with mock.patch(REPORT_PORTAL_SERVICE + ".get_project_settings"):
         service.start()
