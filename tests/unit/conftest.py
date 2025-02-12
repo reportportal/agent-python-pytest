@@ -24,7 +24,7 @@ from pytest import Module, fixture
 from reportportal_client import RPLogger
 
 from pytest_reportportal.config import AgentConfig
-from pytest_reportportal.service import PyTestServiceClass
+from pytest_reportportal.service import PyTestService
 from tests import REPORT_PORTAL_SERVICE
 
 ITEM_PATH = py.path.local("examples/test_simple.py")
@@ -107,7 +107,7 @@ def mocked_item(mocked_session, mocked_module):
 @fixture()
 def rp_service(mocked_config):
     """Prepare instance of the PyTestServiceClass for testing."""
-    service = PyTestServiceClass(AgentConfig(mocked_config))
+    service = PyTestService(AgentConfig(mocked_config))
     with mock.patch(REPORT_PORTAL_SERVICE + ".get_project_settings"):
         service.start()
         return service

@@ -33,7 +33,7 @@ from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.rp_logging import patching_logger_class, patching_thread_class
-from pytest_reportportal.service import PyTestServiceClass
+from pytest_reportportal.service import PyTestService
 
 try:
     # noinspection PyPackageRequirements
@@ -237,7 +237,7 @@ def pytest_configure(config) -> None:
     config._reporter_config = agent_config
 
     if is_control(config):
-        config.py_test_service = PyTestServiceClass(agent_config)
+        config.py_test_service = PyTestService(agent_config)
     else:
         # noinspection PyUnresolvedReferences
         config.py_test_service = pickle.loads(config.workerinput["py_test_service"])

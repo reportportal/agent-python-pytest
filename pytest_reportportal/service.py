@@ -126,7 +126,7 @@ def check_rp_enabled(func):
 
     @wraps(func)
     def wrap(*args, **kwargs):
-        if args and isinstance(args[0], PyTestServiceClass):
+        if args and isinstance(args[0], PyTestService):
             if not args[0].rp:
                 return
         return func(*args, **kwargs)
@@ -134,7 +134,7 @@ def check_rp_enabled(func):
     return wrap
 
 
-class PyTestServiceClass:
+class PyTestService:
     """Pytest service class for reporting test results to the Report Portal."""
 
     _config: AgentConfig

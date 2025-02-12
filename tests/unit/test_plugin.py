@@ -35,7 +35,7 @@ from pytest_reportportal.plugin import (
     pytest_sessionstart,
     wait_launch,
 )
-from pytest_reportportal.service import PyTestServiceClass
+from pytest_reportportal.service import PyTestService
 
 
 def test_is_control(mocked_config):
@@ -101,7 +101,7 @@ def test_pytest_configure(mocked_config):
     mocked_config.option.rp_project = None
     pytest_configure(mocked_config)
     expect(mocked_config._rp_enabled is True)
-    expect(lambda: isinstance(mocked_config.py_test_service, PyTestServiceClass))
+    expect(lambda: isinstance(mocked_config.py_test_service, PyTestService))
     assert_expectations()
     mocked_config.getoption.assert_has_calls(
         [mock.call("--collect-only", default=False), mock.call("--setup-plan", default=False)]
