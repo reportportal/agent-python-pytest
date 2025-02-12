@@ -46,7 +46,7 @@ except ImportError:
     Step = type("dummy", (), {})
     PYTEST_BDD = False
 
-log: Logger = logging.getLogger(__name__)
+LOGGER: Logger = logging.getLogger(__name__)
 
 MANDATORY_PARAMETER_MISSED_PATTERN: str = (
     "One of the following mandatory parameters is unset: "
@@ -114,8 +114,8 @@ def pytest_sessionstart(session: Session) -> None:
     try:
         config.py_test_service.start()
     except ResponseError as response_error:
-        log.warning("Failed to initialize reportportal-client service. " "Reporting is disabled.")
-        log.debug(str(response_error))
+        LOGGER.warning("Failed to initialize reportportal-client service. " "Reporting is disabled.")
+        LOGGER.debug(str(response_error))
         config.py_test_service.rp = None
         config._rp_enabled = False
         return
@@ -124,7 +124,7 @@ def pytest_sessionstart(session: Session) -> None:
         config.py_test_service.start_launch()
         if config.pluginmanager.hasplugin("xdist") or config.pluginmanager.hasplugin("pytest-parallel"):
             if not wait_launch(session.config.py_test_service.rp):
-                log.error(FAILED_LAUNCH_WAIT)
+                LOGGER.error(FAILED_LAUNCH_WAIT)
                 config.py_test_service.rp = None
                 config._rp_enabled = False
 
@@ -196,8 +196,8 @@ def check_connection(agent_config: AgentConfig):
         resp.raise_for_status()
         return True
     except requests.exceptions.RequestException as exc:
-        log.exception(exc)
-        log.error("Unable to connect to Report Portal, the launch won't be reported")
+        LOGGER.exception(exc)
+        LOGGER.error("Unable to connect to Report Portal, the launch won't be reported")
         return False
 
 
@@ -223,15 +223,15 @@ def pytest_configure(config) -> None:
     cond = (agent_config.rp_project, agent_config.rp_endpoint, agent_config.rp_api_key)
     config._rp_enabled = all(cond)
     if not config._rp_enabled:
-        log.debug(MANDATORY_PARAMETER_MISSED_PATTERN.format(*cond))
-        log.debug("Disabling reporting to RP.")
+        LOGGER.debug(MANDATORY_PARAMETER_MISSED_PATTERN.format(*cond))
+        LOGGER.debug("Disabling reporting to RP.")
         return
 
     if not agent_config.rp_skip_connection_test:
         config._rp_enabled = check_connection(agent_config)
 
     if not config._rp_enabled:
-        log.debug("Failed to establish connection with RP. " "Disabling reporting.")
+        LOGGER.debug("Failed to establish connection with RP. " "Disabling reporting.")
         return
 
     config._reporter_config = agent_config
@@ -275,13 +275,11 @@ def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
         yield
         return
 
-    if PYTEST_BDD and item.location[0].endswith("/pytest_bdd/scenario.py"):
-        yield
-        return
-
     service = config.py_test_service
     agent_config = config._reporter_config
-    service.start_pytest_item(item)
+    if not PYTEST_BDD or not item.location[0].endswith("/pytest_bdd/scenario.py"):
+        service.start_pytest_item(item)
+
     log_level = agent_config.rp_log_level or logging.NOTSET
     log_handler = RPLogHandler(
         level=log_level,
@@ -295,7 +293,9 @@ def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
     with patching_logger_class():
         with _pytest.logging.catching_logs(log_handler, level=log_level):
             yield
-    service.finish_pytest_item(item)
+
+    if not PYTEST_BDD or not item.location[0].endswith("/pytest_bdd/scenario.py"):
+        service.finish_pytest_item(item)
 
 
 # noinspection PyProtectedMember

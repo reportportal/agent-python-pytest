@@ -27,7 +27,7 @@ from pytest_reportportal.plugin import (
     FAILED_LAUNCH_WAIT,
     MANDATORY_PARAMETER_MISSED_PATTERN,
     is_control,
-    log,
+    LOGGER,
     pytest_addoption,
     pytest_collection_finish,
     pytest_configure,
@@ -117,7 +117,7 @@ def test_pytest_configure_dry_run(mocked_config):
 
 
 @mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.log", wraps=log)
+@mock.patch("pytest_reportportal.plugin.log", wraps=LOGGER)
 def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
     """Test plugin configuration in case of missing rp_endpoint.
 
@@ -147,7 +147,7 @@ def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
 
 
 @mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.log", wraps=log)
+@mock.patch("pytest_reportportal.plugin.log", wraps=LOGGER)
 def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
     """Test plugin configuration in case of missing rp_project.
 
@@ -177,7 +177,7 @@ def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
 
 
 @mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.log", wraps=log)
+@mock.patch("pytest_reportportal.plugin.log", wraps=LOGGER)
 def test_pytest_configure_misssing_rp_uuid(mocked_log, mocked_config):
     """Test plugin configuration in case of missing rp_uuid.
 
@@ -265,7 +265,7 @@ def test_pytest_sessionstart(mocked_session):
     assert_expectations()
 
 
-@mock.patch("pytest_reportportal.plugin.log", wraps=log)
+@mock.patch("pytest_reportportal.plugin.log", wraps=LOGGER)
 @mock.patch("pytest_reportportal.plugin.is_control", mock.Mock())
 @mock.patch("pytest_reportportal.plugin.wait_launch", mock.Mock(return_value=False))
 def test_pytest_sessionstart_launch_wait_fail(mocked_log, mocked_session):
