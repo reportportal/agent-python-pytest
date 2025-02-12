@@ -43,6 +43,17 @@ try:
 except ImportError:
     # in pytest < 8.0 there is no such type
     Dir = type("dummy", (), {})
+
+try:
+    # noinspection PyPackageRequirements
+    from pytest_bdd.parser import Feature, Scenario
+
+    PYTEST_BDD = True
+except ImportError:
+    Feature = type("dummy", (), {})
+    Scenario = type("dummy", (), {})
+    PYTEST_BDD = False
+
 from reportportal_client import RP, create_client
 from reportportal_client.helpers import dict_to_payload, gen_attributes, get_launch_sys_attrs, get_package_version
 

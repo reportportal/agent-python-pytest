@@ -274,6 +274,10 @@ def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
         yield
         return
 
+    if item.location[0].endswith("/pytest_bdd/scenario.py"):
+        yield
+        return
+
     service = config.py_test_service
     agent_config = config._reporter_config
     service.start_pytest_item(item)
@@ -386,22 +390,6 @@ if PYTEST_BDD:
             return
 
         yield
-        # service = config.py_test_service
-        # agent_config = config._reporter_config
-        # service.start_bdd_scenario(scenario, feature)
-        # log_level = agent_config.rp_log_level or logging.NOTSET
-        # log_handler = RPLogHandler(
-        #     level=log_level,
-        #     filter_client_logs=True,
-        #     endpoint=agent_config.rp_endpoint,
-        #     ignored_record_names=("reportportal_client", "pytest_reportportal"),
-        # )
-        # log_format = agent_config.rp_log_format
-        # if log_format:
-        #     log_handler.setFormatter(logging.Formatter(log_format))
-        # with patching_logger_class():
-        #     with _pytest.logging.catching_logs(log_handler, level=log_level):
-        #         yield
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_bdd_after_scenario(request, feature: Feature, scenario: Scenario) -> Generator[None, Any, None]:
@@ -417,9 +405,6 @@ if PYTEST_BDD:
             return
 
         yield
-        # service = config.py_test_service
-        # service.finish_bdd_scenario(scenario)
-        # yield
 
 
 # no types for backward compatibility for older pytest versions

@@ -18,7 +18,7 @@ import sys
 import threading
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, List, Dict
+from typing import Any, Dict, List
 
 from reportportal_client import RPLogger, current, set_current
 from reportportal_client.core.worker import APIWorker

@@ -12,8 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from pytest_bdd import scenarios, given, when, then, parsers
-
+from pytest_bdd import given, parsers, scenarios, then, when
 
 scenarios("../features/arguments_two_scenarios.feature")
 
