@@ -386,6 +386,7 @@ if PYTEST_BDD:
         :param scenario: represents scenario from feature file
         """
         config = request.config
+        # noinspection PyProtectedMember
         if not config._rp_enabled:
             yield
             return
@@ -402,6 +403,7 @@ if PYTEST_BDD:
         :param scenario: represents scenario from feature file
         """
         config = request.config
+        # noinspection PyProtectedMember
         if not config._rp_enabled:
             yield
             return
@@ -410,6 +412,7 @@ if PYTEST_BDD:
         service = config.py_test_service
         service.finish_bdd_scenario(feature, scenario)
 
+    # noinspection PyUnusedLocal
     @pytest.hookimpl(hookwrapper=True)
     def pytest_bdd_before_step(
         request, feature: Feature, scenario: Scenario, step: Step, step_func: Callable[..., Any]
@@ -423,6 +426,7 @@ if PYTEST_BDD:
         :param step_func: represents function for step
         """
         config = request.config
+        # noinspection PyProtectedMember
         if not config._rp_enabled:
             yield
             return
@@ -431,6 +435,7 @@ if PYTEST_BDD:
         service.start_bdd_step(feature, scenario, step)
         yield
 
+    # noinspection PyUnusedLocal
     @pytest.hookimpl(hookwrapper=True)
     def pytest_bdd_after_step(
         request,
@@ -450,6 +455,7 @@ if PYTEST_BDD:
         :param step_func_args: represents arguments for step function
         """
         config = request.config
+        # noinspection PyProtectedMember
         if not config._rp_enabled:
             yield
             return
@@ -458,14 +464,15 @@ if PYTEST_BDD:
         service = config.py_test_service
         service.finish_bdd_step(feature, scenario, step)
 
+    # noinspection PyUnusedLocal
     @pytest.hookimpl(hookwrapper=True)
     def pytest_bdd_step_error(
         request,
         feature: Feature,
         scenario: Scenario,
         step: Step,
-        _: Callable[..., Any],
-        __: Dict[str, Any],
+        step_func: Callable[..., Any],
+        step_func_args: Dict[str, Any],
         exception,
     ) -> Generator[None, Any, None]:
         """Report BDD step error.
@@ -474,11 +481,12 @@ if PYTEST_BDD:
         :param feature: represents feature file
         :param scenario: represents scenario from feature file
         :param step: represents step from scenario
-        :param _: represents function for step
-        :param __: represents arguments for step function
+        :param step_func: represents function for step
+        :param step_func_args: represents arguments for step function
         :param exception: represents exception
         """
         config = request.config
+        # noinspection PyProtectedMember
         if not config._rp_enabled:
             yield
             return
@@ -500,6 +508,7 @@ if PYTEST_BDD:
         :param exception: represents exception
         """
         config = request.config
+        # noinspection PyProtectedMember
         if not config._rp_enabled:
             yield
             return
