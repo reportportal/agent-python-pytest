@@ -13,6 +13,7 @@
 
 """This module includes Service functions for work with pytest agent."""
 
+import re
 import logging
 import os.path
 import sys
@@ -20,7 +21,7 @@ import threading
 from functools import wraps
 from os import curdir
 from time import sleep, time
-from typing import Any, Callable, Dict, Generator, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, Generator, List, Optional, Set, Union
 
 from _pytest.doctest import DoctestItem
 from aenum import Enum, auto, unique
@@ -46,6 +47,9 @@ except ImportError:
 
 try:
     # noinspection PyPackageRequirements
+    from pytest_bdd.scenario import make_python_name
+
+    # noinspection PyPackageRequirements
     from pytest_bdd.parser import Feature, Scenario, Step
 
     PYTEST_BDD = True
@@ -53,6 +57,7 @@ except ImportError:
     Feature = type("dummy", (), {})
     Scenario = type("dummy", (), {})
     Step = type("dummy", (), {})
+    make_python_name: Callable[[str], str] = lambda x: x
     PYTEST_BDD = False
 
 from reportportal_client import RP, create_client
@@ -60,6 +65,7 @@ from reportportal_client.helpers import dict_to_payload, gen_attributes, get_lau
 
 LOGGER = logging.getLogger(__name__)
 
+KNOWN_LOG_LEVELS = ("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
 MAX_ITEM_NAME_LENGTH: int = 1024
 TRUNCATION_STR: str = "..."
 ROOT_DIR: str = str(os.path.abspath(curdir))
@@ -68,6 +74,8 @@ NOT_ISSUE: Issue = Issue("NOT_ISSUE")
 ISSUE_DESCRIPTION_LINE_TEMPLATE: str = "* {}:{}"
 ISSUE_DESCRIPTION_URL_TEMPLATE: str = " [{issue_id}]({url})"
 ISSUE_DESCRIPTION_ID_TEMPLATE: str = " {issue_id}"
+PYTHON_REPLACE_REGEX = re.compile(r"\W")
+ALPHA_REGEX = re.compile(r"^\d+_*")
 
 
 def trim_docstring(docstring: str) -> str:
@@ -140,7 +148,8 @@ class PyTestService:
     _config: AgentConfig
     _issue_types: Dict[str, str]
     _tree_path: Dict[Item, List[Dict[str, Any]]]
-    _log_levels: Tuple[str, str, str, str, str]
+    _bdd_item_by_name: Dict[str, Item]
+    _bdd_item_by_scenario: Dict[Scenario, Item]
     _start_tracker: Set[str]
     _launch_id: Optional[str]
     agent_name: str
@@ -155,7 +164,7 @@ class PyTestService:
         self._config = agent_config
         self._issue_types = {}
         self._tree_path = {}
-        self._log_levels = ("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
+        self._bdd_item_by_name = {}
         self._start_tracker = set()
         self._launch_id = None
         self.agent_name = "pytest-reportportal"
@@ -732,6 +741,10 @@ class PyTestService:
         if not self.__started():
             self.start()
 
+        if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
+            self._bdd_item_by_name[test_item.name] = test_item
+            return
+
         self._create_suite_path(test_item)
         current_leaf = self._tree_path[test_item][-1]
         self._process_metadata_item_start(current_leaf)
@@ -826,9 +839,13 @@ class PyTestService:
         if test_item is None:
             return
 
-        path = self._tree_path[test_item]
-        leaf = path[-1]
+        leaf = self._tree_path[test_item][-1]
         self._process_metadata_item_finish(leaf)
+
+        if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
+            del self._bdd_item_by_name[test_item.name]
+            return
+
         self._finish_step(self._build_finish_step_rq(leaf))
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
@@ -887,7 +904,7 @@ class PyTestService:
         return sl_rq
 
     @check_rp_enabled
-    def post_log(self, test_item, message: str, log_level: str = "INFO", attachment: Optional[Any] = None) -> None:
+    def post_log(self, test_item: Item, message: str, log_level: str = "INFO", attachment: Optional[Any] = None) -> None:
         """
         Send a log message to the Report Portal.
 
@@ -898,9 +915,9 @@ class PyTestService:
         :param attachment: attachment file
         :return: None
         """
-        if log_level not in self._log_levels:
+        if log_level not in KNOWN_LOG_LEVELS:
             LOGGER.warning(
-                "Incorrect loglevel = %s. Force set to INFO. " "Available levels: %s.", log_level, self._log_levels
+                "Incorrect loglevel = %s. Force set to INFO. " "Available levels: %s.", log_level, KNOWN_LOG_LEVELS
             )
         item_id = self._tree_path[test_item][-1]["item_id"]
 
@@ -934,14 +951,30 @@ class PyTestService:
             LOGGER.exception(e)
             reporter.finish_nested_step(item_id, timestamp(), "FAILED")
 
+    def _get_python_name(self, name: str) -> str:
+        python_name = f"test_{make_python_name(name)}"
+        same_scenario_names = [name for name in self._bdd_item_by_name.keys() if name.startswith(python_name)]
+        if len(same_scenario_names) < 1:
+            return python_name
+        elif len(same_scenario_names) == 1:
+            return same_scenario_names[0]
+        else:
+            indexes = sorted([int(name.split("_")[-1]) for name in same_scenario_names])
+            return f"{python_name}_{indexes[-1]}"
+
     def start_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:
         """Save BDD scenario and Feature to test tree. The scenario will be started later if a step will be reported.
 
         :param feature:  pytest_bdd.Feature
         :param scenario: pytest_bdd.Scenario
         """
-        if not self.__started():
-            self.start()
+        if not PYTEST_BDD:
+            return
+        item_name = self._get_python_name(scenario.name)
+        test_item = self._bdd_item_by_name.get(item_name, None)
+        if test_item is None:
+            return
+        self._bdd_item_by_scenario[scenario] = test_item
 
     def finish_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:
         """Finish BDD scenario. Skip if it was not started.
@@ -949,7 +982,14 @@ class PyTestService:
         :param feature:  pytest_bdd.Feature
         :param scenario: pytest_bdd.Scenario
         """
-        pass
+        if not PYTEST_BDD:
+            return
+
+        test_item = self._bdd_item_by_scenario.pop(scenario)
+        leaf = self._tree_path[test_item][-1]
+        self._finish_step(self._build_finish_step_rq(leaf))
+        leaf["exec"] = ExecStatus.FINISHED
+        self._finish_parents(leaf)
 
     @check_rp_enabled
     def start_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
@@ -984,6 +1024,10 @@ class PyTestService:
         """
         if not PYTEST_BDD:
             return
+        test_item = self._bdd_item_by_scenario[scenario]
+        self.post_log(test_item, str(exception), log_level="ERROR")
+        leaf = self._tree_path[test_item][-1]
+        leaf["status"] = "FAILED"
 
     def start(self) -> None:
         """Start servicing Report Portal requests."""
