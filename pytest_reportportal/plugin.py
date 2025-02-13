@@ -277,8 +277,7 @@ def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
 
     service = config.py_test_service
     agent_config = config._reporter_config
-    if not PYTEST_BDD or not item.location[0].endswith("/pytest_bdd/scenario.py"):
-        service.start_pytest_item(item)
+    service.start_pytest_item(item)
 
     log_level = agent_config.rp_log_level or logging.NOTSET
     log_handler = RPLogHandler(
@@ -294,8 +293,7 @@ def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
         with _pytest.logging.catching_logs(log_handler, level=log_level):
             yield
 
-    if not PYTEST_BDD or not item.location[0].endswith("/pytest_bdd/scenario.py"):
-        service.finish_pytest_item(item)
+    service.finish_pytest_item(item)
 
 
 # noinspection PyProtectedMember
