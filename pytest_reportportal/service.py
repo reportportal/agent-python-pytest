@@ -342,7 +342,7 @@ class PyTestService:
         for item, child_leaf in test_tree["children"].items():
             self._generate_names(child_leaf)
 
-    def _merge_leaf_types(self, test_tree: Dict[str, Any], leaf_types: Set, separator: str):
+    def _merge_leaf_types(self, test_tree: Dict[str, Any], leaf_types: Set, separator: str) -> None:
         child_items = list(test_tree["children"].items())
         if test_tree["type"] not in leaf_types:
             for item, child_leaf in child_items:
@@ -405,7 +405,7 @@ class PyTestService:
             )
         return name
 
-    def _get_item_description(self, test_item):
+    def _get_item_description(self, test_item: Item) -> Optional[str]:
         """Get description of item.
 
         :param test_item: pytest.Item
@@ -432,7 +432,7 @@ class PyTestService:
                 return func(leaf)
         return func(leaf)
 
-    def _build_start_suite_rq(self, leaf):
+    def _build_start_suite_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
         code_ref = str(leaf["item"]) if leaf["type"] == LeafType.DIR else str(leaf["item"].fspath)
         parent_item_id = self._lock(leaf["parent"], lambda p: p.get("item_id")) if "parent" in leaf else None
         payload = {
@@ -445,11 +445,11 @@ class PyTestService:
         }
         return payload
 
-    def _start_suite(self, suite_rq):
+    def _start_suite(self, suite_rq: Dict[str, Any]) -> Optional[str]:
         LOGGER.debug("ReportPortal - Start Suite: request_body=%s", suite_rq)
         return self.rp.start_test_item(**suite_rq)
 
-    def _create_suite(self, leaf):
+    def _create_suite(self, leaf: Dict[str, Any]) -> None:
         if leaf["exec"] != ExecStatus.CREATED:
             return
         item_id = self._start_suite(self._build_start_suite_rq(leaf))
@@ -457,7 +457,7 @@ class PyTestService:
         leaf["exec"] = ExecStatus.IN_PROGRESS
 
     @check_rp_enabled
-    def _create_suite_path(self, item: Item):
+    def _create_suite_path(self, item: Item) -> None:
         path = self._tree_path[item]
         for leaf in path[1:-1]:
             if leaf["exec"] != ExecStatus.CREATED:
@@ -467,13 +467,15 @@ class PyTestService:
     def _get_item_name(self, mark) -> Optional[str]:
         return mark.kwargs.get("name", mark.args[0] if mark.args else None)
 
-    def _get_code_ref(self, item):
+    def _get_code_ref(self, item: Item) -> str:
         # Generate script path from work dir, use only backslashes to have the
         # same path on different systems and do not affect Test Case ID on
         # different systems
         path = os.path.relpath(str(item.fspath), ROOT_DIR).replace("\\", "/")
         method_name = (
-            item.originalname if hasattr(item, "originalname") and item.originalname is not None else item.name
+            item.originalname
+            if hasattr(item, "originalname") and getattr(item, "originalname") is not None
+            else item.name
         )
         parent = item.parent
         classes = [method_name]
@@ -488,13 +490,13 @@ class PyTestService:
         class_path = ".".join(classes)
         return "{0}:{1}".format(path, class_path)
 
-    def _get_test_case_id(self, mark, leaf) -> str:
-        parameters = leaf.get("parameters", None)
+    def _get_test_case_id(self, mark, leaf: Dict[str, Any]) -> str:
+        parameters: Optional[Dict[str, Any]] = leaf.get("parameters", None)
         parameterized = True
-        selected_params = None
+        selected_params: Optional[List[str]] = None
         if mark is not None:
             parameterized = mark.kwargs.get("parameterized", False)
-            selected_params = mark.kwargs.get("params", None)
+            selected_params: Optional[Union[str, List[str]]] = mark.kwargs.get("params", None)
         if selected_params is not None and not isinstance(selected_params, list):
             selected_params = [selected_params]
 
@@ -620,7 +622,7 @@ class PyTestService:
             return None
         return {str(k): v.replace("\0", "\\0") if isinstance(v, str) else v for k, v in params.items()}
 
-    def _process_test_case_id(self, leaf):
+    def _process_test_case_id(self, leaf: Dict[str, Any]) -> str:
         """
         Process Test Case ID if set.
 
@@ -632,7 +634,7 @@ class PyTestService:
             return self._get_test_case_id(tc_ids[0], leaf)
         return self._get_test_case_id(None, leaf)
 
-    def _process_issue(self, item) -> Optional[Issue]:
+    def _process_issue(self, item: Item) -> Optional[Issue]:
         """
         Process Issue if set.
 
@@ -643,7 +645,7 @@ class PyTestService:
         if len(issues) > 0:
             return self._get_issue(issues[0])
 
-    def _process_attributes(self, item):
+    def _process_attributes(self, item: Item) -> List[Dict[str, Any]]:
         """
         Process attributes of item.
 
@@ -706,14 +708,14 @@ class PyTestService:
         }
         return payload
 
-    def _start_step(self, step_rq):
+    def _start_step(self, step_rq: Dict[str, Any]) -> Optional[str]:
         LOGGER.debug("ReportPortal - Start TestItem: request_body=%s", step_rq)
         return self.rp.start_test_item(**step_rq)
 
-    def __unique_id(self):
+    def __unique_id(self) -> str:
         return str(os.getpid()) + "-" + str(threading.current_thread().ident)
 
-    def __started(self):
+    def __started(self) -> bool:
         return self.__unique_id() in self._start_tracker
 
     @check_rp_enabled
@@ -737,7 +739,7 @@ class PyTestService:
         current_leaf["item_id"] = item_id
         current_leaf["exec"] = ExecStatus.IN_PROGRESS
 
-    def process_results(self, test_item, report):
+    def process_results(self, test_item: Item, report):
         """
         Save test item results after execution.
 
@@ -760,7 +762,7 @@ class PyTestService:
             if leaf["status"] in (None, "PASSED"):
                 leaf["status"] = "SKIPPED"
 
-    def _build_finish_step_rq(self, leaf):
+    def _build_finish_step_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
         issue = leaf.get("issue", None)
         status = leaf["status"]
         if status == "SKIPPED" and not self._config.rp_is_skipped_an_issue:
@@ -776,26 +778,26 @@ class PyTestService:
         }
         return payload
 
-    def _finish_step(self, finish_rq):
+    def _finish_step(self, finish_rq: Dict[str, Any]) -> None:
         LOGGER.debug("ReportPortal - Finish TestItem: request_body=%s", finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
-    def _finish_suite(self, finish_rq):
+    def _finish_suite(self, finish_rq: Dict[str, Any]) -> None:
         LOGGER.debug("ReportPortal - End TestSuite: request_body=%s", finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
-    def _build_finish_suite_rq(self, leaf):
+    def _build_finish_suite_rq(self, leaf) -> Dict[str, Any]:
         payload = {"end_time": timestamp(), "item_id": leaf["item_id"]}
         return payload
 
-    def _proceed_suite_finish(self, leaf):
+    def _proceed_suite_finish(self, leaf) -> None:
         if leaf.get("exec", ExecStatus.FINISHED) == ExecStatus.FINISHED:
             return
 
         self._finish_suite(self._build_finish_suite_rq(leaf))
         leaf["exec"] = ExecStatus.FINISHED
 
-    def _finish_parents(self, leaf):
+    def _finish_parents(self, leaf: Dict[str, Any]) -> None:
         if (
             "parent" not in leaf
             or leaf["parent"] is None
@@ -815,13 +817,15 @@ class PyTestService:
         self._finish_parents(leaf["parent"])
 
     @check_rp_enabled
-    def finish_pytest_item(self, test_item):
-        """
-        Finish pytest_item.
+    def finish_pytest_item(self, test_item: Optional[Item] = None) -> None:
+        """Finish pytest_item.
 
         :param test_item: pytest.Item
         :return: None
         """
+        if test_item is None:
+            return
+
         path = self._tree_path[test_item]
         leaf = path[-1]
         self._process_metadata_item_finish(leaf)
@@ -829,10 +833,10 @@ class PyTestService:
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
 
-    def _get_items(self, exec_status):
+    def _get_items(self, exec_status) -> List[Item]:
         return [k for k, v in self._tree_path.items() if v[-1]["exec"] == exec_status]
 
-    def finish_suites(self):
+    def finish_suites(self) -> None:
         """
         Finish all suites in run with status calculations.
 
@@ -855,25 +859,23 @@ class PyTestService:
                 if leaf["exec"] == ExecStatus.IN_PROGRESS:
                     self._lock(leaf, lambda p: self._proceed_suite_finish(p))
 
-    def _build_finish_launch_rq(self):
+    def _build_finish_launch_rq(self) -> Dict[str, Any]:
         finish_rq = {"end_time": timestamp()}
         return finish_rq
 
-    def _finish_launch(self, finish_rq):
+    def _finish_launch(self, finish_rq) -> None:
         LOGGER.debug("ReportPortal - Finish launch: request_body=%s", finish_rq)
         self.rp.finish_launch(**finish_rq)
 
     @check_rp_enabled
-    def finish_launch(self):
-        """
-        Finish tests launch.
-
-        :return: None
-        """
+    def finish_launch(self) -> None:
+        """Finish test launch."""
         # To finish launch session str parameter is needed
         self._finish_launch(self._build_finish_launch_rq())
 
-    def _build_log(self, item_id: str, message: str, log_level: str, attachment: Optional[Any] = None):
+    def _build_log(
+        self, item_id: str, message: str, log_level: str, attachment: Optional[Any] = None
+    ) -> Dict[str, Any]:
         sl_rq = {
             "item_id": item_id,
             "time": timestamp(),
@@ -885,7 +887,7 @@ class PyTestService:
         return sl_rq
 
     @check_rp_enabled
-    def post_log(self, test_item, message: str, log_level: str = "INFO", attachment: Optional[Any] = None):
+    def post_log(self, test_item, message: str, log_level: str = "INFO", attachment: Optional[Any] = None) -> None:
         """
         Send a log message to the Report Portal.
 
@@ -938,7 +940,8 @@ class PyTestService:
         :param feature:  pytest_bdd.Feature
         :param scenario: pytest_bdd.Scenario
         """
-        pass
+        if not self.__started():
+            self.start()
 
     def finish_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:
         """Finish BDD scenario. Skip if it was not started.
@@ -1016,7 +1019,7 @@ class PyTestService:
         # noinspection PyUnresolvedReferences
         self._start_tracker.add(self.__unique_id())
 
-    def stop(self):
+    def stop(self) -> None:
         """Finish servicing Report Portal requests."""
         self.rp.close()
         self.rp = None
