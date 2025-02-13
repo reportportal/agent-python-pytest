@@ -932,20 +932,55 @@ class PyTestService:
             LOGGER.exception(e)
             reporter.finish_nested_step(item_id, timestamp(), "FAILED")
 
-    def start_bdd_scenario(self, feature: Feature, scenario: Scenario):
+    def start_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:
+        """Save BDD scenario and Feature to test tree. The scenario will be started later if a step will be reported.
+
+        :param feature:  pytest_bdd.Feature
+        :param scenario: pytest_bdd.Scenario
+        """
         pass
 
-    def finish_bdd_scenario(self, feature: Feature, scenario: Scenario):
+    def finish_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:
+        """Finish BDD scenario. Skip if it was not started.
+
+        :param feature:  pytest_bdd.Feature
+        :param scenario: pytest_bdd.Scenario
+        """
         pass
 
-    def start_bdd_step(self, feature: Feature, scenario: Scenario, step: Step):
-        pass
+    @check_rp_enabled
+    def start_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
+        """Start BDD step.
 
-    def finish_bdd_step(self, feature: Feature, scenario: Scenario, step: Step):
-        pass
+        :param feature:  pytest_bdd.Feature
+        :param scenario: pytest_bdd.Scenario
+        :param step:     pytest_bdd.Step
+        """
+        if not PYTEST_BDD:
+            return
 
-    def report_bdd_step_error(self, feature: Feature, scenario: Scenario, step: Step, exception: Exception):
-        pass
+    @check_rp_enabled
+    def finish_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
+        """Finish BDD step.
+
+        :param feature:  pytest_bdd.Feature
+        :param scenario: pytest_bdd.Scenario
+        :param step:     pytest_bdd.Step
+        """
+        if not PYTEST_BDD:
+            return
+
+    @check_rp_enabled
+    def report_bdd_step_error(self, feature: Feature, scenario: Scenario, step: Step, exception: Exception) -> None:
+        """Report BDD step error.
+
+        :param feature:   pytest_bdd.Feature
+        :param scenario:  pytest_bdd.Scenario
+        :param step:      pytest_bdd.Step
+        :param exception: Exception
+        """
+        if not PYTEST_BDD:
+            return
 
     def start(self) -> None:
         """Start servicing Report Portal requests."""
