@@ -27,12 +27,14 @@ def test_bdd(mock_client_init):
 
     mock_client = mock_client_init.return_value
     assert mock_client.start_test_item.call_count == 6, 'There should be exactly six "start_test_item" calls'
-    assert mock_client.start_test_item.call_count == mock_client.finish_test_item.call_count, \
-        '"start_test_item" and "finish_test_item" should be called the same number of times'
-
+    assert (
+        mock_client.start_test_item.call_count == mock_client.finish_test_item.call_count
+    ), '"start_test_item" and "finish_test_item" should be called the same number of times'
 
     # Check that scenarios and steps are reported correctly
-    scenario_calls = [call for call in mock_client.start_test_item.call_args_list if call[1]['item_type'] == 'SCENARIO']
-    step_calls = [call for call in mock_client.start_test_item.call_args_list if call[1]['item_type'] == 'STEP']
+    scenario_calls = [
+        call for call in mock_client.start_test_item.call_args_list if call[1]["item_type"] == "SCENARIO"
+    ]
+    step_calls = [call for call in mock_client.start_test_item.call_args_list if call[1]["item_type"] == "STEP"]
     assert len(scenario_calls) == 1, "There should be exactly one Scenario reported"
     assert len(step_calls) == 4, "There should be exactly four Steps reported"
