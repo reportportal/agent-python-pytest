@@ -13,9 +13,9 @@
 
 """This module includes Service functions for work with pytest agent."""
 
-import re
 import logging
 import os.path
+import re
 import sys
 import threading
 from functools import wraps
@@ -47,10 +47,9 @@ except ImportError:
 
 try:
     # noinspection PyPackageRequirements
-    from pytest_bdd.scenario import make_python_name
-
     # noinspection PyPackageRequirements
     from pytest_bdd.parser import Feature, Scenario, Step
+    from pytest_bdd.scenario import make_python_name
 
     PYTEST_BDD = True
 except ImportError:
@@ -904,7 +903,9 @@ class PyTestService:
         return sl_rq
 
     @check_rp_enabled
-    def post_log(self, test_item: Item, message: str, log_level: str = "INFO", attachment: Optional[Any] = None) -> None:
+    def post_log(
+        self, test_item: Item, message: str, log_level: str = "INFO", attachment: Optional[Any] = None
+    ) -> None:
         """
         Send a log message to the Report Portal.
 
