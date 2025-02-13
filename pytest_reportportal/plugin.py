@@ -389,7 +389,8 @@ if PYTEST_BDD:
         if not config._rp_enabled:
             yield
             return
-
+        service = config.py_test_service
+        service.start_bdd_scenario(feature, scenario)
         yield
 
     @pytest.hookimpl(hookwrapper=True)
@@ -406,6 +407,8 @@ if PYTEST_BDD:
             return
 
         yield
+        service = config.py_test_service
+        service.finish_bdd_scenario(feature, scenario)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_bdd_before_step(
@@ -424,6 +427,8 @@ if PYTEST_BDD:
             yield
             return
 
+        service = config.py_test_service
+        service.start_bdd_step(feature, scenario, step)
         yield
 
     @pytest.hookimpl(hookwrapper=True)
@@ -450,6 +455,8 @@ if PYTEST_BDD:
             return
 
         yield
+        service = config.py_test_service
+        service.finish_bdd_step(feature, scenario, step)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_bdd_step_error(
@@ -457,8 +464,8 @@ if PYTEST_BDD:
         feature: Feature,
         scenario: Scenario,
         step: Step,
-        step_func: Callable[..., Any],
-        step_func_args: Dict[str, Any],
+        _: Callable[..., Any],
+        __: Dict[str, Any],
         exception,
     ) -> Generator[None, Any, None]:
         """Report BDD step error.
@@ -467,8 +474,8 @@ if PYTEST_BDD:
         :param feature: represents feature file
         :param scenario: represents scenario from feature file
         :param step: represents step from scenario
-        :param step_func: represents function for step
-        :param step_func_args: represents arguments for step function
+        :param _: represents function for step
+        :param __: represents arguments for step function
         :param exception: represents exception
         """
         config = request.config
@@ -477,6 +484,8 @@ if PYTEST_BDD:
             return
 
         yield
+        service = config.py_test_service
+        service.report_bdd_step_error(feature, scenario, step, exception)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_bdd_step_func_lookup_error(
@@ -495,7 +504,11 @@ if PYTEST_BDD:
             yield
             return
 
+        service = config.py_test_service
+        service.start_bdd_step(feature, scenario, step)
         yield
+        service.report_bdd_step_error(feature, scenario, step, exception)
+        service.finish_bdd_step(feature, scenario, step)
 
 
 # no types for backward compatibility for older pytest versions

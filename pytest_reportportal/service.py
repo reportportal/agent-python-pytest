@@ -932,6 +932,21 @@ class PyTestService:
             LOGGER.exception(e)
             reporter.finish_nested_step(item_id, timestamp(), "FAILED")
 
+    def start_bdd_scenario(self, feature: Feature, scenario: Scenario):
+        pass
+
+    def finish_bdd_scenario(self, feature: Feature, scenario: Scenario):
+        pass
+
+    def start_bdd_step(self, feature: Feature, scenario: Scenario, step: Step):
+        pass
+
+    def finish_bdd_step(self, feature: Feature, scenario: Scenario, step: Step):
+        pass
+
+    def report_bdd_step_error(self, feature: Feature, scenario: Scenario, step: Step, exception: Exception):
+        pass
+
     def start(self) -> None:
         """Start servicing Report Portal requests."""
         self.parent_item_id = self._config.rp_parent_item_id
