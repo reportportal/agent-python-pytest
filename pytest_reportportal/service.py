@@ -945,7 +945,8 @@ class PyTestService:
             if exception:
                 if type(exception).__name__ != "Skipped":
                     status = "FAILED"
-                    self.post_log(name, error_msg, log_level="ERROR")
+                    exception_log = self._build_log(item_id, error_msg, log_level="ERROR")
+                    self.rp.log(**exception_log)
             reporter.finish_nested_step(item_id, timestamp(), status)
         except Exception as e:
             LOGGER.error("Failed to report fixture: %s", name)
