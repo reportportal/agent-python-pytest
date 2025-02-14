@@ -192,6 +192,9 @@ def test_fixture_teardown(mock_client_init):
     )
 
 
+FIXTURE_FAILED_MESSAGE = "function fixture setup failed: test_fixture_setup_failure_config"
+
+
 @pytest.mark.skipif(sys.version_info < (3, 8), reason="Python 3.8+ required due to bugs in older versions")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_fixture_setup_failure(mock_client_init):
@@ -221,6 +224,14 @@ def test_fixture_setup_failure(mock_client_init):
     log_call_kwargs = log_call_args_list[0][1]
 
     assert log_call_args[1] == LOG_MESSAGE_SETUP_FAILURE
+    assert log_call_kwargs["item_id"] == f"{step_name}_1"
+
+    log_call_kwargs = log_call_args_list[1][1]
+    assert log_call_kwargs["message"] == FIXTURE_FAILED_MESSAGE
+    assert log_call_kwargs["item_id"] == f"{step_name}_1"
+
+    log_call_kwargs = log_call_args_list[2][1]
+    assert log_call_kwargs["message"].startswith("Traceback (most recent call last):")
     assert log_call_kwargs["item_id"] == f"{step_name}_1"
 
     log_call_kwargs = log_call_args_list[3][1]
