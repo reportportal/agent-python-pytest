@@ -213,7 +213,7 @@ def test_fixture_setup_failure(mock_client_init):
     assert not setup_call_kwargs["has_stats"]
 
     log_count = mock_client.log.call_count
-    assert log_count == 2, 'Incorrect number of "log" calls'
+    assert log_count == 4, 'Incorrect number of "log" calls'
 
     log_call_args_list = mock_client.log.call_args_list
     log_call_args = log_call_args_list[0][0]
@@ -222,7 +222,7 @@ def test_fixture_setup_failure(mock_client_init):
     assert log_call_args[1] == LOG_MESSAGE_SETUP_FAILURE
     assert log_call_kwargs["item_id"] == f"{step_name}_1"
 
-    log_call_kwargs = log_call_args_list[1][1]
+    log_call_kwargs = log_call_args_list[3][1]
 
     assert log_call_kwargs["message"].endswith(
         "examples/fixtures/test_fixture_setup_failure/conftest.py:30: Exception"

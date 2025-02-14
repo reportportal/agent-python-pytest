@@ -18,6 +18,7 @@ import os.path
 import re
 import sys
 import threading
+import traceback
 from functools import wraps
 from os import curdir
 from time import sleep, time
@@ -945,7 +946,10 @@ class PyTestService:
             if exception:
                 if type(exception).__name__ != "Skipped":
                     status = "FAILED"
-                    exception_log = self._build_log(item_id, error_msg, log_level="ERROR")
+                    error_log = self._build_log(item_id, error_msg, log_level="ERROR")
+                    self.rp.log(**error_log)
+                    traceback_str = "\n".join(traceback.format_exception(exception))
+                    exception_log = self._build_log(item_id, traceback_str, log_level="ERROR")
                     self.rp.log(**exception_log)
             reporter.finish_nested_step(item_id, timestamp(), status)
         except Exception as e:
