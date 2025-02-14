@@ -118,6 +118,7 @@ class LeafType(Enum):
     FILE = auto()
     CODE = auto()
     ROOT = auto()
+    NESTED = auto()
 
 
 @unique
@@ -147,7 +148,7 @@ class PyTestService:
 
     _config: AgentConfig
     _issue_types: Dict[str, str]
-    _tree_path: Dict[Item, List[Dict[str, Any]]]
+    _tree_path: Dict[Any, List[Dict[str, Any]]]
     _bdd_item_by_name: Dict[str, Item]
     _bdd_item_by_scenario: Dict[Scenario, Item]
     _start_tracker: Set[str]
@@ -165,6 +166,7 @@ class PyTestService:
         self._issue_types = {}
         self._tree_path = {}
         self._bdd_item_by_name = {}
+        self._bdd_item_by_scenario = {}
         self._start_tracker = set()
         self._launch_id = None
         self.agent_name = "pytest-reportportal"
@@ -256,8 +258,8 @@ class PyTestService:
         path.reverse()
         return path
 
-    def _get_leaf(
-        self, leaf_type, parent_item: Optional[Dict[str, Any]], item: Optional[Item], item_id: Optional[str] = None
+    def _create_leaf(
+        self, leaf_type, parent_item: Optional[Dict[str, Any]], item: Optional[Any], item_id: Optional[str] = None
     ) -> Dict[str, Any]:
         """Construct a leaf for the itest tree.
 
@@ -282,7 +284,7 @@ class PyTestService:
         :param session: pytest.Session object of the current execution
         :return: a tree of all tests and their suites
         """
-        test_tree = self._get_leaf(LeafType.ROOT, None, None, item_id=self.parent_item_id)
+        test_tree = self._create_leaf(LeafType.ROOT, None, None, item_id=self.parent_item_id)
 
         for item in session.items:
             dir_path = self._get_item_dirs(item)
@@ -299,7 +301,7 @@ class PyTestService:
                     leaf_type = LeafType.CODE
 
                 if leaf not in children_leafs:
-                    children_leafs[leaf] = self._get_leaf(leaf_type, current_leaf, leaf)
+                    children_leafs[leaf] = self._create_leaf(leaf_type, current_leaf, leaf)
                 current_leaf = children_leafs[leaf]
         return test_tree
 
@@ -345,6 +347,8 @@ class PyTestService:
             item = test_tree["item"]
             if isinstance(item, Module):
                 test_tree["name"] = os.path.split(str(item.fspath))[1]
+            if isinstance(item, Feature) or isinstance(item, Scenario):
+                test_tree["name"] = f"{item.keyword}: {item.name}"
             else:
                 test_tree["name"] = item.name
 
@@ -414,7 +418,7 @@ class PyTestService:
             )
         return name
 
-    def _get_item_description(self, test_item: Item) -> Optional[str]:
+    def _get_item_description(self, test_item: Any) -> Optional[str]:
         """Get description of item.
 
         :param test_item: pytest.Item
@@ -427,6 +431,8 @@ class PyTestService:
                     return trim_docstring(doc)
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
+        if isinstance(test_item, Feature):
+            return test_item.description
 
     def _lock(self, leaf: Dict[str, Any], func: Callable[[Dict[str, Any]], Any]) -> Any:
         """
@@ -466,7 +472,7 @@ class PyTestService:
         leaf["exec"] = ExecStatus.IN_PROGRESS
 
     @check_rp_enabled
-    def _create_suite_path(self, item: Item) -> None:
+    def _create_suite_path(self, item: Any) -> None:
         path = self._tree_path[item]
         for leaf in path[1:-1]:
             if leaf["exec"] != ExecStatus.CREATED:
@@ -976,11 +982,18 @@ class PyTestService:
         """
         if not PYTEST_BDD:
             return
-        item_name = self._get_python_name(scenario.name)
-        test_item = self._bdd_item_by_name.get(item_name, None)
-        if test_item is None:
-            return
-        self._bdd_item_by_scenario[scenario] = test_item
+        root_leaf = next(self._tree_path.values().__iter__())[0]
+        children_leafs = root_leaf["children"]
+        feature_leaf = self._create_leaf(LeafType.FILE, root_leaf, feature)
+        children_leafs[feature] = feature_leaf
+        children_leafs = feature_leaf["children"]
+        scenario_leaf = self._create_leaf(LeafType.CODE, feature_leaf, scenario)
+        children_leafs[scenario] = scenario_leaf
+        self._remove_file_names(root_leaf)
+        self._generate_names(root_leaf)
+        if not self._config.rp_hierarchy_code:
+            self._merge_code(root_leaf)
+        self._build_item_paths(root_leaf, [])
 
     def finish_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:
         """Finish BDD scenario. Skip if it was not started.
@@ -991,11 +1004,23 @@ class PyTestService:
         if not PYTEST_BDD:
             return
 
-        test_item = self._bdd_item_by_scenario.pop(scenario)
-        leaf = self._tree_path[test_item][-1]
+        leaf = self._tree_path[scenario][-1]
         self._finish_step(self._build_finish_step_rq(leaf))
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
+
+    def _process_scenario_metadata(self, leaf: Dict[str, Any]) -> None:
+        """
+        Process all types of scenario metadata for its start event.
+
+        :param leaf: item context
+        """
+        scenario = leaf["item"]
+        leaf["description"] = scenario.description
+        # TODO: Add support for pytest-bdd parameters
+        # leaf["code_ref"] = scenario.location
+        # leaf["test_case_id"] = self._get_test_case_id(None, leaf)
+        # leaf["attributes"] = self._process_attributes(scenario)
 
     @check_rp_enabled
     def start_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
@@ -1007,6 +1032,15 @@ class PyTestService:
         """
         if not PYTEST_BDD:
             return
+
+        self._create_suite_path(scenario)
+        scenario_leaf = self._tree_path[scenario][-1]
+        if scenario_leaf["exec"] != ExecStatus.IN_PROGRESS:
+            self._process_scenario_metadata(scenario_leaf)
+            scenario_id = self._start_step(self._build_start_step_rq(scenario_leaf))
+        reporter = self.rp.step_reporter
+        item_id = reporter.start_nested_step(step.name, timestamp())
+        # TODO: Finish nested step logic
 
     @check_rp_enabled
     def finish_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
