@@ -14,6 +14,7 @@
 
 import sys
 from collections import defaultdict
+from typing import Optional
 from unittest import mock
 
 import pytest
@@ -59,7 +60,7 @@ def get_last_item_id() -> str:
     return ITEM_ID_LIST[-1]
 
 
-def remove_last_item_id(*_, **__) -> str:
+def remove_last_item_id(*_, **__) -> Optional[str]:
     if len(ITEM_ID_LIST) > 0:
         return ITEM_ID_LIST.pop()
 
