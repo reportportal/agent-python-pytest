@@ -14,27 +14,36 @@
 
 from unittest import mock
 
+from reportportal_client.steps import StepReporter
+
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 
+def setup_mock(mock_client_init):
+    mock_client = mock_client_init.return_value
+    mock_client.step_reporter = StepReporter(mock_client)
+    return mock_client
+
+
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_bdd(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
     variables = {}
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_arguments.py"], variables=variables)
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
-    mock_client = mock_client_init.return_value
-    assert mock_client.start_test_item.call_count == 6, 'There should be exactly six "start_test_item" calls'
+    assert mock_client.start_test_item.call_count == 5, 'There should be exactly six "start_test_item" calls'
     assert (
         mock_client.start_test_item.call_count == mock_client.finish_test_item.call_count
     ), '"start_test_item" and "finish_test_item" should be called the same number of times'
 
-    # Check that scenarios and steps are reported correctly
-    scenario_calls = [
-        call for call in mock_client.start_test_item.call_args_list if call[1]["item_type"] == "SCENARIO"
-    ]
-    step_calls = [call for call in mock_client.start_test_item.call_args_list if call[1]["item_type"] == "STEP"]
-    assert len(scenario_calls) == 1, "There should be exactly one Scenario reported"
-    assert len(step_calls) == 4, "There should be exactly four Steps reported"
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    assert scenario_call[1]["item_type"] == "STEP", "First call should be a Scenario"
+    assert scenario_call[1].get("has_stats", True) is True, "First call should have stats"
+
+    step_calls = mock_client.start_test_item.call_args_list[1:]
+    for call in step_calls:
+        assert call[0][2] == "step", "All other calls should be Steps"
+        assert call[1]["has_stats"] is False, "All other calls should not have stats"
