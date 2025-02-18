@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+import importlib.metadata
 from collections import defaultdict
 from typing import Optional
 from unittest import mock
@@ -21,6 +22,8 @@ from reportportal_client.steps import StepReporter
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
+
+pytest_bdd_version = [int(p) for p in importlib.metadata.version("pytest-bdd").split(".")]
 
 ITEM_ID_DICT = defaultdict(lambda: 0)
 ITEM_ID_LIST = []
@@ -143,4 +146,22 @@ def test_bdd_scenario_descriptions(mock_client_init):
     scenario_call = mock_client.start_test_item.call_args_list[0]
     assert scenario_call[1]["code_ref"] == code_ref
     assert scenario_call[1]["test_case_id"] == code_ref
-    assert scenario_call[1]["description"] == "Description for the scenario"
+    description = scenario_call[1]["description"]
+    if pytest_bdd_version[0] < 8:
+        # before pytest-bdd 8 description was a list
+        description = description[0]
+    assert description == "Description for the scenario"
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_bdd_feature_descriptions(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    variables = {"rp_hierarchy_code": True}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(
+        tests=["examples/bdd/step_defs/test_arguments_description.py"], variables=variables
+    )
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    feature_call = mock_client.start_test_item.call_args_list[0]
+    assert feature_call[1]["description"] == "Description for the feature"
