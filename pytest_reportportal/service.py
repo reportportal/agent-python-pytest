@@ -1116,7 +1116,9 @@ class PyTestService:
         scenario_leaf = self._tree_path[scenario][-1]
         step_leaf = scenario_leaf["children"][step]
         item_id = step_leaf["item_id"]
-        traceback_str = "\n".join(traceback.format_exception(type(exception), exception, exception.__traceback__))
+        traceback_str = "\n".join(
+            traceback.format_exception(type(exception), value=exception, tb=exception.__traceback__)
+        )
         exception_log = self._build_log(item_id, traceback_str, log_level="ERROR")
         client = self.rp.step_reporter.client
         client.log(**exception_log)
