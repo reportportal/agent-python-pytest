@@ -12,7 +12,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import sys
 from collections import defaultdict
 from typing import Optional
 from unittest import mock
@@ -195,7 +194,6 @@ def test_fixture_teardown(mock_client_init):
 FIXTURE_FAILED_MESSAGE = "function fixture setup failed: test_fixture_setup_failure_config"
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8), reason="Python 3.8+ required due to bugs in older versions")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_fixture_setup_failure(mock_client_init):
     mock_client = setup_mock_for_logging(mock_client_init)
@@ -435,7 +433,6 @@ def test_failure_fixture_teardown(mock_client_init):
     )
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8), reason="Python 3.8+ required due to bugs in older versions")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_session_fixture_setup(mock_client_init):
     mock_client = setup_mock(mock_client_init)
@@ -463,7 +460,6 @@ def test_session_fixture_setup(mock_client_init):
     assert not setup_call_kwargs["has_stats"]
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8), reason="Python 3.8+ required due to bugs in older versions")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_package_fixture_setup(mock_client_init):
     mock_client = setup_mock(mock_client_init)
@@ -491,7 +487,6 @@ def test_package_fixture_setup(mock_client_init):
     assert not setup_call_kwargs["has_stats"]
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8), reason="Python 3.8+ required due to bugs in older versions")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_module_fixture_setup(mock_client_init):
     mock_client = setup_mock(mock_client_init)
@@ -519,7 +514,6 @@ def test_module_fixture_setup(mock_client_init):
     assert not setup_call_kwargs["has_stats"]
 
 
-@pytest.mark.skipif(sys.version_info < (3, 8), reason="Python 3.8+ required due to bugs in older versions")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_class_fixture_setup(mock_client_init):
     mock_client = setup_mock(mock_client_init)

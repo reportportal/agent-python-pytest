@@ -27,7 +27,7 @@ from typing import Any, Callable, Dict, Generator, List, Optional, Set, Union
 from _pytest.doctest import DoctestItem
 from aenum import Enum, auto, unique
 from py.path import local
-from pytest import Class, Function, Item, Mark, Module, Package, PytestWarning, Session
+from pytest import Class, Function, Item, Module, Package, PytestWarning, Session
 from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import ExternalIssue, Issue
 from reportportal_client.helpers import timestamp
@@ -45,7 +45,11 @@ try:
 except ImportError:
     # in pytest < 8.0 there is no such type
     Dir = type("dummy", (), {})
-
+try:
+    from pytest import Mark
+except ImportError:
+    # in old pytest marks are located in the _pytest.mark module
+    from _pytest.mark import Mark
 try:
     # noinspection PyPackageRequirements
     # noinspection PyPackageRequirements
@@ -958,14 +962,17 @@ class PyTestService:
 
         try:
             outcome = yield
-            exception = outcome.exception
+            exc_info = outcome.excinfo
+            exception = exc_info[1]
             status = "PASSED"
             if exception:
                 if type(exception).__name__ != "Skipped":
                     status = "FAILED"
                     error_log = self._build_log(item_id, error_msg, log_level="ERROR")
                     self.rp.log(**error_log)
-                    traceback_str = "\n".join(traceback.format_exception(exception))
+                    traceback_str = "\n".join(
+                        traceback.format_exception(outcome.excinfo[0], value=exception, tb=exc_info[2])
+                    )
                     exception_log = self._build_log(item_id, traceback_str, log_level="ERROR")
                     self.rp.log(**exception_log)
             reporter.finish_nested_step(item_id, timestamp(), status)
