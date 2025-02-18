@@ -47,3 +47,8 @@ def test_bdd(mock_client_init):
     for call in step_calls:
         assert call[0][2] == "step", "All other calls should be Steps"
         assert call[1]["has_stats"] is False, "All other calls should not have stats"
+
+    assert (
+        scenario_call[1]["code_ref"]
+        == "features/arguments_four_steps.feature/[SCENARIO:Arguments for given, when, and, then]"
+    )
