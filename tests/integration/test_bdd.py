@@ -48,7 +48,9 @@ def test_bdd(mock_client_init):
         assert call[0][2] == "step", "All other calls should be Steps"
         assert call[1]["has_stats"] is False, "All other calls should not have stats"
 
-    assert (
-        scenario_call[1]["code_ref"]
-        == "features/arguments_four_steps.feature/[SCENARIO:Arguments for given, when, and, then]"
-    )
+    code_ref = "features/arguments_four_steps.feature/[SCENARIO:Arguments for given, when, and, then]"
+    assert scenario_call[1]["code_ref"] == code_ref
+    assert scenario_call[1]["test_case_id"] == code_ref
+    assert scenario_call[1]["parent_item_id"] is None
+    assert scenario_call[1]["parameters"] is None
+    assert scenario_call[1]["description"] is None

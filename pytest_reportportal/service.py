@@ -1023,12 +1023,15 @@ class PyTestService:
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
 
-    def _get_bdd_code_ref(self, scenario: Scenario) -> str:
+    def _get_scenario_code_ref(self, scenario: Scenario) -> str:
         code_ref = scenario.feature.rel_filename + "/"
         if scenario.rule:
             code_ref += f"[RULE:{scenario.rule.name}]/"
         code_ref += f"[SCENARIO:{scenario.name}]"
         return code_ref
+
+    def _get_scenario_test_case_id(self, leaf: Dict[str, Any]) -> str:
+        return leaf["code_ref"]
 
     def _process_scenario_metadata(self, leaf: Dict[str, Any]) -> None:
         """
@@ -1038,9 +1041,9 @@ class PyTestService:
         """
         scenario = leaf["item"]
         leaf["description"] = scenario.description
-        leaf["code_ref"] = self._get_bdd_code_ref(scenario)
+        leaf["code_ref"] = self._get_scenario_code_ref(scenario)
+        leaf["test_case_id"] = self._get_scenario_test_case_id(leaf)
         # TODO: Add support for pytest-bdd parameters
-        # leaf["test_case_id"] = self._get_test_case_id(None, leaf)
         # leaf["attributes"] = self._process_attributes(scenario)
 
     @check_rp_enabled
