@@ -352,9 +352,11 @@ class PyTestService:
                 test_tree["name"] = os.path.split(str(item.fspath))[1]
             elif isinstance(item, Feature):
                 name = item.name if item.name else item.rel_filename
-                test_tree["name"] = f"{item.keyword}: {name}"
+                keyword = getattr(item, "keyword", "Feature")
+                test_tree["name"] = f"{keyword}: {name}"
             elif isinstance(item, Scenario):
-                test_tree["name"] = f"{item.keyword}: {item.name}"
+                keyword = getattr(item, "keyword", "Scenario")
+                test_tree["name"] = f"{keyword}: {item.name}"
             else:
                 test_tree["name"] = item.name
 
@@ -999,8 +1001,8 @@ class PyTestService:
         else:
             feature_leaf = self._create_leaf(LeafType.FILE, root_leaf, feature)
             children_leafs[feature] = feature_leaf
-        if scenario.rule:
-            rule = scenario.rule
+        rule = getattr(scenario, "rule", None)
+        if rule:
             if rule in children_leafs:
                 rule_leaf = children_leafs[rule]
             else:
@@ -1032,8 +1034,9 @@ class PyTestService:
 
     def _get_scenario_code_ref(self, scenario: Scenario) -> str:
         code_ref = scenario.feature.rel_filename + "/"
-        if scenario.rule:
-            code_ref += f"[RULE:{scenario.rule.name}]/"
+        rule = getattr(scenario, "rule", None)
+        if rule:
+            code_ref += f"[RULE:{rule.name}]/"
         code_ref += f"[SCENARIO:{scenario.name}]"
         return code_ref
 
@@ -1113,7 +1116,7 @@ class PyTestService:
         scenario_leaf = self._tree_path[scenario][-1]
         step_leaf = scenario_leaf["children"][step]
         item_id = step_leaf["item_id"]
-        traceback_str = "\n".join(traceback.format_exception(exception))
+        traceback_str = "\n".join(traceback.format_exception(type(exception), exception, exception.__traceback__))
         exception_log = self._build_log(item_id, traceback_str, log_level="ERROR")
         client = self.rp.step_reporter.client
         client.log(**exception_log)
