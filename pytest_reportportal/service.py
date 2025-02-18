@@ -1124,7 +1124,6 @@ class PyTestService:
         exception_log = self._build_log(item_id, traceback_str, log_level="ERROR")
         client = self.rp.step_reporter.client
         client.log(**exception_log)
-        self.post_log()
 
     def start(self) -> None:
         """Start servicing Report Portal requests."""
