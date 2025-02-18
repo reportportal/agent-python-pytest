@@ -211,3 +211,12 @@ def test_bdd_failed_feature(mock_client_init):
     assert finish_step_call[1]["status"] == "FAILED"
     assert finish_scenario_call[1]["item_id"] == "Feature: Test failed scenario - Scenario: The scenario_1"
     assert finish_scenario_call[1]["status"] == "FAILED"
+
+    log_count = mock_client.log.call_count
+    # 1 - debug log from pytest-bdd's scenario module; 2 - traceback log from the agent
+    assert log_count == 1 + 1, 'Incorrect number of "log" calls'
+
+    log_call_args_list = mock_client.log.call_args_list[1:]
+    assert log_call_args_list[0][1]["level"] == "ERROR"
+    assert log_call_args_list[0][1]["message"].endswith("AssertionError: assert False\n")
+    assert log_call_args_list[0][1]["item_id"] == "Given I have a failed step_1"

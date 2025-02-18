@@ -786,6 +786,9 @@ class PyTestService:
         :param test_item: pytest.Item
         :param report:    pytest's result report
         """
+        if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
+            return
+
         if report.longrepr:
             self.post_log(test_item, report.longreprtext, log_level="ERROR")
 
