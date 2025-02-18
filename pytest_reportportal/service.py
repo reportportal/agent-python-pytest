@@ -1076,11 +1076,20 @@ class PyTestService:
             scenario_leaf["item_id"] = self._start_step(self._build_start_step_rq(scenario_leaf))
             scenario_leaf["exec"] = ExecStatus.IN_PROGRESS
         reporter = self.rp.step_reporter
-        item_id = reporter.start_nested_step(step.name, timestamp())
+        item_id = reporter.start_nested_step(f"{step.keyword} {step.name}", timestamp())
         step_leaf = self._create_leaf(LeafType.NESTED, scenario_leaf, step)
         scenario_leaf["children"][step] = step_leaf
         step_leaf["item_id"] = item_id
         step_leaf["exec"] = ExecStatus.IN_PROGRESS
+
+    def _finish_bdd_step(self, leaf: Dict[str, Any], status: str) -> None:
+        if leaf["exec"] != ExecStatus.IN_PROGRESS:
+            return
+
+        reporter = self.rp.step_reporter
+        item_id = leaf["item_id"]
+        reporter.finish_nested_step(item_id, timestamp(), status)
+        leaf["exec"] = ExecStatus.FINISHED
 
     @check_rp_enabled
     def finish_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
@@ -1093,18 +1102,12 @@ class PyTestService:
         if not PYTEST_BDD:
             return
 
-        status = "PASSED"
-        if step.failed:
-            status = "FAILED"
-        reporter = self.rp.step_reporter
         scenario_leaf = self._tree_path[scenario][-1]
         step_leaf = scenario_leaf["children"][step]
-        item_id = step_leaf["item_id"]
-        reporter.finish_nested_step(item_id, timestamp(), status)
-        step_leaf["exec"] = ExecStatus.FINISHED
+        self._finish_bdd_step(step_leaf, "PASSED")
 
     @check_rp_enabled
-    def report_bdd_step_error(self, feature: Feature, scenario: Scenario, step: Step, exception: Exception) -> None:
+    def finish_bdd_step_error(self, feature: Feature, scenario: Scenario, step: Step, exception: Exception) -> None:
         """Report BDD step error.
 
         :param feature:   pytest_bdd.Feature
@@ -1116,6 +1119,7 @@ class PyTestService:
             return
 
         scenario_leaf = self._tree_path[scenario][-1]
+        scenario_leaf["status"] = "FAILED"
         step_leaf = scenario_leaf["children"][step]
         item_id = step_leaf["item_id"]
         traceback_str = "\n".join(
@@ -1124,6 +1128,8 @@ class PyTestService:
         exception_log = self._build_log(item_id, traceback_str, log_level="ERROR")
         client = self.rp.step_reporter.client
         client.log(**exception_log)
+
+        self._finish_bdd_step(step_leaf, "FAILED")
 
     def start(self) -> None:
         """Start servicing Report Portal requests."""

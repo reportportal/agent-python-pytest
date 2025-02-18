@@ -491,7 +491,7 @@ if PYTEST_BDD:
 
         yield
         service = config.py_test_service
-        service.report_bdd_step_error(feature, scenario, step, exception)
+        service.finish_bdd_step_error(feature, scenario, step, exception)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_bdd_step_func_lookup_error(
@@ -514,8 +514,7 @@ if PYTEST_BDD:
         service = config.py_test_service
         service.start_bdd_step(feature, scenario, step)
         yield
-        service.report_bdd_step_error(feature, scenario, step, exception)
-        service.finish_bdd_step(feature, scenario, step)
+        service.finish_bdd_step_error(feature, scenario, step, exception)
 
 
 # no types for backward compatibility for older pytest versions
