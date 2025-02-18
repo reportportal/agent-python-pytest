@@ -53,13 +53,14 @@ except ImportError:
 try:
     # noinspection PyPackageRequirements
     # noinspection PyPackageRequirements
-    from pytest_bdd.parser import Feature, Scenario, Step
+    from pytest_bdd.parser import Feature, Scenario, ScenarioTemplate, Step
     from pytest_bdd.scenario import make_python_name
 
     PYTEST_BDD = True
 except ImportError:
     Feature = type("dummy", (), {})
     Scenario = type("dummy", (), {})
+    ScenarioTemplate = type("dummy", (), {})
     Step = type("dummy", (), {})
     make_python_name: Callable[[str], str] = lambda x: x
     PYTEST_BDD = False
@@ -442,8 +443,10 @@ class PyTestService:
                     return trim_docstring(doc)
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
-        if isinstance(test_item, Feature):
-            return test_item.description
+        if isinstance(test_item, (Feature, Scenario, ScenarioTemplate)):
+            description = test_item.description
+            if description:
+                return description
 
     def _lock(self, leaf: Dict[str, Any], func: Callable[[Dict[str, Any]], Any]) -> Any:
         """
@@ -1050,7 +1053,6 @@ class PyTestService:
         :param leaf: item context
         """
         scenario = leaf["item"]
-        leaf["description"] = scenario.description
         leaf["code_ref"] = self._get_scenario_code_ref(scenario)
         leaf["test_case_id"] = self._get_scenario_test_case_id(leaf)
         # TODO: Add support for pytest-bdd parameters
