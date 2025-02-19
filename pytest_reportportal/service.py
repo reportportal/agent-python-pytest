@@ -156,6 +156,8 @@ class PyTestService:
     _issue_types: Dict[str, str]
     _tree_path: Dict[Any, List[Dict[str, Any]]]
     _bdd_root_leaf: Optional[Dict[str, Any]]
+    _bdd_item_by_name: Dict[str, Item]
+    _bdd_scenario_by_item: Dict[Item, Scenario]
     _start_tracker: Set[str]
     _launch_id: Optional[str]
     agent_name: str
@@ -171,6 +173,8 @@ class PyTestService:
         self._issue_types = {}
         self._tree_path = {}
         self._bdd_root_leaf = None
+        self._bdd_item_by_name = {}
+        self._bdd_scenario_by_item = {}
         self._start_tracker = set()
         self._launch_id = None
         self.agent_name = "pytest-reportportal"
@@ -770,6 +774,7 @@ class PyTestService:
             self.start()
 
         if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
+            self._bdd_item_by_name[test_item.name] = test_item
             return
 
         self._create_suite_path(test_item)
@@ -786,11 +791,12 @@ class PyTestService:
         :param test_item: pytest.Item
         :param report:    pytest's result report
         """
-        if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
-            return
 
         if report.longrepr:
             self.post_log(test_item, report.longreprtext, log_level="ERROR")
+
+        if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
+            return
 
         leaf = self._tree_path[test_item][-1]
         # Defining test result
@@ -873,6 +879,7 @@ class PyTestService:
         self._process_metadata_item_finish(leaf)
 
         if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
+            del self._bdd_item_by_name[test_item.name]
             return
 
         self._finish_step(self._build_finish_step_rq(leaf))
@@ -951,6 +958,13 @@ class PyTestService:
                 "Incorrect loglevel = %s. Force set to INFO. " "Available levels: %s.", log_level, KNOWN_LOG_LEVELS
             )
         item_id = self._tree_path[test_item][-1]["item_id"]
+        if PYTEST_BDD:
+            if not item_id:
+                # Check if we are actually a BDD scenario
+                scenario = self._bdd_scenario_by_item[test_item]
+                if scenario:
+                    # Yes, we are a BDD scenario, report log to the scenario
+                    item_id = self._tree_path[scenario][-1]["item_id"]
 
         sl_rq = self._build_log(item_id, message, log_level, attachment)
         self.rp.log(**sl_rq)
@@ -989,6 +1003,17 @@ class PyTestService:
             LOGGER.exception(e)
             reporter.finish_nested_step(item_id, timestamp(), "FAILED")
 
+    def _get_python_name(self, name: str) -> str:
+        python_name = f"test_{make_python_name(name)}"
+        same_scenario_names = [name for name in self._bdd_item_by_name.keys() if name.startswith(python_name)]
+        if len(same_scenario_names) < 1:
+            return python_name
+        elif len(same_scenario_names) == 1:
+            return same_scenario_names[0]
+        else:
+            indexes = sorted([int(name.split("_")[-1]) for name in same_scenario_names])
+            return f"{python_name}_{indexes[-1]}"
+
     def start_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:
         """Save BDD scenario and Feature to test tree. The scenario will be started later if a step will be reported.
 
@@ -997,6 +1022,9 @@ class PyTestService:
         """
         if not PYTEST_BDD:
             return
+        item_name = self._get_python_name(scenario.name)
+        test_item = self._bdd_item_by_name.get(item_name, None)
+        self._bdd_scenario_by_item[test_item] = scenario
 
         root_leaf = self._bdd_root_leaf
         if not root_leaf:

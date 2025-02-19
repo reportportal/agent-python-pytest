@@ -74,7 +74,7 @@ STEP_NAMES = [
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_basic_bdd(mock_client_init):
+def test_test_basic_bdd(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {}
@@ -118,7 +118,7 @@ def test_basic_bdd(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def basic_bdd_with_feature_suite(mock_client_init):
+def test_basic_bdd_with_feature_suite(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {"rp_hierarchy_code": True}
@@ -155,7 +155,7 @@ def basic_bdd_with_feature_suite(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def bdd_scenario_descriptions(mock_client_init):
+def test_bdd_scenario_descriptions(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     variables = {}
     variables.update(utils.DEFAULT_VARIABLES.items())
@@ -176,7 +176,7 @@ def bdd_scenario_descriptions(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def bdd_feature_descriptions(mock_client_init):
+def test_bdd_feature_descriptions(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     variables = {"rp_hierarchy_code": True}
     variables.update(utils.DEFAULT_VARIABLES.items())
@@ -213,10 +213,14 @@ def test_bdd_failed_feature(mock_client_init):
     assert finish_scenario_call[1]["status"] == "FAILED"
 
     log_count = mock_client.log.call_count
-    # 1 - debug log from pytest-bdd's scenario module; 2 - traceback log from the agent
-    assert log_count == 1 + 1, 'Incorrect number of "log" calls'
+    # 1 - debug log from pytest-bdd's scenario module; 2 - traceback log from the agent; 3 - error log from pytest
+    assert log_count == 1 + 1 + 1, 'Incorrect number of "log" calls'
 
     log_call_args_list = mock_client.log.call_args_list[1:]
     assert log_call_args_list[0][1]["level"] == "ERROR"
     assert log_call_args_list[0][1]["message"].endswith("AssertionError: assert False\n")
     assert log_call_args_list[0][1]["item_id"] == "Given I have a failed step_1"
+
+    assert log_call_args_list[1][1]["level"] == "ERROR"
+    assert log_call_args_list[1][1]["message"].endswith("AssertionError")
+    assert log_call_args_list[1][1]["item_id"] == "Feature: Test failed scenario - Scenario: The scenario_1"
