@@ -791,7 +791,6 @@ class PyTestService:
         :param test_item: pytest.Item
         :param report:    pytest's result report
         """
-
         if report.longrepr:
             self.post_log(test_item, report.longreprtext, log_level="ERROR")
 
