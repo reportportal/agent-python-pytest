@@ -156,7 +156,7 @@ class PyTestService:
     _config: AgentConfig
     _issue_types: Dict[str, str]
     _tree_path: Dict[Any, List[Dict[str, Any]]]
-    _bdd_root_leaf: Optional[Dict[str, Any]]
+    _bdd_tree: Optional[Dict[str, Any]]
     _bdd_item_by_name: Dict[str, Item]
     _bdd_scenario_by_item: Dict[Item, Scenario]
     _start_tracker: Set[str]
@@ -173,7 +173,7 @@ class PyTestService:
         self._config = agent_config
         self._issue_types = {}
         self._tree_path = {}
-        self._bdd_root_leaf = None
+        self._bdd_tree = None
         self._bdd_item_by_name = {}
         self._bdd_scenario_by_item = {}
         self._start_tracker = set()
@@ -380,6 +380,8 @@ class PyTestService:
             current_name = test_tree["name"]
             del parent_leaf["children"][current_item]
             for item, child_leaf in child_items:
+                if child_leaf["type"] == LeafType.NESTED:
+                    continue
                 parent_leaf["children"][item] = child_leaf
                 child_leaf["parent"] = parent_leaf
                 child_leaf["name"] = current_name + separator + child_leaf["name"]
@@ -1042,9 +1044,9 @@ class PyTestService:
         test_item = self._bdd_item_by_name.get(item_name, None)
         self._bdd_scenario_by_item[test_item] = scenario
 
-        root_leaf = self._bdd_root_leaf
+        root_leaf = self._bdd_tree
         if not root_leaf:
-            self._bdd_root_leaf = root_leaf = self._create_leaf(LeafType.ROOT, None, None, item_id=self.parent_item_id)
+            self._bdd_tree = root_leaf = self._create_leaf(LeafType.ROOT, None, None, item_id=self.parent_item_id)
         children_leafs = root_leaf["children"]
         if feature in children_leafs:
             feature_leaf = children_leafs[feature]
@@ -1065,7 +1067,10 @@ class PyTestService:
         self._remove_file_names(root_leaf)
         self._generate_names(root_leaf)
         if not self._config.rp_hierarchy_code:
-            self._merge_code_with_separator(root_leaf, " - ")
+            try:
+                self._merge_code_with_separator(root_leaf, " - ")
+            except Exception as e:
+                LOGGER.exception(e)
         self._build_item_paths(root_leaf, [])
 
     def finish_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:

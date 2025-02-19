@@ -12,11 +12,21 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from pytest_bdd import given, scenarios
+from pytest_bdd import scenarios, given, then
 
-scenarios("../features/failed_scenario.feature")
+scenarios("../features/background_scenario.feature")
 
 
-@given("I have a failed step")
-def failed_step():
-    assert False
+@given("I have empty step")
+def empty_step():
+    pass
+
+
+@then("I have another empty step")
+def another_empty_step():
+    pass
+
+
+@then("I have one more empty step")
+def one_more_empty_step():
+    pass

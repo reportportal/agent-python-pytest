@@ -74,7 +74,7 @@ STEP_NAMES = [
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_basic_bdd(mock_client_init):
+def basic_bdd(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {}
@@ -118,7 +118,7 @@ def test_basic_bdd(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_basic_bdd_with_feature_suite(mock_client_init):
+def basic_bdd_with_feature_suite(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {"rp_hierarchy_code": True}
@@ -155,7 +155,7 @@ def test_basic_bdd_with_feature_suite(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_scenario_descriptions(mock_client_init):
+def bdd_scenario_descriptions(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     variables = {}
     variables.update(utils.DEFAULT_VARIABLES.items())
@@ -176,7 +176,7 @@ def test_bdd_scenario_descriptions(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_feature_descriptions(mock_client_init):
+def bdd_feature_descriptions(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     variables = {"rp_hierarchy_code": True}
     variables.update(utils.DEFAULT_VARIABLES.items())
@@ -190,7 +190,7 @@ def test_bdd_feature_descriptions(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_failed_feature(mock_client_init):
+def bdd_failed_feature(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {}
@@ -227,7 +227,7 @@ def test_bdd_failed_feature(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_scenario_attributes(mock_client_init):
+def bdd_scenario_attributes(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
@@ -246,7 +246,7 @@ def test_bdd_scenario_attributes(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_feature_attributes(mock_client_init):
+def bdd_feature_attributes(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
@@ -270,3 +270,69 @@ def test_bdd_feature_attributes(mock_client_init):
     assert len(scenario_attrs) == 2
     assert {"value": "ok"} in scenario_attrs
     assert {"key": "key", "value": "value"} in scenario_attrs
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_bdd_background_step(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    setup_mock_for_logging(mock_client_init)
+
+    variables = {}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    test_file = "examples/bdd/step_defs/test_background.py"
+    result = utils.run_pytest_tests(tests=[test_file], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify the first scenario
+    scenario_call_1 = mock_client.start_test_item.call_args_list[0]
+    assert scenario_call_1[1]["name"] == "Feature: Test scenario with a background - Scenario: The first scenario"
+    assert scenario_call_1[1]["item_type"] == "STEP"
+    assert scenario_call_1[1].get("has_stats", True)
+
+    # Verify the Background step for the first scenario
+    background_call_1 = mock_client.start_test_item.call_args_list[1]
+    assert background_call_1[0][0] == "Background: Init our scenario"
+    assert background_call_1[1]["item_type"] == "STEP"
+    assert background_call_1[1]["has_stats"] is False
+    assert background_call_1[1]["parent_item_id"] == scenario_call_1[0][0]
+
+    # Verify the nested steps within the Background for the first scenario
+    nested_step_call_1 = mock_client.start_test_item.call_args_list[2]
+    assert nested_step_call_1[0][0] == "Given I have empty step"
+    assert nested_step_call_1[1]["item_type"] == "STEP"
+    assert nested_step_call_1[1]["parent_item_id"] == background_call_1[0][0]
+    assert nested_step_call_1[1]["has_stats"] is False
+
+    # Verify the step within the first scenario
+    scenario_step_call_1 = mock_client.start_test_item.call_args_list[3]
+    assert scenario_step_call_1[0][0] == "Then I have another empty step"
+    assert scenario_step_call_1[1]["item_type"] == "STEP"
+    assert scenario_step_call_1[1]["parent_item_id"] == scenario_call_1[0][0]
+    assert scenario_step_call_1[1]["has_stats"] is False
+
+    # Verify the second scenario
+    scenario_call_2 = mock_client.start_test_item.call_args_list[4]
+    assert scenario_call_2[0][0] == "Feature: Test scenario with a background - Scenario: The second scenario"
+    assert scenario_call_2[1]["item_type"] == "STEP"
+    assert scenario_call_1[1].get("has_stats", True)
+
+    # Verify the Background step for the second scenario
+    background_call_2 = mock_client.start_test_item.call_args_list[5]
+    assert background_call_2[0][0] == "Background: Init our scenario"
+    assert background_call_2[1]["item_type"] == "STEP"
+    assert background_call_2[1]["has_stats"] is False
+    assert background_call_2[1]["parent_item_id"] == scenario_call_2[0][0]
+
+    # Verify the nested steps within the Background for the second scenario
+    nested_step_call_2 = mock_client.start_test_item.call_args_list[6]
+    assert nested_step_call_2[0][0] == "Given I have empty step"
+    assert nested_step_call_2[1]["item_type"] == "STEP"
+    assert nested_step_call_2[1]["parent_item_id"] == background_call_2[0][0]
+    assert nested_step_call_2[1]["has_stats"] is False
+
+    # Verify the step within the second scenario
+    scenario_step_call_2 = mock_client.start_test_item.call_args_list[7]
+    assert scenario_step_call_2[0][0] == "Then I have one more empty step"
+    assert scenario_step_call_2[1]["item_type"] == "STEP"
+    assert scenario_step_call_2[1]["parent_item_id"] == scenario_call_2[0][0]
+    assert scenario_step_call_2[1]["has_stats"] is False
