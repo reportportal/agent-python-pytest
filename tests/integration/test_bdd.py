@@ -224,3 +224,49 @@ def test_bdd_failed_feature(mock_client_init):
     assert log_call_args_list[1][1]["level"] == "ERROR"
     assert log_call_args_list[1][1]["message"].endswith("AssertionError")
     assert log_call_args_list[1][1]["item_id"] == "Feature: Test failed scenario - Scenario: The scenario_1"
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_bdd_scenario_attributes(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    setup_mock_for_logging(mock_client_init)
+
+    variables = {}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    test_file = "examples/bdd/step_defs/test_belly.py"
+    result = utils.run_pytest_tests(tests=[test_file], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    scenario_attrs = scenario_call[1].get("attributes", [])
+    assert scenario_attrs is not None
+    assert len(scenario_attrs) == 2
+    assert {"value": "ok"} in scenario_attrs
+    assert {"key": "key", "value": "value"} in scenario_attrs
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_bdd_feature_attributes(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    setup_mock_for_logging(mock_client_init)
+
+    variables = {"rp_hierarchy_code": True}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    test_file = "examples/bdd/step_defs/test_belly.py"
+    result = utils.run_pytest_tests(tests=[test_file], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    feature_call = mock_client.start_test_item.call_args_list[0]
+    feature_attrs = feature_call[1].get("attributes", [])
+    assert feature_attrs is not None
+    assert len(feature_attrs) == 3
+    assert {"value": "smoke"} in feature_attrs
+    assert {"value": "test"} in feature_attrs
+    assert {"key": "feature", "value": "belly"} in feature_attrs
+
+    scenario_call = mock_client.start_test_item.call_args_list[1]
+    scenario_attrs = scenario_call[1].get("attributes", [])
+    assert scenario_attrs is not None
+    assert len(scenario_attrs) == 2
+    assert {"value": "ok"} in scenario_attrs
+    assert {"key": "key", "value": "value"} in scenario_attrs
