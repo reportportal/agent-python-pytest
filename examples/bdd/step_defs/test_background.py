@@ -12,7 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from pytest_bdd import scenarios, given, then
+from pytest_bdd import given, scenarios, then
 
 scenarios("../features/background_scenario.feature")
 
