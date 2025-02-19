@@ -74,7 +74,7 @@ STEP_NAMES = [
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_test_basic_bdd(mock_client_init):
+def test_basic_bdd(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {}
