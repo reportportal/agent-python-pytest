@@ -81,6 +81,7 @@ ISSUE_DESCRIPTION_URL_TEMPLATE: str = " [{issue_id}]({url})"
 ISSUE_DESCRIPTION_ID_TEMPLATE: str = " {issue_id}"
 PYTHON_REPLACE_REGEX = re.compile(r"\W")
 ALPHA_REGEX = re.compile(r"^\d+_*")
+ATTRIBUTE_DELIMITER = ":"
 
 
 def trim_docstring(docstring: str) -> str:
@@ -465,25 +466,41 @@ class PyTestService:
                 return func(leaf)
         return func(leaf)
 
+    def _process_bdd_attributes(self, scenario: Union[Feature, Scenario]) -> List[Dict[str, str]]:
+        attributes = []
+        for tag in scenario.tags:
+            key = None
+            value = tag
+            if ATTRIBUTE_DELIMITER in tag:
+                key, value = tag.split(ATTRIBUTE_DELIMITER, 1)
+            attribute = {"value": value}
+            if key:
+                attribute["key"] = key
+            attributes.append(attribute)
+        return attributes
+
     def _build_start_suite_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
+        item = leaf["item"]
         if leaf["type"] == LeafType.DIR:
-            code_ref = str(leaf["item"])
+            code_ref = str(item)
         elif leaf["type"] == LeafType.FILE:
-            if isinstance(leaf["item"], Feature):
-                code_ref = str(leaf["item"].rel_filename)
+            if isinstance(item, Feature):
+                code_ref = str(item.rel_filename)
             else:
-                code_ref = str(leaf["item"].fspath)
+                code_ref = str(item.fspath)
         else:
-            code_ref = str(leaf["item"].fspath)
+            code_ref = str(item.fspath)
         parent_item_id = self._lock(leaf["parent"], lambda p: p.get("item_id")) if "parent" in leaf else None
         payload = {
             "name": self._truncate_item_name(leaf["name"]),
-            "description": self._get_item_description(leaf["item"]),
+            "description": self._get_item_description(item),
             "start_time": timestamp(),
             "item_type": "SUITE",
             "code_ref": code_ref,
             "parent_item_id": parent_item_id,
         }
+        if isinstance(item, Feature):
+            payload["attributes"] = self._process_bdd_attributes(item)
         return payload
 
     def _start_suite(self, suite_rq: Dict[str, Any]) -> Optional[str]:
@@ -1061,6 +1078,8 @@ class PyTestService:
             return
 
         leaf = self._tree_path[scenario][-1]
+        if leaf["exec"] != ExecStatus.IN_PROGRESS:
+            return
         self._finish_step(self._build_finish_step_rq(leaf))
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
@@ -1085,8 +1104,7 @@ class PyTestService:
         scenario = leaf["item"]
         leaf["code_ref"] = self._get_scenario_code_ref(scenario)
         leaf["test_case_id"] = self._get_scenario_test_case_id(leaf)
-        # TODO: Add support for pytest-bdd parameters
-        # leaf["attributes"] = self._process_attributes(scenario)
+        leaf["attributes"] = self._process_bdd_attributes(scenario)
 
     @check_rp_enabled
     def start_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
