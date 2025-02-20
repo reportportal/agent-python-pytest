@@ -1149,8 +1149,17 @@ class PyTestService:
             scenario_leaf["exec"] = ExecStatus.IN_PROGRESS
         reporter = self.rp.step_reporter
         step_leaf = self._create_leaf(LeafType.NESTED, scenario_leaf, step)
-        if step.background:
-            background_leaf = scenario_leaf["children"][step.background]
+        background_steps = []
+        if feature.background:
+            background_steps = feature.background.steps
+        if next(
+            filter(
+                lambda s: s.name == step.name and s.keyword == step.keyword and s.line_number == step.line_number,
+                background_steps,
+            ),
+            None,
+        ):
+            background_leaf = scenario_leaf["children"][feature.background]
             background_leaf["children"][step] = step_leaf
             if background_leaf["exec"] != ExecStatus.IN_PROGRESS:
                 item_id = reporter.start_nested_step(BACKGROUND_STEP_NAME, timestamp())
@@ -1177,7 +1186,20 @@ class PyTestService:
             return
 
         scenario_leaf = self._tree_path[scenario][-1]
-        step_leaf = scenario_leaf["children"][step]
+        background_steps = []
+        if feature.background:
+            background_steps = feature.background.steps
+        if next(
+            filter(
+                lambda s: s.name == step.name and s.keyword == step.keyword and s.line_number == step.line_number,
+                background_steps,
+            ),
+            None,
+        ):
+            parent_leaf = scenario_leaf["children"][feature.background]
+        else:
+            parent_leaf = scenario_leaf
+        step_leaf = parent_leaf["children"][step]
         self._finish_bdd_step(step_leaf, "PASSED")
 
     @check_rp_enabled
