@@ -52,12 +52,14 @@ except ImportError:
     from _pytest.mark import Mark
 try:
     # noinspection PyPackageRequirements
+    from pytest_bdd.parser import Background, Feature, Scenario, ScenarioTemplate, Step
+
     # noinspection PyPackageRequirements
-    from pytest_bdd.parser import Feature, Scenario, ScenarioTemplate, Step
     from pytest_bdd.scenario import make_python_name
 
     PYTEST_BDD = True
 except ImportError:
+    Background = type("dummy", (), {})
     Feature = type("dummy", (), {})
     Scenario = type("dummy", (), {})
     ScenarioTemplate = type("dummy", (), {})
@@ -82,6 +84,7 @@ ISSUE_DESCRIPTION_ID_TEMPLATE: str = " {issue_id}"
 PYTHON_REPLACE_REGEX = re.compile(r"\W")
 ALPHA_REGEX = re.compile(r"^\d+_*")
 ATTRIBUTE_DELIMITER = ":"
+BACKGROUND_STEP_NAME = "Background"
 
 
 def trim_docstring(docstring: str) -> str:
@@ -374,17 +377,18 @@ class PyTestService:
         if test_tree["type"] not in leaf_types:
             for item, child_leaf in child_items:
                 self._merge_leaf_types(child_leaf, leaf_types, separator)
-        elif len(test_tree["children"].items()) > 0:
+        elif len(child_items) > 0:
             parent_leaf = test_tree["parent"]
             current_item = test_tree["item"]
             current_name = test_tree["name"]
-            del parent_leaf["children"][current_item]
+            child_types = [child_leaf["type"] in leaf_types for _, child_leaf in child_items]
+            if all(child_types):
+                del parent_leaf["children"][current_item]
             for item, child_leaf in child_items:
-                if child_leaf["type"] == LeafType.NESTED:
-                    continue
-                parent_leaf["children"][item] = child_leaf
-                child_leaf["parent"] = parent_leaf
-                child_leaf["name"] = current_name + separator + child_leaf["name"]
+                if all(child_types):
+                    parent_leaf["children"][item] = child_leaf
+                    child_leaf["parent"] = parent_leaf
+                    child_leaf["name"] = current_name + separator + child_leaf["name"]
                 self._merge_leaf_types(child_leaf, leaf_types, separator)
 
     def _merge_dirs(self, test_tree: Dict[str, Any]) -> None:
@@ -402,7 +406,7 @@ class PyTestService:
             for name, child_leaf in leaf["children"].items():
                 self._build_item_paths(child_leaf, path)
             path.pop()
-        elif leaf["type"] != LeafType.ROOT:
+        if leaf["type"] != LeafType.ROOT:
             self._tree_path[leaf["item"]] = path + [leaf]
 
     @check_rp_enabled
@@ -1064,6 +1068,12 @@ class PyTestService:
         children_leafs = rule_leaf["children"]
         scenario_leaf = self._create_leaf(LeafType.CODE, rule_leaf, scenario)
         children_leafs[scenario] = scenario_leaf
+        children_leafs = scenario_leaf["children"]
+        background = feature.background
+        if background:
+            if background not in children_leafs:
+                background_leaf = self._create_leaf(LeafType.NESTED, rule_leaf, background)
+                children_leafs[background] = background_leaf
         self._remove_file_names(root_leaf)
         self._generate_names(root_leaf)
         if not self._config.rp_hierarchy_code:
@@ -1111,6 +1121,15 @@ class PyTestService:
         leaf["test_case_id"] = self._get_scenario_test_case_id(leaf)
         leaf["attributes"] = self._process_bdd_attributes(scenario)
 
+    def _finish_bdd_step(self, leaf: Dict[str, Any], status: str) -> None:
+        if leaf["exec"] != ExecStatus.IN_PROGRESS:
+            return
+
+        reporter = self.rp.step_reporter
+        item_id = leaf["item_id"]
+        reporter.finish_nested_step(item_id, timestamp(), status)
+        leaf["exec"] = ExecStatus.FINISHED
+
     @check_rp_enabled
     def start_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
         """Start BDD step.
@@ -1129,20 +1148,22 @@ class PyTestService:
             scenario_leaf["item_id"] = self._start_step(self._build_start_step_rq(scenario_leaf))
             scenario_leaf["exec"] = ExecStatus.IN_PROGRESS
         reporter = self.rp.step_reporter
-        item_id = reporter.start_nested_step(f"{step.keyword} {step.name}", timestamp())
         step_leaf = self._create_leaf(LeafType.NESTED, scenario_leaf, step)
-        scenario_leaf["children"][step] = step_leaf
+        if step.background:
+            background_leaf = scenario_leaf["children"][step.background]
+            background_leaf["children"][step] = step_leaf
+            if background_leaf["exec"] != ExecStatus.IN_PROGRESS:
+                item_id = reporter.start_nested_step(BACKGROUND_STEP_NAME, timestamp())
+                background_leaf["item_id"] = item_id
+                background_leaf["exec"] = ExecStatus.IN_PROGRESS
+        else:
+            scenario_leaf["children"][step] = step_leaf
+            if feature.background:
+                background_leaf = scenario_leaf["children"][feature.background]
+                self._finish_bdd_step(background_leaf, "PASSED")
+        item_id = reporter.start_nested_step(f"{step.keyword} {step.name}", timestamp())
         step_leaf["item_id"] = item_id
         step_leaf["exec"] = ExecStatus.IN_PROGRESS
-
-    def _finish_bdd_step(self, leaf: Dict[str, Any], status: str) -> None:
-        if leaf["exec"] != ExecStatus.IN_PROGRESS:
-            return
-
-        reporter = self.rp.step_reporter
-        item_id = leaf["item_id"]
-        reporter.finish_nested_step(item_id, timestamp(), status)
-        leaf["exec"] = ExecStatus.FINISHED
 
     @check_rp_enabled
     def finish_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
@@ -1173,7 +1194,10 @@ class PyTestService:
 
         scenario_leaf = self._tree_path[scenario][-1]
         scenario_leaf["status"] = "FAILED"
-        step_leaf = scenario_leaf["children"][step]
+        if step.background:
+            step_leaf = scenario_leaf["children"][step.background]["children"][step]
+        else:
+            step_leaf = scenario_leaf["children"][step]
         item_id = step_leaf["item_id"]
         traceback_str = "\n".join(
             traceback.format_exception(type(exception), value=exception, tb=exception.__traceback__)
@@ -1183,6 +1207,9 @@ class PyTestService:
         client.log(**exception_log)
 
         self._finish_bdd_step(step_leaf, "FAILED")
+        if step.background:
+            background_leaf = scenario_leaf["children"][step.background]
+            self._finish_bdd_step(background_leaf, "FAILED")
 
     def start(self) -> None:
         """Start servicing Report Portal requests."""
