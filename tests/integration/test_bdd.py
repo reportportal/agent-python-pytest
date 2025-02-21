@@ -390,3 +390,11 @@ def test_bdd_background_two_steps(mock_client_init):
     assert scenario_step_call[0][2] == "step"
     assert scenario_step_call[1]["parent_item_id"] == scenario_call[1]["name"] + "_1"
     assert scenario_step_call[1]["has_stats"] is False
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_bdd_rule(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    setup_mock_for_logging(mock_client_init)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_rule_steps.py"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"

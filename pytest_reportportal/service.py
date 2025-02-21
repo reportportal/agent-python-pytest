@@ -67,6 +67,12 @@ except ImportError:
     make_python_name: Callable[[str], str] = lambda x: x
     PYTEST_BDD = False
 
+try:
+    # noinspection PyPackageRequirements
+    from pytest_bdd.parser import Rule
+except ImportError:
+    Rule = type("dummy", (), {})  # Old pytest-bdd versions do not have Rule
+
 from reportportal_client import RP, create_client
 from reportportal_client.helpers import dict_to_payload, gen_attributes, get_launch_sys_attrs, get_package_version
 
@@ -366,8 +372,17 @@ class PyTestService:
             elif isinstance(item, Scenario):
                 keyword = getattr(item, "keyword", "Scenario")
                 test_tree["name"] = f"{keyword}: {item.name}"
+            elif isinstance(item, Rule):
+                keyword = getattr(item, "keyword", "Rule")
+                test_tree["name"] = f"{keyword}: {item.name}"
             else:
                 test_tree["name"] = item.name
+
+        if test_tree["type"] == LeafType.SUITE:
+            item = test_tree["item"]
+            if isinstance(item, Rule):
+                keyword = getattr(item, "keyword", "Rule")
+                test_tree["name"] = f"{keyword}: {item.name}"
 
         for item, child_leaf in test_tree["children"].items():
             self._generate_names(child_leaf)
@@ -395,7 +410,7 @@ class PyTestService:
         self._merge_leaf_types(test_tree, {LeafType.DIR, LeafType.FILE}, self._config.rp_dir_path_separator)
 
     def _merge_code_with_separator(self, test_tree: Dict[str, Any], separator: str) -> None:
-        self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE, LeafType.DIR}, separator)
+        self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE, LeafType.DIR, LeafType.SUITE}, separator)
 
     def _merge_code(self, test_tree: Dict[str, Any]) -> None:
         self._merge_code_with_separator(test_tree, "::")
@@ -454,7 +469,7 @@ class PyTestService:
                     return trim_docstring(doc)
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
-        if isinstance(test_item, (Feature, Scenario, ScenarioTemplate)):
+        if isinstance(test_item, (Feature, Scenario, ScenarioTemplate, Rule)):
             description = test_item.description
             if description:
                 return description
@@ -472,7 +487,7 @@ class PyTestService:
                 return func(leaf)
         return func(leaf)
 
-    def _process_bdd_attributes(self, scenario: Union[Feature, Scenario]) -> List[Dict[str, str]]:
+    def _process_bdd_attributes(self, scenario: Union[Feature, Scenario, Rule]) -> List[Dict[str, str]]:
         attributes = []
         for tag in scenario.tags:
             key = None
@@ -485,7 +500,7 @@ class PyTestService:
             attributes.append(attribute)
         return attributes
 
-    def _build_start_suite_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
+    def _get_suite_code_ref(self, leaf: Dict[str, Any]) -> str:
         item = leaf["item"]
         if leaf["type"] == LeafType.DIR:
             code_ref = str(item)
@@ -494,9 +509,16 @@ class PyTestService:
                 code_ref = str(item.rel_filename)
             else:
                 code_ref = str(item.fspath)
+        elif leaf["type"] == LeafType.SUITE:
+            code_ref = self._get_suite_code_ref(leaf["parent"]) + f"/[{type(item).__name__}:{item.name}]"
         else:
             code_ref = str(item.fspath)
+        return code_ref
+
+    def _build_start_suite_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
+        code_ref = self._get_suite_code_ref(leaf)
         parent_item_id = self._lock(leaf["parent"], lambda p: p.get("item_id")) if "parent" in leaf else None
+        item = leaf["item"]
         payload = {
             "name": self._truncate_item_name(leaf["name"]),
             "description": self._get_item_description(item),
@@ -505,7 +527,7 @@ class PyTestService:
             "code_ref": code_ref,
             "parent_item_id": parent_item_id,
         }
-        if isinstance(item, Feature):
+        if isinstance(item, (Feature, Scenario, Rule)):
             payload["attributes"] = self._process_bdd_attributes(item)
         return payload
 
@@ -1057,12 +1079,14 @@ class PyTestService:
         else:
             feature_leaf = self._create_leaf(LeafType.FILE, root_leaf, feature)
             children_leafs[feature] = feature_leaf
+        children_leafs = feature_leaf["children"]
         rule = getattr(scenario, "rule", None)
         if rule:
             if rule in children_leafs:
                 rule_leaf = children_leafs[rule]
             else:
                 rule_leaf = self._create_leaf(LeafType.SUITE, feature_leaf, rule)
+                children_leafs[rule] = rule_leaf
         else:
             rule_leaf = feature_leaf
         children_leafs = rule_leaf["children"]
@@ -1074,6 +1098,7 @@ class PyTestService:
             if background not in children_leafs:
                 background_leaf = self._create_leaf(LeafType.NESTED, rule_leaf, background)
                 children_leafs[background] = background_leaf
+
         self._remove_file_names(root_leaf)
         self._generate_names(root_leaf)
         if not self._config.rp_hierarchy_code:
