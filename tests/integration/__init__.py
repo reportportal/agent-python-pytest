@@ -264,7 +264,7 @@ HIERARCHY_TEST_EXPECTED_ITEMS = [
             "parent_item_id": lambda x: x is None,
         }
     ],
-    [{"name": "examples/test_simple", "item_type": "STEP", "parent_item_id": lambda x: x is None}],
+    [{"name": "examples::test_simple", "item_type": "STEP", "parent_item_id": lambda x: x is None}],
     [{"name": "test_simple", "item_type": "STEP", "parent_item_id": lambda x: x is None}],
 ]
 
