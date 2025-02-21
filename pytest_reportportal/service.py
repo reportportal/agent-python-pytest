@@ -392,7 +392,7 @@ class PyTestService:
                 self._merge_leaf_types(child_leaf, leaf_types, separator)
 
     def _merge_dirs(self, test_tree: Dict[str, Any]) -> None:
-        self._merge_leaf_types(test_tree, {LeafType.DIR}, self._config.rp_dir_path_separator)
+        self._merge_leaf_types(test_tree, {LeafType.DIR, LeafType.FILE}, self._config.rp_dir_path_separator)
 
     def _merge_code_with_separator(self, test_tree: Dict[str, Any], separator: str) -> None:
         self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE}, separator)

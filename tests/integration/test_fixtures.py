@@ -92,9 +92,8 @@ def test_fixture_on_off(mock_client_init, switch):
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
     expected_count = 3 if switch else 1
-    assert (
-        start_count == finish_count == expected_count
-    ), 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == expected_count, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == expected_count, 'Incorrect number of "finish_test_item" calls'
 
 
 def run_tests(test_path, should_fail=False):
@@ -116,7 +115,8 @@ def test_fixture_setup(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 3, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 3, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -153,7 +153,8 @@ def test_fixture_teardown(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 3, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 3, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -203,7 +204,8 @@ def test_fixture_setup_failure(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 2, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 2, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 2, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -252,7 +254,8 @@ def test_fixture_teardown_failure(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 3, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 3, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -309,7 +312,8 @@ def test_fixture_yield_none(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 3, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 3, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -347,7 +351,8 @@ def test_fixture_return_none(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 3, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 3, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -385,7 +390,8 @@ def test_failure_fixture_teardown(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 3, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 3, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 3, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -442,7 +448,8 @@ def test_session_fixture_setup(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 4, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 4, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 4, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -496,7 +503,8 @@ def test_module_fixture_setup(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 4, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 4, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 4, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
@@ -523,7 +531,8 @@ def test_class_fixture_setup(mock_client_init):
 
     start_count = mock_client.start_test_item.call_count
     finish_count = mock_client.finish_test_item.call_count
-    assert start_count == finish_count == 8, 'Incorrect number of "start_test_item" or "finish_test_item" calls'
+    assert start_count == 8, 'Incorrect number of "start_test_item" calls'
+    assert finish_count == 8, 'Incorrect number of "finish_test_item" calls'
 
     call_args = mock_client.start_test_item.call_args_list
     setup_call_args = call_args[1][0]
