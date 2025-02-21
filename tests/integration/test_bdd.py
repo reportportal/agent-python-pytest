@@ -30,6 +30,8 @@ ITEM_ID_LIST = []
 
 
 def generate_item_id(*args, **kwargs) -> str:
+    global ITEM_ID_DICT
+    global ITEM_ID_LIST
     if args:
         name = args[0]
     else:
@@ -43,11 +45,13 @@ def generate_item_id(*args, **kwargs) -> str:
 
 
 def get_last_item_id() -> Optional[str]:
+    global ITEM_ID_LIST
     if len(ITEM_ID_LIST) > 0:
         return ITEM_ID_LIST[-1]
 
 
 def remove_last_item_id(*_, **__) -> Optional[str]:
+    global ITEM_ID_LIST
     if len(ITEM_ID_LIST) > 0:
         return ITEM_ID_LIST.pop()
 
@@ -338,3 +342,51 @@ def test_bdd_background_step(mock_client_init):
     assert scenario_step_call_2[0][2] == "step"
     assert scenario_step_call_2[1]["parent_item_id"] == scenario_call_2[1]["name"] + "_1"
     assert scenario_step_call_2[1]["has_stats"] is False
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_bdd_background_two_steps(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    setup_mock_for_logging(mock_client_init)
+
+    variables = {}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    test_file = "examples/bdd/step_defs/test_background_two_steps.py"
+    result = utils.run_pytest_tests(tests=[test_file], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify the scenario
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    assert (
+        scenario_call[1]["name"] == "Feature: Test scenario with a background with two steps - Scenario: The scenario"
+    )
+    assert scenario_call[1]["item_type"] == "STEP"
+    assert scenario_call[1].get("has_stats", True)
+
+    # Verify the Background step
+    background_call = mock_client.start_test_item.call_args_list[1]
+    assert background_call[0][0] == "Background"
+    assert background_call[0][2] == "step"
+    assert background_call[1]["has_stats"] is False
+    assert background_call[1]["parent_item_id"] == scenario_call[1]["name"] + "_1"
+
+    # Verify the first nested step within the Background
+    nested_step_call_1 = mock_client.start_test_item.call_args_list[2]
+    assert nested_step_call_1[0][0] == "Given I have first empty step"
+    assert nested_step_call_1[0][2] == "step"
+    assert nested_step_call_1[1]["parent_item_id"] == background_call[0][0] + "_3"
+    assert nested_step_call_1[1]["has_stats"] is False
+
+    # Verify the second nested step within the Background
+    nested_step_call_2 = mock_client.start_test_item.call_args_list[3]
+    assert nested_step_call_2[0][0] == "And I have second empty step"
+    assert nested_step_call_2[0][2] == "step"
+    assert nested_step_call_2[1]["parent_item_id"] == background_call[0][0] + "_3"
+    assert nested_step_call_2[1]["has_stats"] is False
+
+    # Verify the scenario step
+    scenario_step_call = mock_client.start_test_item.call_args_list[4]
+    assert scenario_step_call[0][0] == "Then I have main step"
+    assert scenario_step_call[0][2] == "step"
+    assert scenario_step_call[1]["parent_item_id"] == scenario_call[1]["name"] + "_1"
+    assert scenario_step_call[1]["has_stats"] is False
