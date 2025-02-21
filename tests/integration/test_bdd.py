@@ -76,7 +76,7 @@ STEP_NAMES = [
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def basic_bdd(mock_client_init):
+def test_basic_bdd(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {}
@@ -120,7 +120,7 @@ def basic_bdd(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def basic_bdd_with_feature_suite(mock_client_init):
+def test_basic_bdd_with_feature_suite(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {"rp_hierarchy_code": True}
@@ -157,7 +157,7 @@ def basic_bdd_with_feature_suite(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def bdd_scenario_descriptions(mock_client_init):
+def test_bdd_scenario_descriptions(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     variables = {}
     variables.update(utils.DEFAULT_VARIABLES.items())
@@ -178,7 +178,7 @@ def bdd_scenario_descriptions(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def bdd_feature_descriptions(mock_client_init):
+def test_bdd_feature_descriptions(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     variables = {"rp_hierarchy_code": True}
     variables.update(utils.DEFAULT_VARIABLES.items())
@@ -192,7 +192,7 @@ def bdd_feature_descriptions(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def bdd_failed_feature(mock_client_init):
+def test_bdd_failed_feature(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {}
@@ -229,7 +229,7 @@ def bdd_failed_feature(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def bdd_scenario_attributes(mock_client_init):
+def test_bdd_scenario_attributes(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
@@ -248,7 +248,7 @@ def bdd_scenario_attributes(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def bdd_feature_attributes(mock_client_init):
+def test_bdd_feature_attributes(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
