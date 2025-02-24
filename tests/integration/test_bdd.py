@@ -81,7 +81,7 @@ STEP_NAMES = [
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_basic_bdd(mock_client_init):
+def test_basic(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_arguments.py"])
@@ -123,7 +123,7 @@ def test_basic_bdd(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_basic_bdd_with_feature_suite(mock_client_init):
+def test_basic_with_feature_suite(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     variables = {"rp_hierarchy_code": True}
@@ -160,7 +160,7 @@ def test_basic_bdd_with_feature_suite(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_scenario_descriptions(mock_client_init):
+def test_scenario_descriptions(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_arguments_description.py"])
     assert int(result) == 0, "Exit code should be 0 (no errors)"
@@ -177,7 +177,7 @@ def test_bdd_scenario_descriptions(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_feature_descriptions(mock_client_init):
+def test_feature_descriptions(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     variables = {"rp_hierarchy_code": True}
     variables.update(utils.DEFAULT_VARIABLES.items())
@@ -191,7 +191,7 @@ def test_bdd_feature_descriptions(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_failed_feature(mock_client_init):
+def test_failed_feature(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_failed_step.py"])
@@ -226,7 +226,7 @@ def test_bdd_failed_feature(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_scenario_attributes(mock_client_init):
+def test_scenario_attributes(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
@@ -243,7 +243,7 @@ def test_bdd_scenario_attributes(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_feature_attributes(mock_client_init):
+def test_feature_attributes(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
@@ -270,7 +270,7 @@ def test_bdd_feature_attributes(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_background_step(mock_client_init):
+def test_background_step(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
@@ -334,7 +334,7 @@ def test_bdd_background_step(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_background_two_steps(mock_client_init):
+def test_background_two_steps(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
@@ -381,7 +381,7 @@ def test_bdd_background_two_steps(mock_client_init):
 
 @pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_rule(mock_client_init):
+def test_rule(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_rule_steps.py"])
@@ -476,7 +476,7 @@ def test_bdd_rule(mock_client_init):
 
 @pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_bdd_rule_hierarchy(mock_client_init):
+def test_rule_hierarchy(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
@@ -541,3 +541,118 @@ def test_bdd_rule_hierarchy(mock_client_init):
         scenario_3_call[1]["code_ref"]
         == "features/rule_keyword.feature/[RULE:The second rule]/[SCENARIO:The third scenario]"
     )
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_scenario_outline_parameters(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    setup_mock_for_logging(mock_client_init)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/scenario_outline_parameters_steps.py"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify first scenario with parameters
+    scenario_call_1 = mock_client.start_test_item.call_args_list[0]
+    assert (
+        scenario_call_1[1]["name"]
+        == "Feature: Basic test with parameters - Scenario Outline: Test with different parameters"
+    )
+    assert scenario_call_1[1]["item_type"] == "STEP"
+    assert scenario_call_1[1].get("has_stats", True)
+    assert (
+        scenario_call_1[1]["code_ref"]
+        == 'features/scenario_outline_parameters.feature/[SCENARIO:Test with different parameters["first",123]]'
+    )
+    assert ("str", "first") in scenario_call_1[1]["parameters"].items()
+    assert ("parameters", 123) in scenario_call_1[1]["parameters"].items()
+    assert scenario_call_1[1]["description"] is not None
+    assert scenario_call_1[1]["description"].endswith('| "first"  | 123        |')
+
+    # Verify steps for first scenario
+    given_step_1 = mock_client.start_test_item.call_args_list[1]
+    assert given_step_1[0][0] == "Given It is test with parameters"
+    assert given_step_1[0][2] == "step"
+    assert given_step_1[1]["parent_item_id"] == scenario_call_1[1]["name"] + "_1"
+    assert given_step_1[1]["has_stats"] is False
+
+    when_step_1 = mock_client.start_test_item.call_args_list[2]
+    assert when_step_1[0][0] == 'When I have parameter "first"'
+    assert when_step_1[0][2] == "step"
+    assert when_step_1[1]["parent_item_id"] == scenario_call_1[1]["name"] + "_1"
+    assert when_step_1[1]["has_stats"] is False
+
+    then_step_1 = mock_client.start_test_item.call_args_list[3]
+    assert then_step_1[0][0] == "Then I emit number 123 on level info"
+    assert then_step_1[0][2] == "step"
+    assert then_step_1[1]["parent_item_id"] == scenario_call_1[1]["name"] + "_1"
+    assert then_step_1[1]["has_stats"] is False
+
+    # Verify second scenario with parameters
+    scenario_call_2 = mock_client.start_test_item.call_args_list[4]
+    assert (
+        scenario_call_2[1]["name"]
+        == "Feature: Basic test with parameters - Scenario Outline: Test with different parameters"
+    )
+    assert scenario_call_2[1]["item_type"] == "STEP"
+    assert scenario_call_2[1].get("has_stats", True)
+    assert (
+        scenario_call_2[1]["code_ref"]
+        == 'features/scenario_outline_parameters.feature/[SCENARIO:Test with different parameters["second",12345]]'
+    )
+    assert ("str", "second") in scenario_call_2[1]["parameters"].items()
+    assert ("parameters", 12345) in scenario_call_2[1]["parameters"].items()
+    assert scenario_call_2[1]["description"] is not None
+    assert scenario_call_2[1]["description"].endswith('| "second" | 12345      |')
+
+    # Verify steps for second scenario
+    given_step_2 = mock_client.start_test_item.call_args_list[5]
+    assert given_step_2[0][0] == "Given It is test with parameters"
+    assert given_step_2[1]["parent_item_id"] == scenario_call_2[1]["name"] + "_2"
+    assert given_step_2[1]["has_stats"] is False
+
+    when_step_2 = mock_client.start_test_item.call_args_list[6]
+    assert when_step_2[0][0] == 'When I have parameter "second"'
+    assert when_step_2[1]["parent_item_id"] == scenario_call_2[1]["name"] + "_2"
+    assert when_step_2[1]["has_stats"] is False
+
+    then_step_2 = mock_client.start_test_item.call_args_list[7]
+    assert then_step_2[0][0] == "Then I emit number 12345 on level info"
+    assert then_step_2[1]["parent_item_id"] == scenario_call_2[1]["name"] + "_2"
+    assert then_step_2[1]["has_stats"] is False
+
+    # Verify third scenario with parameters
+    scenario_call_3 = mock_client.start_test_item.call_args_list[8]
+    assert (
+        scenario_call_3[1]["name"]
+        == "Feature: Basic test with parameters - Scenario Outline: Test with different parameters"
+    )
+    assert scenario_call_3[1]["item_type"] == "STEP"
+    assert scenario_call_3[1].get("has_stats", True)
+    assert (
+        scenario_call_3[1]["code_ref"]
+        == 'features/scenario_outline_parameters.feature/[SCENARIO:Test with different parameters["third",12345678]]'
+    )
+    assert ("str", "third") in scenario_call_3[1]["parameters"].items()
+    assert ("parameters", 12345678) in scenario_call_3[1]["parameters"].items()
+    assert scenario_call_3[1]["description"] is not None
+    assert scenario_call_3[1]["description"].endswith('| "third"  | 12345678   |')
+
+    # Verify steps for third scenario
+    given_step_3 = mock_client.start_test_item.call_args_list[9]
+    assert given_step_3[0][0] == "Given It is test with parameters"
+    assert given_step_3[1]["parent_item_id"] == scenario_call_3[1]["name"] + "_3"
+    assert given_step_3[1]["has_stats"] is False
+
+    when_step_3 = mock_client.start_test_item.call_args_list[10]
+    assert when_step_3[0][0] == 'When I have parameter "third"'
+    assert when_step_3[1]["parent_item_id"] == scenario_call_3[1]["name"] + "_3"
+    assert when_step_3[1]["has_stats"] is False
+
+    then_step_3 = mock_client.start_test_item.call_args_list[11]
+    assert then_step_3[0][0] == "Then I emit number 12345678 on level info"
+    assert then_step_3[1]["parent_item_id"] == scenario_call_3[1]["name"] + "_3"
+    assert then_step_3[1]["has_stats"] is False
+
+    # Verify all steps pass
+    finish_calls = mock_client.finish_test_item.call_args_list
+    for call in finish_calls:
+        assert call[1]["status"] == "PASSED"

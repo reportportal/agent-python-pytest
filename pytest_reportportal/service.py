@@ -1124,6 +1124,22 @@ class PyTestService:
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
 
+    def _get_scenario_template(self, scenario: Scenario) -> Optional[ScenarioTemplate]:
+        line_num = scenario.line_number
+        feature = scenario.feature
+        scenario_template = None
+        for template in feature.scenarios.values():
+            if template.line_number == line_num:
+                scenario_template = template
+                break
+        if scenario_template and isinstance(scenario_template, ScenarioTemplate):
+            return scenario_template
+
+    def _get_scenario_parameter_from_template(
+        self, scenario: Scenario, scenario_template: ScenarioTemplate
+    ) -> Optional[Dict[str, Any]]:
+        pass
+
     def _get_scenario_code_ref(self, scenario: Scenario) -> str:
         code_ref = scenario.feature.rel_filename + "/"
         rule = getattr(scenario, "rule", None)
@@ -1142,6 +1158,9 @@ class PyTestService:
         :param leaf: item context
         """
         scenario = leaf["item"]
+        scenario_template = self._get_scenario_template(scenario)
+        if scenario_template:
+            leaf["parameters"] = self._get_scenario_parameter_from_template(scenario, scenario_template)
         leaf["code_ref"] = self._get_scenario_code_ref(scenario)
         leaf["test_case_id"] = self._get_scenario_test_case_id(leaf)
         leaf["attributes"] = self._process_bdd_attributes(scenario)
