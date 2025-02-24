@@ -17,6 +17,7 @@ from collections import defaultdict
 from typing import Optional
 from unittest import mock
 
+import pytest
 from reportportal_client import set_current
 from reportportal_client.steps import StepReporter
 
@@ -392,6 +393,7 @@ def test_bdd_background_two_steps(mock_client_init):
     assert scenario_step_call[1]["has_stats"] is False
 
 
+@pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_bdd_rule(mock_client_init):
     mock_client = setup_mock(mock_client_init)
