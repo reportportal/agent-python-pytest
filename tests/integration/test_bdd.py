@@ -84,9 +84,7 @@ STEP_NAMES = [
 def test_basic_bdd(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
-    variables = {}
-    variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_arguments.py"], variables=variables)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_arguments.py"])
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     assert mock_client.start_test_item.call_count == 5, 'There should be exactly five "start_test_item" calls'
@@ -164,11 +162,7 @@ def test_basic_bdd_with_feature_suite(mock_client_init):
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_bdd_scenario_descriptions(mock_client_init):
     mock_client = setup_mock(mock_client_init)
-    variables = {}
-    variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(
-        tests=["examples/bdd/step_defs/test_arguments_description.py"], variables=variables
-    )
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_arguments_description.py"])
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     code_ref = "features/arguments_four_steps_description.feature/[SCENARIO:Arguments for given, when, and, then]"
@@ -200,9 +194,7 @@ def test_bdd_feature_descriptions(mock_client_init):
 def test_bdd_failed_feature(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
-    variables = {}
-    variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_failed_step.py"], variables=variables)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_failed_step.py"])
     assert int(result) == 1, "Exit code should be 1 (test error)"
 
     assert mock_client.start_test_item.call_count == 2, 'There should be exactly two "start_test_item" calls'
@@ -238,10 +230,8 @@ def test_bdd_scenario_attributes(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
-    variables = {}
-    variables.update(utils.DEFAULT_VARIABLES.items())
     test_file = "examples/bdd/step_defs/test_belly.py"
-    result = utils.run_pytest_tests(tests=[test_file], variables=variables)
+    result = utils.run_pytest_tests(tests=[test_file])
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     scenario_call = mock_client.start_test_item.call_args_list[0]
@@ -284,10 +274,8 @@ def test_bdd_background_step(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
-    variables = {}
-    variables.update(utils.DEFAULT_VARIABLES.items())
     test_file = "examples/bdd/step_defs/test_background.py"
-    result = utils.run_pytest_tests(tests=[test_file], variables=variables)
+    result = utils.run_pytest_tests(tests=[test_file])
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     # Verify the first scenario
@@ -350,10 +338,8 @@ def test_bdd_background_two_steps(mock_client_init):
     mock_client = setup_mock(mock_client_init)
     setup_mock_for_logging(mock_client_init)
 
-    variables = {}
-    variables.update(utils.DEFAULT_VARIABLES.items())
     test_file = "examples/bdd/step_defs/test_background_two_steps.py"
-    result = utils.run_pytest_tests(tests=[test_file], variables=variables)
+    result = utils.run_pytest_tests(tests=[test_file])
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     # Verify the scenario
@@ -400,3 +386,158 @@ def test_bdd_rule(mock_client_init):
     setup_mock_for_logging(mock_client_init)
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_rule_steps.py"])
     assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify first scenario from first rule
+    scenario_1_call = mock_client.start_test_item.call_args_list[0]
+    assert (
+        scenario_1_call[1]["name"]
+        == "Feature: Test rule keyword - Rule: The first rule - Scenario: The first scenario"
+    )
+    assert scenario_1_call[1]["item_type"] == "STEP"
+    assert scenario_1_call[1].get("has_stats", True) is True
+    assert scenario_1_call[1]["parent_item_id"] is None
+    assert (
+        scenario_1_call[1]["code_ref"]
+        == "features/rule_keyword.feature/[RULE:The first rule]/[SCENARIO:The first scenario]"
+    )
+
+    # Verify first scenario steps
+    step_1_given = mock_client.start_test_item.call_args_list[1]
+    assert step_1_given[0][0] == "Given I have empty step"
+    assert step_1_given[0][2] == "step"
+    assert step_1_given[1]["parent_item_id"] == scenario_1_call[1]["name"] + "_1"
+    assert step_1_given[1]["has_stats"] is False
+
+    step_1_then = mock_client.start_test_item.call_args_list[2]
+    assert step_1_then[0][0] == "Then I have another empty step"
+    assert step_1_then[0][2] == "step"
+    assert step_1_then[1]["parent_item_id"] == scenario_1_call[1]["name"] + "_1"
+    assert step_1_then[1]["has_stats"] is False
+
+    # Verify second scenario from first rule
+    scenario_2_call = mock_client.start_test_item.call_args_list[3]
+    assert (
+        scenario_2_call[1]["name"]
+        == "Feature: Test rule keyword - Rule: The first rule - Scenario: The second scenario"
+    )
+    assert scenario_2_call[1]["item_type"] == "STEP"
+    assert scenario_2_call[1].get("has_stats", True) is True
+    assert scenario_2_call[1]["parent_item_id"] is None
+    assert (
+        scenario_2_call[1]["code_ref"]
+        == "features/rule_keyword.feature/[RULE:The first rule]/[SCENARIO:The second scenario]"
+    )
+
+    # Verify second scenario steps
+    step_2_given = mock_client.start_test_item.call_args_list[4]
+    assert step_2_given[0][0] == "Given I have empty step"
+    assert step_2_given[0][2] == "step"
+    assert step_2_given[1]["parent_item_id"] == scenario_2_call[1]["name"] + "_1"
+    assert step_2_given[1]["has_stats"] is False
+
+    step_2_then = mock_client.start_test_item.call_args_list[5]
+    assert step_2_then[0][0] == "Then I have one more empty step"
+    assert step_2_then[0][2] == "step"
+    assert step_2_then[1]["parent_item_id"] == scenario_2_call[1]["name"] + "_1"
+    assert step_2_then[1]["has_stats"] is False
+
+    # Verify third scenario from second rule
+    scenario_3_call = mock_client.start_test_item.call_args_list[6]
+    assert (
+        scenario_3_call[1]["name"]
+        == "Feature: Test rule keyword - Rule: The second rule - Scenario: The third scenario"
+    )
+    assert scenario_3_call[1]["item_type"] == "STEP"
+    assert scenario_3_call[1].get("has_stats", True) is True
+    assert scenario_3_call[1]["parent_item_id"] is None
+    assert (
+        scenario_3_call[1]["code_ref"]
+        == "features/rule_keyword.feature/[RULE:The second rule]/[SCENARIO:The third scenario]"
+    )
+
+    # Verify third scenario steps
+    step_3_given = mock_client.start_test_item.call_args_list[7]
+    assert step_3_given[0][0] == "Given I have empty step"
+    assert step_3_given[0][2] == "step"
+    assert step_3_given[1]["parent_item_id"] == scenario_3_call[1]["name"] + "_1"
+    assert step_3_given[1]["has_stats"] is False
+
+    step_3_then = mock_client.start_test_item.call_args_list[8]
+    assert step_3_then[0][0] == "Then I have one more else empty step"
+    assert step_3_then[0][2] == "step"
+    assert step_3_then[1]["parent_item_id"] == scenario_3_call[1]["name"] + "_1"
+    assert step_3_then[1]["has_stats"] is False
+
+    # Verify all steps pass
+    finish_calls = mock_client.finish_test_item.call_args_list
+    for call in finish_calls:
+        assert call[1]["status"] == "PASSED"
+
+
+@pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_bdd_rule_hierarchy(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    setup_mock_for_logging(mock_client_init)
+
+    variables = {"rp_hierarchy_code": True}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_rule_steps.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify Feature
+    feature_call = mock_client.start_test_item.call_args_list[0]
+    assert feature_call[1]["name"] == "Feature: Test rule keyword"
+    assert feature_call[1]["item_type"] == "SUITE"
+    assert feature_call[1].get("has_stats", True) is True
+    assert feature_call[1]["parent_item_id"] is None
+    feature_id = "Feature: Test rule keyword_1"
+
+    # Verify first Rule
+    rule_1_call = mock_client.start_test_item.call_args_list[1]
+    assert rule_1_call[1]["name"] == "Rule: The first rule"
+    assert rule_1_call[1]["item_type"] == "SUITE"
+    assert rule_1_call[1].get("has_stats", True) is True
+    assert rule_1_call[1]["parent_item_id"] == feature_id
+    rule_1_id = "Rule: The first rule_1"
+
+    # Verify first scenario under first rule
+    scenario_1_call = mock_client.start_test_item.call_args_list[2]
+    assert scenario_1_call[1]["name"] == "Scenario: The first scenario"
+    assert scenario_1_call[1]["item_type"] == "STEP"
+    assert scenario_1_call[1].get("has_stats", True) is True
+    assert scenario_1_call[1]["parent_item_id"] == rule_1_id
+    assert (
+        scenario_1_call[1]["code_ref"]
+        == "features/rule_keyword.feature/[RULE:The first rule]/[SCENARIO:The first scenario]"
+    )
+
+    # Verify second scenario under first rule
+    scenario_2_call = mock_client.start_test_item.call_args_list[5]
+    assert scenario_2_call[1]["name"] == "Scenario: The second scenario"
+    assert scenario_2_call[1]["item_type"] == "STEP"
+    assert scenario_2_call[1].get("has_stats", True) is True
+    assert scenario_2_call[1]["parent_item_id"] == rule_1_id
+    assert (
+        scenario_2_call[1]["code_ref"]
+        == "features/rule_keyword.feature/[RULE:The first rule]/[SCENARIO:The second scenario]"
+    )
+
+    # Verify second Rule
+    rule_2_call = mock_client.start_test_item.call_args_list[8]
+    assert rule_2_call[1]["name"] == "Rule: The second rule"
+    assert rule_2_call[1]["item_type"] == "SUITE"
+    assert rule_2_call[1].get("has_stats", True) is True
+    assert rule_2_call[1]["parent_item_id"] == feature_id
+    rule_2_id = "Rule: The second rule_1"
+
+    # Verify third scenario under second rule
+    scenario_3_call = mock_client.start_test_item.call_args_list[9]
+    assert scenario_3_call[1]["name"] == "Scenario: The third scenario"
+    assert scenario_3_call[1]["item_type"] == "STEP"
+    assert scenario_3_call[1].get("has_stats", True) is True
+    assert scenario_3_call[1]["parent_item_id"] == rule_2_id
+    assert (
+        scenario_3_call[1]["code_ref"]
+        == "features/rule_keyword.feature/[RULE:The second rule]/[SCENARIO:The third scenario]"
+    )
