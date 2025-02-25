@@ -354,6 +354,17 @@ class PyTestService:
                 child_leaf["parent"] = parent_leaf
                 self._remove_file_names(child_leaf)
 
+    def _get_scenario_template(self, scenario: Scenario) -> Optional[ScenarioTemplate]:
+        line_num = scenario.line_number
+        feature = scenario.feature
+        scenario_template = None
+        for template in feature.scenarios.values():
+            if template.line_number == line_num:
+                scenario_template = template
+                break
+        if scenario_template and isinstance(scenario_template, ScenarioTemplate):
+            return scenario_template
+
     def _generate_names(self, test_tree: Dict[str, Any]) -> None:
         if test_tree["type"] == LeafType.ROOT:
             test_tree["name"] = "root"
@@ -370,7 +381,11 @@ class PyTestService:
                 keyword = getattr(item, "keyword", "Feature")
                 test_tree["name"] = f"{keyword}: {name}"
             elif isinstance(item, Scenario):
-                keyword = getattr(item, "keyword", "Scenario")
+                scenario_template = self._get_scenario_template(item)
+                if scenario_template and scenario_template.templated:
+                    keyword = getattr(item, "keyword", "Scenario Outline")
+                else:
+                    keyword = getattr(item, "keyword", "Scenario")
                 test_tree["name"] = f"{keyword}: {item.name}"
             elif isinstance(item, Rule):
                 keyword = getattr(item, "keyword", "Rule")
@@ -1124,17 +1139,6 @@ class PyTestService:
         self._finish_step(self._build_finish_step_rq(leaf))
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
-
-    def _get_scenario_template(self, scenario: Scenario) -> Optional[ScenarioTemplate]:
-        line_num = scenario.line_number
-        feature = scenario.feature
-        scenario_template = None
-        for template in feature.scenarios.values():
-            if template.line_number == line_num:
-                scenario_template = template
-                break
-        if scenario_template and isinstance(scenario_template, ScenarioTemplate):
-            return scenario_template
 
     def _get_scenario_parameters_from_template(
         self, scenario: Scenario, scenario_template: Optional[ScenarioTemplate]
