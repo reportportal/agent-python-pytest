@@ -560,12 +560,15 @@ def test_scenario_outline_parameters(mock_client_init):
     assert scenario_call_1[1].get("has_stats", True)
     assert (
         scenario_call_1[1]["code_ref"]
-        == 'features/scenario_outline_parameters.feature/[SCENARIO:Test with different parameters["first",123]]'
+        == "features/scenario_outline_parameters.feature/[EXAMPLE:Test with different parameters"
+        '[parameters:123;str:"first"]]'
     )
-    assert ("str", "first") in scenario_call_1[1]["parameters"].items()
-    assert ("parameters", 123) in scenario_call_1[1]["parameters"].items()
+    parameters = scenario_call_1[1]["parameters"].items()
+    assert len(parameters) == 2
+    assert ("str", '"first"') in parameters
+    assert ("parameters", "123") in parameters
     assert scenario_call_1[1]["description"] is not None
-    assert scenario_call_1[1]["description"].endswith('| "first"  | 123        |')
+    assert scenario_call_1[1]["description"].endswith('| "first" | 123 |')
 
     # Verify steps for first scenario
     given_step_1 = mock_client.start_test_item.call_args_list[1]
@@ -596,12 +599,15 @@ def test_scenario_outline_parameters(mock_client_init):
     assert scenario_call_2[1].get("has_stats", True)
     assert (
         scenario_call_2[1]["code_ref"]
-        == 'features/scenario_outline_parameters.feature/[SCENARIO:Test with different parameters["second",12345]]'
+        == "features/scenario_outline_parameters.feature/[EXAMPLE:Test with different parameters"
+        '[parameters:12345;str:"second"]]'
     )
-    assert ("str", "second") in scenario_call_2[1]["parameters"].items()
-    assert ("parameters", 12345) in scenario_call_2[1]["parameters"].items()
+    parameters = scenario_call_2[1]["parameters"].items()
+    assert len(parameters) == 2
+    assert ("str", '"second"') in parameters
+    assert ("parameters", "12345") in parameters
     assert scenario_call_2[1]["description"] is not None
-    assert scenario_call_2[1]["description"].endswith('| "second" | 12345      |')
+    assert scenario_call_2[1]["description"].endswith('| "second" | 12345 |')
 
     # Verify steps for second scenario
     given_step_2 = mock_client.start_test_item.call_args_list[5]
@@ -629,12 +635,15 @@ def test_scenario_outline_parameters(mock_client_init):
     assert scenario_call_3[1].get("has_stats", True)
     assert (
         scenario_call_3[1]["code_ref"]
-        == 'features/scenario_outline_parameters.feature/[SCENARIO:Test with different parameters["third",12345678]]'
+        == "features/scenario_outline_parameters.feature/[EXAMPLE:Test with different parameters"
+        '[parameters:12345678;str:"third"]]'
     )
-    assert ("str", "third") in scenario_call_3[1]["parameters"].items()
-    assert ("parameters", 12345678) in scenario_call_3[1]["parameters"].items()
+    parameters = scenario_call_3[1]["parameters"].items()
+    assert len(parameters) == 2
+    assert ("str", '"third"') in parameters
+    assert ("parameters", "12345678") in parameters
     assert scenario_call_3[1]["description"] is not None
-    assert scenario_call_3[1]["description"].endswith('| "third"  | 12345678   |')
+    assert scenario_call_3[1]["description"].endswith('| "third" | 12345678 |')
 
     # Verify steps for third scenario
     given_step_3 = mock_client.start_test_item.call_args_list[9]

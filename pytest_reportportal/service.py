@@ -469,7 +469,7 @@ class PyTestService:
                     return trim_docstring(doc)
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
-        if isinstance(test_item, (Feature, Scenario, ScenarioTemplate, Rule)):
+        if isinstance(test_item, Feature):
             description = test_item.description
             if description:
                 return description
@@ -764,6 +764,7 @@ class PyTestService:
         """
         item = leaf["item"]
         leaf["name"] = self._process_item_name(leaf)
+        leaf["description"] = self._get_item_description(item)
         leaf["parameters"] = self._get_parameters(item)
         leaf["code_ref"] = self._get_code_ref(item)
         leaf["test_case_id"] = self._process_test_case_id(leaf)
@@ -784,7 +785,7 @@ class PyTestService:
         payload = {
             "attributes": leaf.get("attributes", None),
             "name": self._truncate_item_name(leaf["name"]),
-            "description": self._get_item_description(leaf["item"]),
+            "description": leaf["description"],
             "start_time": timestamp(),
             "item_type": "STEP",
             "code_ref": leaf.get("code_ref", None),
@@ -810,7 +811,7 @@ class PyTestService:
         Start pytest_item.
 
         :param test_item: pytest.Item
-        :return: item ID
+        :return: None
         """
         if test_item is None:
             return
@@ -1135,21 +1136,92 @@ class PyTestService:
         if scenario_template and isinstance(scenario_template, ScenarioTemplate):
             return scenario_template
 
-    def _get_scenario_parameter_from_template(
-        self, scenario: Scenario, scenario_template: ScenarioTemplate
+    def _get_scenario_parameters_from_template(
+        self, scenario: Scenario, scenario_template: Optional[ScenarioTemplate]
     ) -> Optional[Dict[str, Any]]:
-        pass
+        """Get scenario parameters from its template by comparing steps.
 
-    def _get_scenario_code_ref(self, scenario: Scenario) -> str:
+        :param scenario: The scenario instance
+        :param scenario_template: The template scenario instance which holds examples
+
+        :return: A dictionary with parameter names and values, or None if no parameters found
+        """
+        if not scenario_template:
+            return None
+
+        # Handle both single Examples and list of Examples
+        examples_list = []
+        if isinstance(scenario_template.examples, list):
+            examples_list.extend(scenario_template.examples)
+        else:
+            examples_list.append(scenario_template.examples)
+
+        # Get rendered scenario step names
+        scenario_steps = [step.name for step in scenario.steps]
+
+        # Try each example row until we find matching parameters
+        for examples in examples_list:
+            if not examples or not examples.examples:
+                continue
+
+            param_names = examples.example_params
+
+            # Check each row of examples
+            for values in examples.examples:
+                # Create parameters dictionary for the current row
+                params = dict(zip(param_names, values))
+
+                # Compare template steps with scenario steps
+                template_steps = []
+                for template_step in scenario_template.steps:
+                    step_name = template_step.name
+                    # Replace parameters in step name with values
+                    for param_name, param_value in params.items():
+                        pattern = f"<{param_name}>"
+                        step_name = step_name.replace(pattern, str(param_value))
+                    template_steps.append(step_name)
+
+                # If all steps match, we found our parameters
+                if template_steps == scenario_steps:
+                    return params
+
+        return None
+
+    def _get_scenario_code_ref(self, scenario: Scenario, scenario_template: Optional[ScenarioTemplate]) -> str:
         code_ref = scenario.feature.rel_filename + "/"
         rule = getattr(scenario, "rule", None)
         if rule:
             code_ref += f"[RULE:{rule.name}]/"
-        code_ref += f"[SCENARIO:{scenario.name}]"
+        if scenario_template and scenario_template.templated and scenario_template.examples:
+            parameters = self._get_scenario_parameters_from_template(scenario, scenario_template)
+            if parameters:
+                parameters_str = ";".join([f"{k}:{v}" for k, v in sorted(parameters.items())])
+                parameters_str = f"[{parameters_str}]" if parameters_str else ""
+            else:
+                parameters_str = ""
+            code_ref += f"[EXAMPLE:{scenario.name}{parameters_str}]"
+        else:
+            keyword = getattr(scenario, "keyword", "Scenario").upper()
+            code_ref += f"[{keyword}:{scenario.name}]"
+
         return code_ref
 
     def _get_scenario_test_case_id(self, leaf: Dict[str, Any]) -> str:
         return leaf["code_ref"]
+
+    def _dict_to_markdown_table(self, data: Dict[str, Any]) -> str:
+        if not data:
+            return ""
+
+        headers = list(data.keys())
+        values = list(data.values())
+
+        header_row = "| " + " | ".join(headers) + " |"
+        separator_row = "| " + " | ".join(["---"] * len(headers)) + " |"
+        value_row = "| " + " | ".join(map(str, values)) + " |"
+        table = "\n".join([header_row, separator_row, value_row])
+
+        return table
 
     def _process_scenario_metadata(self, leaf: Dict[str, Any]) -> None:
         """
@@ -1158,10 +1230,21 @@ class PyTestService:
         :param leaf: item context
         """
         scenario = leaf["item"]
+        description = (
+            "\n".join(scenario.description) if isinstance(scenario.description, list) else scenario.description
+        )
+        leaf["description"] = description if description else None
         scenario_template = self._get_scenario_template(scenario)
         if scenario_template:
-            leaf["parameters"] = self._get_scenario_parameter_from_template(scenario, scenario_template)
-        leaf["code_ref"] = self._get_scenario_code_ref(scenario)
+            parameters = self._get_scenario_parameters_from_template(scenario, scenario_template)
+            leaf["parameters"] = parameters
+            if parameters:
+                parameters_str = f"Parameters:\n{self._dict_to_markdown_table(parameters)}"
+                if leaf["description"]:
+                    leaf["description"] = leaf["description"] + f"\n\n---\n\n{parameters_str}"
+                else:
+                    leaf["description"] = parameters_str
+        leaf["code_ref"] = self._get_scenario_code_ref(scenario, scenario_template)
         leaf["test_case_id"] = self._get_scenario_test_case_id(leaf)
         leaf["attributes"] = self._process_bdd_attributes(scenario)
 
