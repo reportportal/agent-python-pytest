@@ -13,7 +13,8 @@
 #  limitations under the License.
 
 import logging
-from pytest_bdd import given, when, then, parsers, scenarios
+
+from pytest_bdd import given, parsers, scenarios, then, when
 
 # Import the scenario from the feature file
 scenarios("../features/scenario_outline_parameters.feature")
