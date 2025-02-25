@@ -170,9 +170,6 @@ def test_scenario_descriptions(mock_client_init):
     assert scenario_call[1]["code_ref"] == code_ref
     assert scenario_call[1]["test_case_id"] == code_ref
     description = scenario_call[1]["description"]
-    if pytest_bdd_version[0] < 8:
-        # before pytest-bdd 8 description was a list
-        description = description[0]
     assert description == "Description for the scenario"
 
 
