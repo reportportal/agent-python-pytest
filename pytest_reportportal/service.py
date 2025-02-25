@@ -1236,7 +1236,7 @@ class PyTestService:
         scenario = leaf["item"]
         description = (
             "\n".join(scenario.description) if isinstance(scenario.description, list) else scenario.description
-        )
+        ).rstrip("\n")
         leaf["description"] = description if description else None
         scenario_template = self._get_scenario_template(scenario)
         if scenario_template:
