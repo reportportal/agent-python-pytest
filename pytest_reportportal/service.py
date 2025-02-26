@@ -484,10 +484,10 @@ class PyTestService:
                     return trim_docstring(doc)
         if isinstance(test_item, DoctestItem):
             return test_item.reportinfo()[2]
-        if isinstance(test_item, Feature):
+        if isinstance(test_item, (Feature, Rule)):
             description = test_item.description
             if description:
-                return description
+                return description.lstrip()  # There is a bug in pytest-bdd that adds an extra space
 
     def _lock(self, leaf: Dict[str, Any], func: Callable[[Dict[str, Any]], Any]) -> Any:
         """
@@ -503,8 +503,20 @@ class PyTestService:
         return func(leaf)
 
     def _process_bdd_attributes(self, scenario: Union[Feature, Scenario, Rule]) -> List[Dict[str, str]]:
+        tags = []
+        tags.extend(scenario.tags)
+        if isinstance(scenario, Scenario):
+            template = self._get_scenario_template(scenario)
+            if template and template.templated:
+                examples = []
+                if isinstance(template.examples, list):
+                    examples.extend(template.examples)
+                else:
+                    examples.append(template.examples)
+                for example in examples:
+                    tags.extend(example.tags)
         attributes = []
-        for tag in scenario.tags:
+        for tag in tags:
             key = None
             value = tag
             if ATTRIBUTE_DELIMITER in tag:
