@@ -663,6 +663,7 @@ def test_scenario_outline_parameters(mock_client_init):
         assert call[1]["status"] == "PASSED"
 
 
+@pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_examples_tags(mock_client_init):
     mock_client = setup_mock_for_logging(mock_client_init)

@@ -514,7 +514,7 @@ class PyTestService:
                 else:
                     examples.append(template.examples)
                 for example in examples:
-                    tags.extend(example.tags)
+                    tags.extend(getattr(example, "tags", []))
         attributes = []
         for tag in tags:
             key = None

@@ -14,7 +14,7 @@
 
 """Rule keyword test module."""
 
-from pytest_bdd import given, scenarios, then
+from pytest_bdd import given, scenarios
 
 scenarios("../features/rule_description.feature")
 
