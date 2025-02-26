@@ -1,4 +1,4 @@
 dill>=0.3.6
 pytest>=4.6.10
-reportportal-client~=5.6.0
+reportportal-client~=5.6.1
 aenum>=3.1.0

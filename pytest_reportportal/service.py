@@ -30,7 +30,7 @@ from py.path import local
 from pytest import Class, Function, Item, Module, Package, PytestWarning, Session
 from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import ExternalIssue, Issue
-from reportportal_client.helpers import timestamp
+from reportportal_client.helpers import timestamp, markdown_helpers
 
 from .config import AgentConfig
 
@@ -1142,7 +1142,7 @@ class PyTestService:
 
     def _get_scenario_parameters_from_template(
         self, scenario: Scenario, scenario_template: Optional[ScenarioTemplate]
-    ) -> Optional[Dict[str, Any]]:
+    ) -> Optional[Dict[str, str]]:
         """Get scenario parameters from its template by comparing steps.
 
         :param scenario: The scenario instance
@@ -1213,20 +1213,6 @@ class PyTestService:
     def _get_scenario_test_case_id(self, leaf: Dict[str, Any]) -> str:
         return leaf["code_ref"]
 
-    def _dict_to_markdown_table(self, data: Dict[str, Any]) -> str:
-        if not data:
-            return ""
-
-        headers = list(data.keys())
-        values = list(data.values())
-
-        header_row = "| " + " | ".join(headers) + " |"
-        separator_row = "| " + " | ".join(["---"] * len(headers)) + " |"
-        value_row = "| " + " | ".join(map(str, values)) + " |"
-        table = "\n".join([header_row, separator_row, value_row])
-
-        return table
-
     def _process_scenario_metadata(self, leaf: Dict[str, Any]) -> None:
         """
         Process all types of scenario metadata for its start event.
@@ -1243,9 +1229,9 @@ class PyTestService:
             parameters = self._get_scenario_parameters_from_template(scenario, scenario_template)
             leaf["parameters"] = parameters
             if parameters:
-                parameters_str = f"Parameters:\n{self._dict_to_markdown_table(parameters)}"
+                parameters_str = f"Parameters:\n{markdown_helpers.format_data_table_dict(parameters)}"
                 if leaf["description"]:
-                    leaf["description"] = leaf["description"] + f"\n\n---\n\n{parameters_str}"
+                    leaf["description"] = markdown_helpers.as_two_parts(leaf["description"], parameters_str)
                 else:
                     leaf["description"] = parameters_str
         leaf["code_ref"] = self._get_scenario_code_ref(scenario, scenario_template)

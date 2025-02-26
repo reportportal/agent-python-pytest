@@ -565,7 +565,7 @@ def test_scenario_outline_parameters(mock_client_init):
     assert ("str", '"first"') in parameters
     assert ("parameters", "123") in parameters
     assert scenario_call_1[1]["description"] is not None
-    assert scenario_call_1[1]["description"].endswith('| "first" | 123 |')
+    assert scenario_call_1[1]["description"].endswith('|\xa0"first"\xa0|\xa0\xa0\xa0\xa0123\xa0\xa0\xa0\xa0\xa0|')
 
     # Verify steps for first scenario
     given_step_1 = mock_client.start_test_item.call_args_list[1]
@@ -604,7 +604,7 @@ def test_scenario_outline_parameters(mock_client_init):
     assert ("str", '"second"') in parameters
     assert ("parameters", "12345") in parameters
     assert scenario_call_2[1]["description"] is not None
-    assert scenario_call_2[1]["description"].endswith('| "second" | 12345 |')
+    assert scenario_call_2[1]["description"].endswith('|\xa0"second"\xa0|\xa0\xa0\xa012345\xa0\xa0\xa0\xa0|')
 
     # Verify steps for second scenario
     given_step_2 = mock_client.start_test_item.call_args_list[5]
@@ -640,7 +640,7 @@ def test_scenario_outline_parameters(mock_client_init):
     assert ("str", '"third"') in parameters
     assert ("parameters", "12345678") in parameters
     assert scenario_call_3[1]["description"] is not None
-    assert scenario_call_3[1]["description"].endswith('| "third" | 12345678 |')
+    assert scenario_call_3[1]["description"].endswith('|\xa0"third"\xa0|\xa0\xa012345678\xa0\xa0|')
 
     # Verify steps for third scenario
     given_step_3 = mock_client.start_test_item.call_args_list[9]
