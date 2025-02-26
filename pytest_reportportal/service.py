@@ -30,7 +30,7 @@ from py.path import local
 from pytest import Class, Function, Item, Module, Package, PytestWarning, Session
 from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import ExternalIssue, Issue
-from reportportal_client.helpers import timestamp, markdown_helpers
+from reportportal_client.helpers import markdown_helpers, timestamp
 
 from .config import AgentConfig
 
