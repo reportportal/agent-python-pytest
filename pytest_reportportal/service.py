@@ -19,6 +19,7 @@ import re
 import sys
 import threading
 import traceback
+from collections import OrderedDict
 from functools import wraps
 from os import curdir
 from time import sleep, time
@@ -168,6 +169,7 @@ class PyTestService:
     _bdd_tree: Optional[Dict[str, Any]]
     _bdd_item_by_name: Dict[str, Item]
     _bdd_scenario_by_item: Dict[Item, Scenario]
+    _bdd_item_by_scenario: Dict[Scenario, Item]
     _start_tracker: Set[str]
     _launch_id: Optional[str]
     agent_name: str
@@ -183,8 +185,9 @@ class PyTestService:
         self._issue_types = {}
         self._tree_path = {}
         self._bdd_tree = None
-        self._bdd_item_by_name = {}
+        self._bdd_item_by_name = OrderedDict()
         self._bdd_scenario_by_item = {}
+        self._bdd_item_by_scenario = {}
         self._start_tracker = set()
         self._launch_id = None
         self.agent_name = "pytest-reportportal"
@@ -1077,14 +1080,11 @@ class PyTestService:
 
     def _get_python_name(self, name: str) -> str:
         python_name = f"test_{make_python_name(name)}"
-        same_scenario_names = [name for name in self._bdd_item_by_name.keys() if name.startswith(python_name)]
-        if len(same_scenario_names) < 1:
+        same_item_names = [name for name in self._bdd_item_by_name.keys() if name.startswith(python_name)]
+        if len(same_item_names) < 1:
             return python_name
-        elif len(same_scenario_names) == 1:
-            return same_scenario_names[0]
         else:
-            indexes = sorted([int(name.split("_")[-1]) for name in same_scenario_names])
-            return f"{python_name}_{indexes[-1]}"
+            return same_item_names[-1]  # Should work fine, since we use OrderedDict
 
     def start_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:
         """Save BDD scenario and Feature to test tree. The scenario will be started later if a step will be reported.
@@ -1097,6 +1097,7 @@ class PyTestService:
         item_name = self._get_python_name(scenario.name)
         test_item = self._bdd_item_by_name.get(item_name, None)
         self._bdd_scenario_by_item[test_item] = scenario
+        self._bdd_item_by_scenario[scenario] = test_item
 
         root_leaf = self._bdd_tree
         if not root_leaf:
@@ -1152,55 +1153,20 @@ class PyTestService:
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
 
-    def _get_scenario_parameters_from_template(
-        self, scenario: Scenario, scenario_template: Optional[ScenarioTemplate]
-    ) -> Optional[Dict[str, str]]:
+    def _get_scenario_parameters_from_template(self, scenario: Scenario) -> Optional[Dict[str, str]]:
         """Get scenario parameters from its template by comparing steps.
 
         :param scenario: The scenario instance
-        :param scenario_template: The template scenario instance which holds examples
-
         :return: A dictionary with parameter names and values, or None if no parameters found
         """
-        if not scenario_template:
+        item = self._bdd_item_by_scenario.get(scenario, None)
+        if not item:
             return None
-
-        # Handle both single Examples and list of Examples
-        examples_list = []
-        if isinstance(scenario_template.examples, list):
-            examples_list.extend(scenario_template.examples)
-        else:
-            examples_list.append(scenario_template.examples)
-
-        # Get rendered scenario step names
-        scenario_steps = [step.name for step in scenario.steps]
-
-        # Try each example row until we find matching parameters
-        for examples in examples_list:
-            if not examples or not examples.examples:
-                continue
-
-            param_names = examples.example_params
-
-            # Check each row of examples
-            for values in examples.examples:
-                # Create parameters dictionary for the current row
-                params = dict(zip(param_names, values))
-
-                # Compare template steps with scenario steps
-                template_steps = []
-                for template_step in scenario_template.steps:
-                    step_name = template_step.name
-                    # Replace parameters in step name with values
-                    for param_name, param_value in params.items():
-                        pattern = f"<{param_name}>"
-                        step_name = step_name.replace(pattern, str(param_value))
-                    template_steps.append(step_name)
-
-                # If all steps match, we found our parameters
-                if template_steps == scenario_steps:
-                    return params
-
+        item_params = item.callspec.params if hasattr(item, "callspec") else None
+        if not item_params:
+            return None
+        if "_pytest_bdd_example" in item_params:
+            return OrderedDict(item_params["_pytest_bdd_example"])
         return None
 
     def _get_scenario_code_ref(self, scenario: Scenario, scenario_template: Optional[ScenarioTemplate]) -> str:
@@ -1209,7 +1175,7 @@ class PyTestService:
         if rule:
             code_ref += f"[RULE:{rule.name}]/"
         if scenario_template and scenario_template.templated and scenario_template.examples:
-            parameters = self._get_scenario_parameters_from_template(scenario, scenario_template)
+            parameters = self._get_scenario_parameters_from_template(scenario)
             if parameters:
                 parameters_str = ";".join([f"{k}:{v}" for k, v in sorted(parameters.items())])
                 parameters_str = f"[{parameters_str}]" if parameters_str else ""
@@ -1238,7 +1204,7 @@ class PyTestService:
         leaf["description"] = description if description else None
         scenario_template = self._get_scenario_template(scenario)
         if scenario_template:
-            parameters = self._get_scenario_parameters_from_template(scenario, scenario_template)
+            parameters = self._get_scenario_parameters_from_template(scenario)
             leaf["parameters"] = parameters
             if parameters:
                 parameters_str = f"Parameters:\n\n{markdown_helpers.format_data_table_dict(parameters)}"
