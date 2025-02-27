@@ -851,3 +851,46 @@ def test_rule_description(mock_client_init):
     assert rule_call[1]["name"] == "Rule: The first rule"
     assert rule_call[1]["description"] == "Description for the Rule"
     assert rule_call[1]["item_type"] == "SUITE"
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_scenario_outline_dynamic_name(mock_client_init):
+    mock_client = setup_mock_for_logging(mock_client_init)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/scenario_outline_name_steps.py"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    scenario_call_1 = mock_client.start_test_item.call_args_list[0]
+    assert (
+        scenario_call_1[1]["name"]
+        == 'Feature: Dynamic scenario outline names - Scenario Outline: Test with the parameter "first"'
+    )
+    assert scenario_call_1[1]["item_type"] == "STEP"
+    assert (
+        scenario_call_1[1]["code_ref"]
+        == 'features/dynamic_scenario_outline_names.feature/[EXAMPLE:Test with the parameter "first"[parameters:123;str:"first"]]'
+    )
+    assert scenario_call_1[1]["parameters"] == {"str": '"first"', "parameters": "123"}
+    assert scenario_call_1[1]["description"] == (
+        "Parameters:\n\n"
+        "\xa0\xa0\xa0\xa0|\xa0\xa0\xa0str\xa0\xa0\xa0|\xa0parameters\xa0|\n"
+        "\xa0\xa0\xa0\xa0|---------|------------|\n"
+        '\xa0\xa0\xa0\xa0|\xa0"first"\xa0|\xa0\xa0\xa0\xa0123\xa0\xa0\xa0\xa0\xa0|'
+    )
+
+    scenario_call_2 = mock_client.start_test_item.call_args_list[4]
+    assert (
+        scenario_call_2[1]["name"]
+        == 'Feature: Dynamic scenario outline names - Scenario Outline: Test with the parameter "second"'
+    )
+    assert scenario_call_2[1]["item_type"] == "STEP"
+    assert (
+        scenario_call_2[1]["code_ref"]
+        == 'features/dynamic_scenario_outline_names.feature/[EXAMPLE:Test with the parameter "second"[parameters:12345;str:"second"]]'
+    )
+    assert scenario_call_2[1]["parameters"] == {"str": '"second"', "parameters": "12345"}
+    assert scenario_call_2[1]["description"] == (
+        "Parameters:\n\n"
+        "\xa0\xa0\xa0\xa0|\xa0\xa0\xa0str\xa0\xa0\xa0\xa0|\xa0parameters\xa0|\n"
+        "\xa0\xa0\xa0\xa0|----------|------------|\n"
+        '\xa0\xa0\xa0\xa0|\xa0"second"\xa0|\xa0\xa0\xa012345\xa0\xa0\xa0\xa0|'
+    )

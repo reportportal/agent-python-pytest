@@ -1078,8 +1078,8 @@ class PyTestService:
             LOGGER.exception(e)
             reporter.finish_nested_step(item_id, timestamp(), "FAILED")
 
-    def _get_python_name(self, name: str) -> str:
-        python_name = f"test_{make_python_name(name)}"
+    def _get_python_name(self, scenario: Scenario) -> str:
+        python_name = f"test_{make_python_name(self._get_scenario_template(scenario).name)}"
         same_item_names = [name for name in self._bdd_item_by_name.keys() if name.startswith(python_name)]
         if len(same_item_names) < 1:
             return python_name
@@ -1094,7 +1094,7 @@ class PyTestService:
         """
         if not PYTEST_BDD:
             return
-        item_name = self._get_python_name(scenario.name)
+        item_name = self._get_python_name(scenario)
         test_item = self._bdd_item_by_name.get(item_name, None)
         self._bdd_scenario_by_item[test_item] = scenario
         self._bdd_item_by_scenario[scenario] = test_item
