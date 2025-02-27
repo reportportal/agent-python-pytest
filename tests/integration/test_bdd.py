@@ -866,8 +866,8 @@ def test_scenario_outline_dynamic_name(mock_client_init):
     )
     assert scenario_call_1[1]["item_type"] == "STEP"
     assert (
-        scenario_call_1[1]["code_ref"]
-        == 'features/dynamic_scenario_outline_names.feature/[EXAMPLE:Test with the parameter "first"[parameters:123;str:"first"]]'
+        scenario_call_1[1]["code_ref"] == "features/dynamic_scenario_outline_names.feature/"
+        '[EXAMPLE:Test with the parameter "first"[parameters:123;str:"first"]]'
     )
     assert scenario_call_1[1]["parameters"] == {"str": '"first"', "parameters": "123"}
     assert scenario_call_1[1]["description"] == (
@@ -884,8 +884,8 @@ def test_scenario_outline_dynamic_name(mock_client_init):
     )
     assert scenario_call_2[1]["item_type"] == "STEP"
     assert (
-        scenario_call_2[1]["code_ref"]
-        == 'features/dynamic_scenario_outline_names.feature/[EXAMPLE:Test with the parameter "second"[parameters:12345;str:"second"]]'
+        scenario_call_2[1]["code_ref"] == "features/dynamic_scenario_outline_names.feature/"
+        '[EXAMPLE:Test with the parameter "second"[parameters:12345;str:"second"]]'
     )
     assert scenario_call_2[1]["parameters"] == {"str": '"second"', "parameters": "12345"}
     assert scenario_call_2[1]["description"] == (
@@ -894,3 +894,82 @@ def test_scenario_outline_dynamic_name(mock_client_init):
         "\xa0\xa0\xa0\xa0|----------|------------|\n"
         '\xa0\xa0\xa0\xa0|\xa0"second"\xa0|\xa0\xa0\xa012345\xa0\xa0\xa0\xa0|'
     )
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_scenario_outline_fail(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    setup_mock_for_logging(mock_client_init)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/scenario_outline_fail_steps.py"])
+    assert int(result) == 1, "Exit code should be 1 (test error)"
+
+    # Verify first scenario with parameters
+    scenario_call_1 = mock_client.start_test_item.call_args_list[0]
+    assert (
+        scenario_call_1[1]["name"]
+        == "Feature: Basic test with parameters which fails - Scenario Outline: Test with different parameters failing"
+    )
+    assert scenario_call_1[1]["item_type"] == "STEP"
+    assert scenario_call_1[1].get("has_stats", True)
+    assert (
+        scenario_call_1[1]["code_ref"]
+        == "features/scenario_outline_fail.feature/[EXAMPLE:Test with different parameters failing"
+        '[parameters:123;str:"first"]]'
+    )
+
+    # Check failure logging for first scenario
+    finish_step_call_1 = mock_client.finish_test_item.call_args_list[3]
+    assert finish_step_call_1[1]["status"] == "FAILED"
+    assert finish_step_call_1[0][0].startswith("Then I fail")
+
+    finish_scenario_call_1 = mock_client.finish_test_item.call_args_list[4]
+    assert finish_scenario_call_1[1]["status"] == "FAILED"
+    assert finish_scenario_call_1[1]["item_id"] == scenario_call_1[1]["name"] + "_1"
+
+    log_calls = [
+        log_call
+        for log_call in mock_client.log.call_args_list
+        if "level" in log_call[1] and log_call[1]["level"] == "ERROR"
+    ]
+    assert len(log_calls) >= 2, "Should have at least 2 error log calls"
+
+    error_log = log_calls[0][1]
+    assert "AssertionError: This step always fails" in error_log["message"]
+    assert error_log["item_id"].startswith("Then I fail")
+
+    final_error_log = log_calls[1][1]
+    assert final_error_log["level"] == "ERROR"
+    assert final_error_log["message"].endswith("AssertionError")
+    assert final_error_log["item_id"] == scenario_call_1[1]["name"] + "_1"
+
+    # Verify first scenario with parameters
+    scenario_call_2 = mock_client.start_test_item.call_args_list[5]
+    assert (
+        scenario_call_2[1]["name"]
+        == "Feature: Basic test with parameters which fails - Scenario Outline: Test with different parameters failing"
+    )
+    assert scenario_call_2[1]["item_type"] == "STEP"
+    assert scenario_call_2[1].get("has_stats", True)
+    assert (
+        scenario_call_2[1]["code_ref"]
+        == "features/scenario_outline_fail.feature/[EXAMPLE:Test with different parameters failing"
+        '[parameters:12345;str:"second"]]'
+    )
+
+    # Check failure logging for first scenario
+    finish_step_call_2 = mock_client.finish_test_item.call_args_list[5 + 3]
+    assert finish_step_call_2[1]["status"] == "FAILED"
+    assert finish_step_call_2[0][0].startswith("Then I fail")
+
+    finish_scenario_call_2 = mock_client.finish_test_item.call_args_list[5 + 4]
+    assert finish_scenario_call_2[1]["status"] == "FAILED"
+    assert finish_scenario_call_2[1]["item_id"] == scenario_call_2[1]["name"] + "_2"
+
+    error_log = log_calls[2][1]
+    assert "AssertionError: This step always fails" in error_log["message"]
+    assert error_log["item_id"].startswith("Then I fail")
+
+    final_error_log = log_calls[3][1]
+    assert final_error_log["level"] == "ERROR"
+    assert final_error_log["message"].endswith("AssertionError")
+    assert final_error_log["item_id"] == scenario_call_1[1]["name"] + "_2"
