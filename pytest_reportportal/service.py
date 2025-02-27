@@ -1225,6 +1225,22 @@ class PyTestService:
         reporter.finish_nested_step(item_id, timestamp(), status)
         leaf["exec"] = ExecStatus.FINISHED
 
+    def _is_background_step(self, step: Step, feature: Feature) -> bool:
+        """Check if step belongs to feature background.
+
+        :param step: Current step
+        :param feature: Current feature
+        :return: True if step is from background, False otherwise
+        """
+        if not feature.background:
+            return False
+
+        background_steps = feature.background.steps
+        return any(
+            s.name == step.name and s.keyword == step.keyword and s.line_number == step.line_number
+            for s in background_steps
+        )
+
     @check_rp_enabled
     def start_bdd_step(self, feature: Feature, scenario: Scenario, step: Step) -> None:
         """Start BDD step.
@@ -1244,16 +1260,7 @@ class PyTestService:
             scenario_leaf["exec"] = ExecStatus.IN_PROGRESS
         reporter = self.rp.step_reporter
         step_leaf = self._create_leaf(LeafType.NESTED, scenario_leaf, step)
-        background_steps = []
-        if feature.background:
-            background_steps = feature.background.steps
-        if next(
-            filter(
-                lambda s: s.name == step.name and s.keyword == step.keyword and s.line_number == step.line_number,
-                background_steps,
-            ),
-            None,
-        ):
+        if self._is_background_step(step, feature):
             background_leaf = scenario_leaf["children"][feature.background]
             background_leaf["children"][step] = step_leaf
             if background_leaf["exec"] != ExecStatus.IN_PROGRESS:
