@@ -853,6 +853,7 @@ def test_rule_description(mock_client_init):
     assert rule_call[1]["item_type"] == "SUITE"
 
 
+@pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_scenario_outline_dynamic_name(mock_client_init):
     mock_client = setup_mock_for_logging(mock_client_init)
@@ -975,6 +976,7 @@ def test_scenario_outline_fail(mock_client_init):
     assert final_error_log["item_id"] == scenario_call_1[1]["name"] + "_2"
 
 
+@pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_doc_string_parameters(mock_client_init):
     mock_client = setup_mock_for_logging(mock_client_init)
@@ -1007,6 +1009,7 @@ def test_doc_string_parameters(mock_client_init):
         assert call[1]["status"] == "PASSED"
 
 
+@pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_data_table_parameter_steps(mock_client_init):
     mock_client = setup_mock_for_logging(mock_client_init)
