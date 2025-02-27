@@ -90,10 +90,13 @@ def test_fixture_on_off(mock_client_init, switch):
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     start_count = mock_client.start_test_item.call_count
+    finish_calls = mock_client.finish_test_item.call_args_list
     finish_count = mock_client.finish_test_item.call_count
     expected_count = 3 if switch else 1
     assert start_count == expected_count, 'Incorrect number of "start_test_item" calls'
     assert finish_count == expected_count, 'Incorrect number of "finish_test_item" calls'
+    for call in finish_calls:
+        assert call[1]["status"] == "PASSED"
 
 
 def run_tests(test_path, should_fail=False):

@@ -1060,7 +1060,7 @@ class PyTestService:
         try:
             outcome = yield
             exc_info = outcome.excinfo
-            exception = exc_info[1]
+            exception = exc_info[1] if exc_info else None
             status = "PASSED"
             if exception:
                 if type(exception).__name__ != "Skipped":
