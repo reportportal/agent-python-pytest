@@ -15,7 +15,7 @@
 import logging
 from typing import Dict
 
-from pytest_bdd import given, parsers, scenarios
+from pytest_bdd import given, scenarios
 
 # Import the scenario from the feature file
 scenarios("../features/data_table_parameter.feature")

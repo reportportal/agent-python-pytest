@@ -14,7 +14,7 @@
 
 import logging
 
-from pytest_bdd import given, scenarios, when
+from pytest_bdd import given, scenarios
 
 # Import the scenario from the feature file
 scenarios("../features/doc_string_parameters.feature")
