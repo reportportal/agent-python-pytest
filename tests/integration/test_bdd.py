@@ -973,3 +973,64 @@ def test_scenario_outline_fail(mock_client_init):
     assert final_error_log["level"] == "ERROR"
     assert final_error_log["message"].endswith("AssertionError")
     assert final_error_log["item_id"] == scenario_call_1[1]["name"] + "_2"
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_doc_string_parameters(mock_client_init):
+    mock_client = setup_mock_for_logging(mock_client_init)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/doc_string_parameters_steps.py"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify scenario
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    assert (
+        scenario_call[1]["name"]
+        == "Feature: Basic test with a docstring parameter - Scenario: Test with a docstring parameter"
+    )
+    assert scenario_call[1]["item_type"] == "STEP"
+    assert scenario_call[1].get("has_stats", True)
+    assert (
+        scenario_call[1]["code_ref"]
+        == "features/doc_string_parameters.feature/[SCENARIO:Test with a docstring parameter]"
+    )
+
+    # Verify step
+    given_step = mock_client.start_test_item.call_args_list[1]
+    assert given_step[0][0] == "Given I have a docstring parameter:"
+    assert given_step[0][2] == "step"
+    assert given_step[1]["parent_item_id"] == scenario_call[1]["name"] + "_1"
+    assert given_step[1]["has_stats"] is False
+
+    # Verify steps pass
+    finish_calls = mock_client.finish_test_item.call_args_list
+    for call in finish_calls:
+        assert call[1]["status"] == "PASSED"
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_data_table_parameter_steps(mock_client_init):
+    mock_client = setup_mock_for_logging(mock_client_init)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/data_table_parameter_steps.py"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify scenario
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    assert (
+        scenario_call[1]["name"]
+        == "Feature: A basic test with a Data Table parameter - Scenario: Test with Data Table"
+    )
+    assert scenario_call[1]["item_type"] == "STEP"
+    assert scenario_call[1].get("has_stats", True)
+    assert scenario_call[1]["code_ref"] == "features/data_table_parameter.feature/[SCENARIO:Test with Data Table]"
+
+    # Verify step
+    given_step = mock_client.start_test_item.call_args_list[1]
+    assert given_step[0][0] == "Given a step with a data table:"
+    assert given_step[0][2] == "step"
+    assert given_step[1]["parent_item_id"] == scenario_call[1]["name"] + "_1"
+    assert given_step[1]["has_stats"] is False
+
+    # Verify steps pass
+    finish_calls = mock_client.finish_test_item.call_args_list
+    for call in finish_calls:
+        assert call[1]["status"] == "PASSED"
