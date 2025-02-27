@@ -1241,7 +1241,7 @@ class PyTestService:
             parameters = self._get_scenario_parameters_from_template(scenario, scenario_template)
             leaf["parameters"] = parameters
             if parameters:
-                parameters_str = f"Parameters:\n{markdown_helpers.format_data_table_dict(parameters)}"
+                parameters_str = f"Parameters:\n\n{markdown_helpers.format_data_table_dict(parameters)}"
                 if leaf["description"]:
                     leaf["description"] = markdown_helpers.as_two_parts(leaf["description"], parameters_str)
                 else:

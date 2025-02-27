@@ -813,14 +813,14 @@ def test_scenario_outline_description(mock_client_init):
     scenario_call_1 = mock_client.start_test_item.call_args_list[0]
     description_1 = scenario_call_1[1]["description"]
     assert description_1.startswith("The description for the scenario outline")
-    assert "Parameters:" in description_1
+    assert "Parameters:\n\n" in description_1
     assert "|\xa0\xa0\xa0str\xa0\xa0\xa0|\xa0parameters\xa0|" in description_1
     assert '|\xa0"first"\xa0|\xa0\xa0\xa0\xa0123\xa0\xa0\xa0\xa0\xa0|' in description_1
 
     scenario_call_2 = mock_client.start_test_item.call_args_list[4]
     description_2 = scenario_call_2[1]["description"]
     assert description_2.startswith("The description for the scenario outline")
-    assert "Parameters:" in description_2
+    assert "Parameters:\n\n" in description_2
     assert "|\xa0\xa0\xa0str\xa0\xa0\xa0\xa0|\xa0parameters\xa0|" in description_2
     assert '|\xa0"second"\xa0|\xa0\xa0\xa012345\xa0\xa0\xa0\xa0|' in description_2
 
