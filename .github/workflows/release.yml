@@ -25,9 +25,9 @@ on:
 env:
   VERSION_FILE: setup.py
   VERSION_EXTRACT_PATTERN: >-
-    __version__\s*=\s*'([^']+)
+    __version__\s*=\s*"([^"]+)
   VERSION_REPLACE_PATTERN: >-
-    __version__ = '\1'
+    __version__ = "\1"
   TMP_SUFFIX: _updated
   CHANGE_LOG_FILE: CHANGELOG.md
 
