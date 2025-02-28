@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.5.0]
 ### Added
 - Issue [#357](https://github.com/reportportal/agent-python-pytest/issues/357) `pytest-bdd` support, by @HardNorth
 ### Fixed
