@@ -15,7 +15,7 @@
 
 import warnings
 from os import getenv
-from typing import Any, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 from _pytest.config import Config
 from reportportal_client import ClientType, OutputType
@@ -49,7 +49,8 @@ class AgentConfig:
     rp_bts_url: str
     rp_launch: str
     rp_launch_id: Optional[str]
-    rp_launch_attributes: Optional[list]
+    rp_launch_attributes: Optional[List[str]]
+    rp_tests_attributes: Optional[List[str]]
     rp_launch_description: str
     rp_log_batch_size: int
     rp_log_batch_payload_size: int
@@ -96,6 +97,7 @@ class AgentConfig:
         self.rp_launch = self.find_option(pytest_config, "rp_launch")
         self.rp_launch_id = self.find_option(pytest_config, "rp_launch_id")
         self.rp_launch_attributes = self.find_option(pytest_config, "rp_launch_attributes")
+        self.rp_tests_attributes = self.find_option(pytest_config, "rp_tests_attributes")
         self.rp_launch_description = self.find_option(pytest_config, "rp_launch_description")
         self.rp_log_batch_size = int(self.find_option(pytest_config, "rp_log_batch_size"))
         batch_payload_size = self.find_option(pytest_config, "rp_log_batch_payload_size")

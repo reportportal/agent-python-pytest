@@ -82,8 +82,7 @@ STEP_NAMES = [
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_basic(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_arguments.py"])
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
@@ -124,8 +123,7 @@ def test_basic(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_basic_with_feature_suite(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
     variables = {"rp_hierarchy_code": True}
     variables.update(utils.DEFAULT_VARIABLES.items())
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_arguments.py"], variables=variables)
@@ -189,8 +187,7 @@ def test_feature_descriptions(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_failed_feature(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_failed_step.py"])
     assert int(result) == 1, "Exit code should be 1 (test error)"
 
@@ -224,8 +221,7 @@ def test_failed_feature(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_scenario_attributes(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
 
     test_file = "examples/bdd/step_defs/test_belly.py"
     result = utils.run_pytest_tests(tests=[test_file])
@@ -241,8 +237,7 @@ def test_scenario_attributes(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_feature_attributes(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
 
     variables = {"rp_hierarchy_code": True}
     variables.update(utils.DEFAULT_VARIABLES.items())
@@ -268,8 +263,7 @@ def test_feature_attributes(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_background_step(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
 
     test_file = "examples/bdd/step_defs/test_background.py"
     result = utils.run_pytest_tests(tests=[test_file])
@@ -332,8 +326,7 @@ def test_background_step(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_background_two_steps(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
 
     test_file = "examples/bdd/step_defs/test_background_two_steps.py"
     result = utils.run_pytest_tests(tests=[test_file])
@@ -379,8 +372,7 @@ def test_background_two_steps(mock_client_init):
 @pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_rule(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_rule_steps.py"])
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
@@ -474,8 +466,7 @@ def test_rule(mock_client_init):
 @pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_rule_hierarchy(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
 
     variables = {"rp_hierarchy_code": True}
     variables.update(utils.DEFAULT_VARIABLES.items())
@@ -899,8 +890,7 @@ def test_scenario_outline_dynamic_name(mock_client_init):
 
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_scenario_outline_fail(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    setup_mock_for_logging(mock_client_init)
+    mock_client = setup_mock_for_logging(mock_client_init)
     result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/scenario_outline_fail_steps.py"])
     assert int(result) == 1, "Exit code should be 1 (test error)"
 
@@ -1094,3 +1084,48 @@ def test_custom_test_case_id(mock_client_init):
     finish_calls = mock_client.finish_test_item.call_args_list
     for call in finish_calls:
         assert call[1]["status"] == "PASSED"
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_tests_attributes_rule(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    variables = {"rp_tests_attributes": "test_key:test_value"}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(
+        tests=["examples/bdd/step_defs/test_rule_description_steps.py"], variables=variables
+    )
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    assert scenario_call[1]["attributes"] == [{"key": "test_key", "value": "test_value"}]
+
+
+@pytest.mark.parametrize("rp_hierarchy_code, scenario_idx", [(True, 2), (False, 0)])
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_tests_attributes_rule_hierarchy(mock_client_init, rp_hierarchy_code, scenario_idx):
+    mock_client = setup_mock(mock_client_init)
+    variables = {"rp_tests_attributes": "test_key:test_value", "rp_hierarchy_code": rp_hierarchy_code}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(
+        tests=["examples/bdd/step_defs/test_rule_description_steps.py"], variables=variables
+    )
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    scenario_call = mock_client.start_test_item.call_args_list[scenario_idx]
+    assert scenario_call[1]["attributes"] == [{"key": "test_key", "value": "test_value"}]
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_tests_attributes_bdd_tags(mock_client_init):
+    mock_client = setup_mock(mock_client_init)
+    variables = {"rp_tests_attributes": "test_key:test_value"}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/test_belly.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    attributes = scenario_call[1]["attributes"]
+    assert len(attributes) == 3
+    assert {"key": "test_key", "value": "test_value"} in attributes
+    assert {"value": "ok"} in attributes
+    assert {"key": "key", "value": "value"} in attributes

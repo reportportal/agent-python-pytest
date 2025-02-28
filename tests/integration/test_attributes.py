@@ -15,6 +15,8 @@
 
 from unittest import mock
 
+import pytest
+
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
@@ -124,3 +126,45 @@ def test_custom_runtime_attribute_report(mock_client_init):
     attribute_tuple_list = [(kv.get("key"), kv["value"]) for kv in actual_attributes]
 
     assert set(attribute_tuple_list) == {("scope", "smoke"), (None, "runtime")}
+
+
+@pytest.mark.parametrize("rp_hierarchy_code", [True, False])
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_tests_attributes(mock_client_init, rp_hierarchy_code):
+    """Verify configuration attributes are reported.
+
+    :param mock_client_init: Pytest fixture
+    """
+    variables = {"rp_tests_attributes": "test_key:test_value", "rp_hierarchy_code": rp_hierarchy_code}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(tests=["examples/test_simple.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    mock_client = mock_client_init.return_value
+    assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
+
+    call_args = mock_client.start_test_item.call_args_list
+    step_call_args = call_args[-1][1]
+    assert step_call_args["attributes"] == [{"key": "test_key", "value": "test_value"}]
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_tests_attributes_add(mock_client_init):
+    """Verify configuration attributes are reported along with custom attribute.
+
+    :param mock_client_init: Pytest fixture
+    """
+    variables = {"markers": "scope: to which test scope a test relates", "rp_tests_attributes": "test_key:test_value"}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(tests=["examples/attributes/test_one_attribute.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    mock_client = mock_client_init.return_value
+    assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
+
+    call_args = mock_client.start_test_item.call_args_list
+    step_call_args = call_args[-1][1]
+    attributes = step_call_args["attributes"]
+    assert len(attributes) == 2
+    assert {"key": "scope", "value": "smoke"} in attributes
+    assert {"key": "test_key", "value": "test_value"} in attributes

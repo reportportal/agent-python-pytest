@@ -90,7 +90,6 @@ ISSUE_DESCRIPTION_URL_TEMPLATE: str = " [{issue_id}]({url})"
 ISSUE_DESCRIPTION_ID_TEMPLATE: str = " {issue_id}"
 PYTHON_REPLACE_REGEX = re.compile(r"\W")
 ALPHA_REGEX = re.compile(r"^\d+_*")
-ATTRIBUTE_DELIMITER = ":"
 BACKGROUND_STEP_NAME = "Background"
 
 
@@ -505,11 +504,13 @@ class PyTestService:
                 return func(leaf)
         return func(leaf)
 
-    def _process_bdd_attributes(self, scenario: Union[Feature, Scenario, Rule]) -> List[Dict[str, str]]:
+    def _process_bdd_attributes(self, item: Union[Feature, Scenario, Rule]) -> List[Dict[str, str]]:
         tags = []
-        tags.extend(scenario.tags)
-        if isinstance(scenario, Scenario):
-            template = self._get_scenario_template(scenario)
+        tags.extend(item.tags)
+        if isinstance(item, Scenario):
+            test_attributes = self._config.rp_tests_attributes
+            tags.extend(test_attributes if test_attributes else [])
+            template = self._get_scenario_template(item)
             if template and template.templated:
                 examples = []
                 if isinstance(template.examples, list):
@@ -518,17 +519,7 @@ class PyTestService:
                     examples.append(template.examples)
                 for example in examples:
                     tags.extend(getattr(example, "tags", []))
-        attributes = []
-        for tag in tags:
-            key = None
-            value = tag
-            if ATTRIBUTE_DELIMITER in tag:
-                key, value = tag.split(ATTRIBUTE_DELIMITER, 1)
-            attribute = {"value": value}
-            if key:
-                attribute["key"] = key
-            attributes.append(attribute)
-        return attributes
+        return gen_attributes(tags)
 
     def _get_suite_code_ref(self, leaf: Dict[str, Any]) -> str:
         item = leaf["item"]
@@ -768,7 +759,13 @@ class PyTestService:
         :param item: Pytest.Item
         :return: a set of attributes
         """
-        attributes = set()
+        test_attributes = self._config.rp_tests_attributes
+        if test_attributes:
+            attributes = {
+                (attr.get("key", None), attr["value"]) for attr in gen_attributes(self._config.rp_tests_attributes)
+            }
+        else:
+            attributes = set()
         for marker in item.iter_markers():
             if marker.name == "issue":
                 if self._config.rp_issue_id_marks:
