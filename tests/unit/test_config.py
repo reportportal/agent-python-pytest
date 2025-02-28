@@ -12,25 +12,25 @@
 #  limitations under the License
 
 import pytest
+
 from pytest_reportportal.config import AgentConfig
 
 
 @pytest.mark.parametrize(
-    ['verify_ssl', 'expected_result'],
+    ["verify_ssl", "expected_result"],
     [
-        ('True', True),
-        ('False', False),
-        ('true', True),
-        ('false', False),
+        ("True", True),
+        ("False", False),
+        ("true", True),
+        ("false", False),
         (True, True),
         (False, False),
-        ('path/to/certificate', 'path/to/certificate'),
-        (None, True)
-    ]
+        ("path/to/certificate", "path/to/certificate"),
+        (None, True),
+    ],
 )
 def test_verify_ssl_true(mocked_config, verify_ssl, expected_result):
-    mocked_config.getini.side_effect = \
-        lambda x: verify_ssl if x == 'rp_verify_ssl' else None
+    mocked_config.getini.side_effect = lambda x: verify_ssl if x == "rp_verify_ssl" else None
     config = AgentConfig(mocked_config)
 
     assert config.rp_verify_ssl == expected_result

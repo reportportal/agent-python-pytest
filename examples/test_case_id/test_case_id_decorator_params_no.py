@@ -1,4 +1,5 @@
 """A simple example test with Test Case ID decorator and parameters."""
+
 #  Copyright (c) 2022 https://reportportal.io .
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
@@ -17,7 +18,7 @@ import pytest
 TEST_CASE_ID = "ISSUE-132"
 
 
-@pytest.mark.parametrize(('param1', 'param2'), [('value1', 'value2')])
+@pytest.mark.parametrize(("param1", "param2"), [("value1", "value2")])
 @pytest.mark.tc_id(TEST_CASE_ID)
 def test_case_id_decorator(param1, param2):
     assert True

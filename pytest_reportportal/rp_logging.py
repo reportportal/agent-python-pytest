@@ -13,25 +13,24 @@
 
 """RPLogger class for low-level logging in tests."""
 
-import sys
 import logging
+import sys
 import threading
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any
+from typing import Any, Dict, List
 
-from reportportal_client import current, set_current
-from reportportal_client import RPLogger
+from reportportal_client import RPLogger, current, set_current
 from reportportal_client.core.worker import APIWorker
 
 
 def is_api_worker(target):
     """Check if target is an RP worker thread."""
     if target:
-        method_name = getattr(target, '__name__', None)
-        method_self = getattr(target, '__self__', None)
-        if method_name == '_monitor' and method_self:
-            clazz = getattr(method_self, '__class__', None)
+        method_name = getattr(target, "__name__", None)
+        method_self = getattr(target, "__self__", None)
+        if method_name == "_monitor" and method_self:
+            clazz = getattr(method_self, "__class__", None)
             if clazz is APIWorker:
                 return True
     return False
@@ -51,12 +50,13 @@ def patching_thread_class(config):
         original_start = threading.Thread.start
         original_run = threading.Thread.run
         try:
+
             def wrap_start(original_func):
                 @wraps(original_func)
                 def _start(self, *args, **kwargs):
                     """Save the invoking thread's client if there is one."""
                     # Prevent an endless loop of workers being spawned
-                    target = getattr(self, '_target', None)
+                    target = getattr(self, "_target", None)
                     if not is_api_worker(self) and not is_api_worker(target):
                         current_client = current()
                         self.parent_rp_client = current_client
@@ -69,11 +69,7 @@ def patching_thread_class(config):
                 def _run(self, *args, **kwargs):
                     """Create a new client for the invoked thread."""
                     client = None
-                    if (
-                        hasattr(self, "parent_rp_client")
-                        and self.parent_rp_client
-                        and not current()
-                    ):
+                    if hasattr(self, "parent_rp_client") and self.parent_rp_client and not current():
                         parent = self.parent_rp_client
                         client = parent.clone()
                     try:
@@ -115,44 +111,43 @@ def patching_logger_class():
     original_makeRecord = logger_class.makeRecord
 
     try:
+
         def wrap_log(original_func):
             @wraps(original_func)
-            def _log(self, *args: list[Any], **kwargs: dict[str, Any]):
+            def _log(self, *args: List[Any], **kwargs: Dict[str, Any]):
                 my_kwargs = kwargs.copy()
-                attachment = my_kwargs.pop('attachment', None)
+                attachment = my_kwargs.pop("attachment", None)
                 if attachment is not None:
-                    my_kwargs.setdefault('extra', {}).update({'attachment': attachment})
+                    my_kwargs.setdefault("extra", {}).update({"attachment": attachment})
 
                 #  Python 3.11 start catches stack frames in wrappers,
                 #  so add additional stack level skip to not show it
                 if sys.version_info >= (3, 11):
-                    if 'stacklevel' in my_kwargs:
-                        my_kwargs['stacklevel'] = my_kwargs['stacklevel'] + 1
+                    if "stacklevel" in my_kwargs:
+                        my_kwargs["stacklevel"] = my_kwargs["stacklevel"] + 1
                     else:
-                        my_kwargs['stacklevel'] = 2
+                        my_kwargs["stacklevel"] = 2
                     return original_func(self, *args, **my_kwargs)
                 else:
                     return original_func(self, *args, **my_kwargs)
+
             return _log
 
         def wrap_makeRecord(original_func):
             @wraps(original_func)
-            def makeRecord(self, name, level, fn, lno, msg, args, exc_info,
-                           func=None, extra=None, sinfo=None):
+            def makeRecord(self, name, level, fn, lno, msg, args, exc_info, func=None, extra=None, sinfo=None):
                 if extra is not None:
-                    attachment = extra.pop('attachment', None)
+                    attachment = extra.pop("attachment", None)
                 else:
                     attachment = None
                 try:
                     # Python 3.5
-                    record = original_func(self, name, level, fn, lno, msg,
-                                           args, exc_info, func=func,
-                                           extra=extra, sinfo=sinfo)
+                    record = original_func(
+                        self, name, level, fn, lno, msg, args, exc_info, func=func, extra=extra, sinfo=sinfo
+                    )
                 except TypeError:
                     # Python 2.7
-                    record = original_func(self, name, level, fn, lno, msg,
-                                           args, exc_info, func=func,
-                                           extra=extra)
+                    record = original_func(self, name, level, fn, lno, msg, args, exc_info, func=func, extra=extra)
                 record.attachment = attachment
                 return record
 

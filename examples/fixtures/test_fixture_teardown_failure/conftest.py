@@ -22,8 +22,8 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 logging.setLoggerClass(RPLogger)
 
-LOG_MESSAGE_BEFORE_YIELD = 'Log message before yield and failure'
-LOG_MESSAGE_TEARDOWN = 'Log message for failure teardown'
+LOG_MESSAGE_BEFORE_YIELD = "Log message before yield and failure"
+LOG_MESSAGE_TEARDOWN = "Log message for failure teardown"
 
 
 @pytest.fixture
@@ -31,4 +31,4 @@ def test_fixture_teardown_failure_config():
     logging.error(LOG_MESSAGE_BEFORE_YIELD)
     yield mock.Mock()
     logging.error(LOG_MESSAGE_TEARDOWN)
-    raise Exception('Fixture teardown failed')
+    raise Exception("Fixture teardown failed")

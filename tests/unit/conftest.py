@@ -13,26 +13,27 @@
 
 """This module contains common Pytest fixtures and hooks for unit tests."""
 
+# noinspection PyUnresolvedReferences
+from unittest import mock
+
 import py
 from _pytest.config import Config
 from _pytest.main import Session
 from pluggy._tracing import TagTracer
-from pytest import fixture, Module
-# noinspection PyUnresolvedReferences
-from unittest import mock
-
+from pytest import Module, fixture
 from reportportal_client import RPLogger
+
 from pytest_reportportal.config import AgentConfig
-from pytest_reportportal.service import PyTestServiceClass
+from pytest_reportportal.service import PyTestService
 from tests import REPORT_PORTAL_SERVICE
 
-ITEM_PATH = py.path.local('examples/test_simple.py')
+ITEM_PATH = py.path.local("examples/test_simple.py")
 
 
 @fixture
 def logger():
     """Prepare instance of the RPLogger for testing."""
-    return RPLogger('pytest_reportportal.test')
+    return RPLogger("pytest_reportportal.test")
 
 
 @fixture()
@@ -40,41 +41,35 @@ def mocked_config():
     """Mock Pytest config for testing."""
     mocked_config = mock.create_autospec(Config)
 
-    mocked_config.getoption_side_effects = {
-        '--collect-only': False,
-        '--setup-plan': False,
-        'rp_log_level': 'debug'
-    }
+    mocked_config.getoption_side_effects = {"--collect-only": False, "--setup-plan": False, "rp_log_level": "debug"}
 
     def getoption_side_effect(name, default=None):
-        return mocked_config.getoption_side_effects.get(
-            name, default if default else mock.Mock()
-        )
+        return mocked_config.getoption_side_effects.get(name, default if default else mock.Mock())
 
     mocked_config._reporter_config = mock.Mock()
     mocked_config.getoption.side_effect = getoption_side_effect
     mocked_config._rp_enabled = True
-    mocked_config.rootdir = py.path.local('/path/to')
-    mocked_config.trace = TagTracer().get('root')
+    mocked_config.rootdir = py.path.local("/path/to")
+    mocked_config.trace = TagTracer().get("root")
     mocked_config.pluginmanager = mock.Mock()
     mocked_config.option = mock.create_autospec(Config)
-    mocked_config.option.rp_project = 'default_personal'
-    mocked_config.option.rp_endpoint = 'http://docker.local:8080/'
+    mocked_config.option.rp_project = "default_personal"
+    mocked_config.option.rp_endpoint = "http://docker.local:8080/"
     mocked_config.option.rp_api_key = mock.sentinel.rp_api_key
     mocked_config.option.rp_log_batch_size = -1
     mocked_config.option.retries = -1
-    mocked_config.option.rp_hierarchy_dirs_level = '0'
+    mocked_config.option.rp_hierarchy_dirs_level = "0"
     mocked_config.option.rp_rerun = False
     mocked_config.option.rp_launch_timeout = -1
     mocked_config.option.rp_thread_logging = True
-    mocked_config.option.rp_launch_uuid_print = 'False'
-    mocked_config.option.rp_launch_uuid_print_output = 'STDOUT'
-    mocked_config.option.rp_client_type = 'SYNC'
-    mocked_config.option.rp_report_fixtures = 'False'
-    mocked_config.option.rp_hierarchy_code = 'False'
-    mocked_config.option.rp_hierarchy_dirs = 'False'
-    mocked_config.option.rp_hierarchy_test_file = 'True'
-    mocked_config.option.rp_skip_connection_test = 'False'
+    mocked_config.option.rp_launch_uuid_print = "False"
+    mocked_config.option.rp_launch_uuid_print_output = "STDOUT"
+    mocked_config.option.rp_client_type = "SYNC"
+    mocked_config.option.rp_report_fixtures = "False"
+    mocked_config.option.rp_hierarchy_code = "False"
+    mocked_config.option.rp_hierarchy_dirs = "False"
+    mocked_config.option.rp_hierarchy_test_file = "True"
+    mocked_config.option.rp_skip_connection_test = "False"
     return mocked_config
 
 
@@ -91,7 +86,7 @@ def mocked_module(mocked_session):
     """Mock Pytest Module for testing."""
     mocked_module = mock.create_autospec(Module)
     mocked_module.parent = mocked_session
-    mocked_module.name = 'module'
+    mocked_module.name = "module"
     mocked_module.fspath = ITEM_PATH
     return mocked_module
 
@@ -102,7 +97,7 @@ def mocked_item(mocked_session, mocked_module):
     test_item = mock.Mock()
     test_item.session = mocked_session
     test_item.fspath = ITEM_PATH
-    name = 'test_item'
+    name = "test_item"
     test_item.name = name
     test_item.originalname = name
     test_item.parent = mocked_module
@@ -111,8 +106,8 @@ def mocked_item(mocked_session, mocked_module):
 
 @fixture()
 def rp_service(mocked_config):
-    """Prepare instance of the PyTestServiceClass for testing."""
-    service = PyTestServiceClass(AgentConfig(mocked_config))
-    with mock.patch(REPORT_PORTAL_SERVICE + '.get_project_settings'):
+    """Prepare instance of the PyTestService for testing."""
+    service = PyTestService(AgentConfig(mocked_config))
+    with mock.patch(REPORT_PORTAL_SERVICE + ".get_project_settings"):
         service.start()
         return service

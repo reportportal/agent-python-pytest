@@ -17,7 +17,7 @@ from unittest import mock
 import pytest
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def session_fixture_return_config():
-    print('setup')
+    print("setup")
     return mock.Mock()

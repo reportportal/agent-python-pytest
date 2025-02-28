@@ -13,8 +13,9 @@
 
 """This module includes integration tests for the empty run."""
 
-from delayed_assert import expect, assert_expectations
 from unittest import mock
+
+from delayed_assert import assert_expectations, expect
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
@@ -26,9 +27,9 @@ def test_empty_run(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
-    result = utils.run_pytest_tests(tests=['examples/empty/'])
+    result = utils.run_pytest_tests(tests=["examples/empty/"])
 
-    assert int(result) == 5, 'Exit code should be 5 (no tests)'
+    assert int(result) == 5, "Exit code should be 5 (no tests)"
 
     mock_client = mock_client_init.return_value
     expect(mock_client.start_launch.call_count == 1, '"start_launch" method was not called')
@@ -36,7 +37,7 @@ def test_empty_run(mock_client_init):
     assert_expectations()
 
     finish_args = mock_client.finish_launch.call_args_list
-    expect('status' not in finish_args[0][1], 'Launch status should not be defined')
-    launch_end_time = finish_args[0][1]['end_time']
-    expect(launch_end_time is not None and int(launch_end_time) > 0, 'Launch end time is empty')
+    expect("status" not in finish_args[0][1], "Launch status should not be defined")
+    launch_end_time = finish_args[0][1]["end_time"]
+    expect(launch_end_time is not None and int(launch_end_time) > 0, "Launch end time is empty")
     assert_expectations()

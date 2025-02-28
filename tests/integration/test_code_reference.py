@@ -13,22 +13,30 @@
 
 """This module includes integration tests for code references generation."""
 
-import pytest
 from unittest import mock
+
+import pytest
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@pytest.mark.parametrize(['test', 'code_ref'], [
-    ('examples/test_simple.py', 'examples/test_simple.py:test_simple'),
-    ('examples/params/test_in_class_parameterized.py',
-     'examples/params/test_in_class_parameterized.py:Tests.test_in_class_parameterized'),
-    ('examples/hierarchy/test_in_class.py', 'examples/hierarchy/test_in_class.py:Tests.test_in_class'),
-    ('examples/hierarchy/test_in_class_in_class.py',
-     'examples/hierarchy/test_in_class_in_class.py:Tests.Test.test_in_class_in_class')
-])
+@pytest.mark.parametrize(
+    ["test", "code_ref"],
+    [
+        ("examples/test_simple.py", "examples/test_simple.py:test_simple"),
+        (
+            "examples/params/test_in_class_parameterized.py",
+            "examples/params/test_in_class_parameterized.py:Tests.test_in_class_parameterized",
+        ),
+        ("examples/hierarchy/test_in_class.py", "examples/hierarchy/test_in_class.py:Tests.test_in_class"),
+        (
+            "examples/hierarchy/test_in_class_in_class.py",
+            "examples/hierarchy/test_in_class_in_class.py:Tests.Test.test_in_class_in_class",
+        ),
+    ],
+)
 def test_code_reference(mock_client_init, test, code_ref):
     """Verify different tests have correct code reference.
 
@@ -37,11 +45,11 @@ def test_code_reference(mock_client_init, test, code_ref):
     :param code_ref:         an expected code reference value
     """
     result = utils.run_pytest_tests(tests=[test])
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     mock_client = mock_client_init.return_value
     assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
 
     call_args = mock_client.start_test_item.call_args_list
     step_call_args = call_args[-1][1]
-    assert step_call_args['code_ref'] == code_ref
+    assert step_call_args["code_ref"] == code_ref

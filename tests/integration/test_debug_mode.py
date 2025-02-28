@@ -22,11 +22,7 @@ from tests.helpers import utils
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@pytest.mark.parametrize(['mode', 'expected_mode'], [
-    ('DEFAULT', 'DEFAULT'),
-    ('DEBUG', 'DEBUG'),
-    (None, 'DEFAULT')
-])
+@pytest.mark.parametrize(["mode", "expected_mode"], [("DEFAULT", "DEFAULT"), ("DEBUG", "DEBUG"), (None, "DEFAULT")])
 def test_launch_mode(mock_client_init, mode, expected_mode):
     """Verify different launch modes are passed to `start_launch` method.
 
@@ -37,13 +33,13 @@ def test_launch_mode(mock_client_init, mode, expected_mode):
     """
     variables = dict()
     if mode is not None:
-        variables['rp_mode'] = mode
+        variables["rp_mode"] = mode
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_simple.py'], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    result = utils.run_pytest_tests(tests=["examples/test_simple.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     assert mock_client_init.call_count == 1, "client wasn't initialized"
 
     init_kwargs = mock_client_init.call_args_list[0][1]
-    assert 'mode' in init_kwargs
-    assert init_kwargs['mode'] == expected_mode
+    assert "mode" in init_kwargs
+    assert init_kwargs["mode"] == expected_mode

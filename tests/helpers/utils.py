@@ -21,67 +21,67 @@ from multiprocessing.pool import ThreadPool
 import pytest
 
 DEFAULT_VARIABLES = {
-    'rp_launch': 'Pytest',
-    'rp_endpoint': 'http://localhost:8080',
-    'rp_project': 'default_personal',
-    'rp_api_key': 'test_api_key',
-    'rp_skip_connection_test': 'True'
+    "rp_launch": "Pytest",
+    "rp_endpoint": "http://localhost:8080",
+    "rp_project": "default_personal",
+    "rp_api_key": "test_api_key",
+    "rp_skip_connection_test": "True",
 }
 
 DEFAULT_PROJECT_SETTINGS = {
-    'project': 2,
-    'subTypes': {
-        'NO_DEFECT': [
+    "project": 2,
+    "subTypes": {
+        "NO_DEFECT": [
             {
-                'id': 4,
-                'locator': 'nd001',
-                'typeRef': 'NO_DEFECT',
-                'longName': 'No Defect',
-                'shortName': 'ND',
-                'color': "#777777"
+                "id": 4,
+                "locator": "nd001",
+                "typeRef": "NO_DEFECT",
+                "longName": "No Defect",
+                "shortName": "ND",
+                "color": "#777777",
             }
         ],
-        'TO_INVESTIGATE': [
+        "TO_INVESTIGATE": [
             {
-                'id': 1,
-                'locator': 'ti001',
-                'typeRef': 'TO_INVESTIGATE',
-                'longName': 'To Investigate',
-                'shortName': 'TI',
-                'color': '#ffb743'
+                "id": 1,
+                "locator": "ti001",
+                "typeRef": "TO_INVESTIGATE",
+                "longName": "To Investigate",
+                "shortName": "TI",
+                "color": "#ffb743",
             }
         ],
-        'AUTOMATION_BUG': [
+        "AUTOMATION_BUG": [
             {
-                'id': 2,
-                'locator': 'ab001',
-                'typeRef': 'AUTOMATION_BUG',
-                'longName': 'Automation Bug',
-                'shortName': 'AB',
-                'color': '#f7d63e'
+                "id": 2,
+                "locator": "ab001",
+                "typeRef": "AUTOMATION_BUG",
+                "longName": "Automation Bug",
+                "shortName": "AB",
+                "color": "#f7d63e",
             }
         ],
-        'PRODUCT_BUG': [
+        "PRODUCT_BUG": [
             {
-                'id': 3,
-                'locator': 'pb001',
-                'typeRef': 'PRODUCT_BUG',
-                'longName': 'Product Bug',
-                'shortName': 'PB',
-                'color': '#ec3900'
+                "id": 3,
+                "locator": "pb001",
+                "typeRef": "PRODUCT_BUG",
+                "longName": "Product Bug",
+                "shortName": "PB",
+                "color": "#ec3900",
             }
         ],
-        'SYSTEM_ISSUE': [
+        "SYSTEM_ISSUE": [
             {
-                'id': 5,
-                'locator': 'si001',
-                'typeRef': 'SYSTEM_ISSUE',
-                'longName': 'System Issue',
-                'shortName': 'SI',
-                'color': '#0274d1'
+                "id": 5,
+                "locator": "si001",
+                "typeRef": "SYSTEM_ISSUE",
+                "longName": "System Issue",
+                "shortName": "SI",
+                "color": "#0274d1",
             }
-        ]
-    }
+        ],
+    },
 }
 
 
@@ -98,27 +98,26 @@ def run_pytest_tests(tests, args=None, variables=None):
     if variables is None:
         variables = DEFAULT_VARIABLES
 
-    arguments = ['--reportportal'] + args
+    arguments = ["--reportportal"] + args
     for k, v in variables.items():
-        arguments.append('-o')
-        arguments.append('{0}={1}'.format(k, str(v)))
+        arguments.append("-o")
+        arguments.append("{0}={1}".format(k, str(v)))
 
     if tests is not None:
         for t in tests:
             arguments.append(t)
 
     # Workaround collisions with parent test
-    current_test = os.environ['PYTEST_CURRENT_TEST']
-    del os.environ['PYTEST_CURRENT_TEST']
+    current_test = os.environ["PYTEST_CURRENT_TEST"]
+    del os.environ["PYTEST_CURRENT_TEST"]
     result = pytest.main(arguments)
-    os.environ['PYTEST_CURRENT_TEST'] = current_test
+    os.environ["PYTEST_CURRENT_TEST"] = current_test
 
     return result
 
 
 def item_id_gen(**kwargs):
-    return "{}-{}-{}".format(kwargs['name'], str(round(time.time() * 1000)),
-                             random.randint(0, 9999))
+    return "{}-{}-{}".format(kwargs["name"], str(round(time.time() * 1000)), random.randint(0, 9999))
 
 
 def project_settings(**kwargs):
@@ -128,10 +127,10 @@ def project_settings(**kwargs):
 def attributes_to_tuples(attributes):
     result = set()
     for attribute in attributes:
-        if 'key' in attribute:
-            result.add((attribute['key'], attribute['value']))
+        if "key" in attribute:
+            result.add((attribute["key"], attribute["value"]))
         else:
-            result.add((None, attribute['value']))
+            result.add((None, attribute["value"]))
     return result
 
 
@@ -139,6 +138,7 @@ def attributes_to_tuples(attributes):
 def run_tests_with_client(client, tests, args=None, variables=None):
     def test_func():
         from reportportal_client import set_current
+
         set_current(client)
         return run_pytest_tests(tests, args, variables)
 

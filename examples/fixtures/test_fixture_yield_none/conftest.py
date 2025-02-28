@@ -21,7 +21,7 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 logging.setLoggerClass(RPLogger)
 
-LOG_MESSAGE_SETUP = 'Log message for setup and yield None'
+LOG_MESSAGE_SETUP = "Log message for setup and yield None"
 
 
 @pytest.fixture

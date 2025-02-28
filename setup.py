@@ -17,8 +17,7 @@ import os
 
 from setuptools import setup
 
-
-__version__ = '5.4.7'
+__version__ = "5.5.0"
 
 
 def read_file(fname):
@@ -32,32 +31,31 @@ def read_file(fname):
 
 
 setup(
-    name='pytest-reportportal',
+    name="pytest-reportportal",
     version=__version__,
-    description='Agent for Reporting results of tests to the Report Portal',
-    long_description=read_file('README.rst'),
-    long_description_content_type='text/x-rst',
-    author='Report Portal Team',
-    author_email='support@reportportal.io',
-    url='https://github.com/reportportal/agent-python-pytest',
-    packages=['pytest_reportportal'],
-    package_data={'pytest_reportportal': ['*.pyi']},
-    install_requires=read_file('requirements.txt').splitlines(),
-    license='Apache 2.0',
-    keywords=['testing', 'reporting', 'reportportal', 'pytest', 'agent'],
+    description="Agent for Reporting results of tests to the Report Portal",
+    long_description=read_file("README.md"),
+    long_description_content_type="text/markdown",
+    author="Report Portal Team",
+    author_email="support@reportportal.io",
+    url="https://github.com/reportportal/agent-python-pytest",
+    packages=["pytest_reportportal"],
+    package_data={"pytest_reportportal": ["*.pyi"]},
+    install_requires=read_file("requirements.txt").splitlines(),
+    license="Apache 2.0",
+    keywords=["testing", "reporting", "reportportal", "pytest", "agent"],
     classifiers=[
-        'Framework :: Pytest',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Programming Language :: Python :: 3.9',
-        'Programming Language :: Python :: 3.10',
-        'Programming Language :: Python :: 3.11',
-        'Programming Language :: Python :: 3.12',
-        'Programming Language :: Python :: 3.13'
-        ],
+        "Framework :: Pytest",
+        "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
+        "Programming Language :: Python :: 3.13",
+    ],
     entry_points={
-        'pytest11': [
-            'pytest_reportportal = pytest_reportportal.plugin',
+        "pytest11": [
+            "pytest_reportportal = pytest_reportportal.plugin",
         ]
-    }
+    },
 )

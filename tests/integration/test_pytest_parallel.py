@@ -13,9 +13,10 @@
 
 """This module includes integration tests for "pytest_parallel" plugin."""
 
-import pytest
-from delayed_assert import expect, assert_expectations
 from unittest import mock
+
+import pytest
+from delayed_assert import assert_expectations, expect
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
@@ -23,7 +24,7 @@ from tests.helpers.utils import item_id_gen
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@pytest.mark.skip(reason='This test breaks all other tests, so only for local execution')
+@pytest.mark.skip(reason="This test breaks all other tests, so only for local execution")
 def test_pytest_parallel_threads(mock_client_init):
     """Verify "pytest_parallel" plugin run tests in two threads.
 
@@ -32,8 +33,8 @@ def test_pytest_parallel_threads(mock_client_init):
     mock_client = mock_client_init.return_value
     mock_client.start_test_item.side_effect = item_id_gen
 
-    result = utils.run_pytest_tests(tests=['examples/hierarchy'], args=['--tests-per-worker', '2'])
-    assert int(result) == 0, 'Exit code should be 0 (no errors)'
+    result = utils.run_pytest_tests(tests=["examples/hierarchy"], args=["--tests-per-worker", "2"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
 
     mock_client = mock_client_init.return_value
 
@@ -42,7 +43,7 @@ def test_pytest_parallel_threads(mock_client_init):
     assert_expectations()
 
     finish_args = mock_client.finish_launch.call_args_list
-    expect(finish_args[0][1]['status'] in ('PASSED', None), 'Launch failed')
-    launch_end_time = finish_args[0][1]['end_time']
-    expect(launch_end_time is not None and int(launch_end_time) > 0, 'Launch end time is empty')
+    expect(finish_args[0][1]["status"] in ("PASSED", None), "Launch failed")
+    launch_end_time = finish_args[0][1]["end_time"]
+    expect(launch_end_time is not None and int(launch_end_time) > 0, "Launch end time is empty")
     assert_expectations()

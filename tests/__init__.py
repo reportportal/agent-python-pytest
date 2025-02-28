@@ -13,5 +13,5 @@
 
 """This package contains tests for the project."""
 
-REPORT_PORTAL_SERVICE = 'reportportal_client.RPClient'
-REQUESTS_SERVICE = 'reportportal_client.client.requests.Session'
+REPORT_PORTAL_SERVICE = "reportportal_client.RPClient"
+REQUESTS_SERVICE = "reportportal_client.client.requests.Session"

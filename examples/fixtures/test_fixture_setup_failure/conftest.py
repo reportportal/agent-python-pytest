@@ -21,10 +21,10 @@ LOGGER = logging.getLogger(__name__)
 LOGGER.setLevel(logging.DEBUG)
 logging.setLoggerClass(RPLogger)
 
-LOG_MESSAGE_SETUP = 'Log message for setup failure'
+LOG_MESSAGE_SETUP = "Log message for setup failure"
 
 
 @pytest.fixture
 def test_fixture_setup_failure_config():
     logging.error(LOG_MESSAGE_SETUP)
-    raise Exception('Fixture setup failed')
+    raise Exception("Fixture setup failed")

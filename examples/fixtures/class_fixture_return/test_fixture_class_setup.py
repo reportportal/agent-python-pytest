@@ -24,6 +24,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+
 class TestClassOne:
     def test_fixture_class_setup_first(self, class_fixture_return_config):
         assert class_fixture_return_config is not None

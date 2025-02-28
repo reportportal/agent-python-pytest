@@ -16,7 +16,7 @@
 from unittest import mock
 
 import pytest
-from delayed_assert import expect, assert_expectations
+from delayed_assert import assert_expectations, expect
 from reportportal_client.core.rp_issues import Issue
 
 from examples import test_issue_id
@@ -24,14 +24,14 @@ from pytest_reportportal.service import NOT_ISSUE
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
-ISSUE_PLACEHOLDER = '{issue_id}'
-ISSUE_URL_PATTERN = f'https://bugzilla.some.com/show_bug.cgi?id={ISSUE_PLACEHOLDER}'
-BTS_PROJECT = 'RP-TEST'
-BTS_URL = 'https://bugzilla.some.com'
+ISSUE_PLACEHOLDER = "{issue_id}"
+ISSUE_URL_PATTERN = f"https://bugzilla.some.com/show_bug.cgi?id={ISSUE_PLACEHOLDER}"
+BTS_PROJECT = "RP-TEST"
+BTS_URL = "https://bugzilla.some.com"
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-@pytest.mark.parametrize('issue_id_mark', [True, False])
+@pytest.mark.parametrize("issue_id_mark", [True, False])
 def test_issue_id_attribute(mock_client_init, issue_id_mark):
     """Verify agent reports issue attribute if configured.
 
@@ -42,20 +42,20 @@ def test_issue_id_attribute(mock_client_init, issue_id_mark):
     mock_client.start_test_item.side_effect = utils.item_id_gen
     mock_client.get_project_settings.side_effect = utils.project_settings
 
-    variables = {'rp_issue_id_marks': issue_id_mark}
+    variables = {"rp_issue_id_marks": issue_id_mark}
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'], variables=variables)
-    assert int(result) == 1, 'Exit code should be 1 (test failed)'
+    result = utils.run_pytest_tests(tests=["examples/test_issue_id.py"], variables=variables)
+    assert int(result) == 1, "Exit code should be 1 (test failed)"
 
     call_args = mock_client.start_test_item.call_args_list
     finish_test_step = call_args[-1][1]
-    attributes = finish_test_step['attributes']
+    attributes = finish_test_step["attributes"]
 
     if issue_id_mark:
         assert len(attributes) == 1
         issue_attribute = attributes[0]
-        expect(issue_attribute['key'] == 'issue')
-        expect(issue_attribute['value'] == test_issue_id.ID)
+        expect(issue_attribute["key"] == "issue")
+        expect(issue_attribute["value"] == test_issue_id.ID)
         assert_expectations()
     else:
         assert len(attributes) == 0
@@ -71,24 +71,25 @@ def test_issue_report(mock_client_init):
     mock_client.start_test_item.side_effect = utils.item_id_gen
     mock_client.get_project_settings.side_effect = utils.project_settings
 
-    variables = {'rp_issue_system_url': ISSUE_URL_PATTERN}
+    variables = {"rp_issue_system_url": ISSUE_URL_PATTERN}
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'], variables=variables)
-    assert int(result) == 1, 'Exit code should be 1 (test failed)'
+    result = utils.run_pytest_tests(tests=["examples/test_issue_id.py"], variables=variables)
+    assert int(result) == 1, "Exit code should be 1 (test failed)"
 
     call_args = mock_client.finish_test_item.call_args_list
     finish_test_step = call_args[0][1]
-    issue = finish_test_step['issue']
+    issue = finish_test_step["issue"]
 
     assert isinstance(issue, Issue)
-    expect(issue.issue_type == 'pb001')
+    expect(issue.issue_type == "pb001")
     expect(issue.comment is not None)
     assert_expectations()
-    comments = issue.comment.split('\n')
+    comments = issue.comment.split("\n")
     assert len(comments) == 1
     comment = comments[0]
     assert comment == "* {}: [{}]({})".format(
-        test_issue_id.REASON, test_issue_id.ID, ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID))
+        test_issue_id.REASON, test_issue_id.ID, ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID)
+    )
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -101,21 +102,17 @@ def test_passed_no_issue_report(mock_client_init):
     mock_client.start_test_item.side_effect = utils.item_id_gen
     mock_client.get_project_settings.side_effect = utils.project_settings
 
-    variables = {'rp_issue_system_url': ISSUE_URL_PATTERN}
+    variables = {"rp_issue_system_url": ISSUE_URL_PATTERN}
     variables.update(utils.DEFAULT_VARIABLES.items())
-    result = utils.run_pytest_tests(tests=['examples/test_issue_id_pass.py'], variables=variables)
-    assert int(result) == 0, 'Exit code should be 0 (no failures)'
+    result = utils.run_pytest_tests(tests=["examples/test_issue_id_pass.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no failures)"
 
     call_args = mock_client.finish_test_item.call_args_list
     finish_test_step = call_args[0][1]
-    assert 'issue' not in finish_test_step or finish_test_step['issue'] is None
+    assert "issue" not in finish_test_step or finish_test_step["issue"] is None
 
 
-@pytest.mark.parametrize(('flag_value', 'expected_issue'), [
-    (True, None),
-    (False, NOT_ISSUE),
-    (None, None)
-])
+@pytest.mark.parametrize(("flag_value", "expected_issue"), [(True, None), (False, NOT_ISSUE), (None, None)])
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
     """Verify 'rp_is_skipped_an_issue' option handling.
@@ -129,15 +126,15 @@ def test_skipped_not_issue(mock_client_init, flag_value, expected_issue):
 
     variables = dict()
     if flag_value is not None:
-        variables['rp_is_skipped_an_issue'] = flag_value
+        variables["rp_is_skipped_an_issue"] = flag_value
     variables.update(utils.DEFAULT_VARIABLES.items())
 
-    result = utils.run_pytest_tests(tests=['examples/skip/test_simple_skip.py'], variables=variables)
+    result = utils.run_pytest_tests(tests=["examples/skip/test_simple_skip.py"], variables=variables)
 
-    assert int(result) == 0, 'Exit code should be 0 (no failures)'
+    assert int(result) == 0, "Exit code should be 0 (no failures)"
     call_args = mock_client.finish_test_item.call_args_list
     finish_test_step = call_args[0][1]
-    actual_issue = finish_test_step.get('issue', None)
+    actual_issue = finish_test_step.get("issue", None)
     assert actual_issue == expected_issue
 
 
@@ -152,18 +149,18 @@ def test_skipped_custom_issue(mock_client_init):
     mock_client.get_project_settings.side_effect = utils.project_settings
 
     variables = dict()
-    variables['rp_is_skipped_an_issue'] = True
-    variables['rp_issue_system_url'] = ISSUE_URL_PATTERN
+    variables["rp_is_skipped_an_issue"] = True
+    variables["rp_issue_system_url"] = ISSUE_URL_PATTERN
     variables.update(utils.DEFAULT_VARIABLES.items())
 
-    result = utils.run_pytest_tests(tests=['examples/skip/test_skip_issue.py'], variables=variables)
+    result = utils.run_pytest_tests(tests=["examples/skip/test_skip_issue.py"], variables=variables)
 
-    assert int(result) == 0, 'Exit code should be 0 (no failures)'
+    assert int(result) == 0, "Exit code should be 0 (no failures)"
     call_args = mock_client.finish_test_item.call_args_list
     finish_test_step = call_args[0][1]
-    actual_issue = finish_test_step.get('issue', None)
+    actual_issue = finish_test_step.get("issue", None)
     assert isinstance(actual_issue, Issue)
-    expect(actual_issue.issue_type == 'pb001')
+    expect(actual_issue.issue_type == "pb001")
     expect(actual_issue.comment is not None)
     assert_expectations()
 
@@ -178,28 +175,24 @@ def test_external_issue(mock_client_init):
     mock_client.start_test_item.side_effect = utils.item_id_gen
     mock_client.get_project_settings.side_effect = utils.project_settings
 
-    variables = {
-        'rp_bts_project': BTS_PROJECT,
-        'rp_bts_url': BTS_URL,
-        'rp_bts_issue_url': ISSUE_URL_PATTERN
-    }
+    variables = {"rp_bts_project": BTS_PROJECT, "rp_bts_url": BTS_URL, "rp_bts_issue_url": ISSUE_URL_PATTERN}
     variables.update(utils.DEFAULT_VARIABLES.items())
 
-    result = utils.run_pytest_tests(tests=['examples/test_issue_id.py'], variables=variables)
+    result = utils.run_pytest_tests(tests=["examples/test_issue_id.py"], variables=variables)
 
-    assert int(result) == 1, 'Exit code should be 1 (test failed)'
+    assert int(result) == 1, "Exit code should be 1 (test failed)"
     call_args = mock_client.finish_test_item.call_args_list
     finish_test_step = call_args[0][1]
-    actual_issue = finish_test_step.get('issue', None)
+    actual_issue = finish_test_step.get("issue", None)
     assert isinstance(actual_issue, Issue)
-    expect(actual_issue.issue_type == 'pb001')
+    expect(actual_issue.issue_type == "pb001")
     expect(actual_issue.comment is not None)
     external_issues = actual_issue._external_issues
     expect(len(external_issues) == 1)
     assert_expectations()
     external_issue = external_issues[0]
-    expect(external_issue['btsUrl'] == BTS_URL)
-    expect(external_issue['btsProject'] == BTS_PROJECT)
-    expect(external_issue['ticketId'] == test_issue_id.ID)
-    expect(external_issue['url'] == ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID))
+    expect(external_issue["btsUrl"] == BTS_URL)
+    expect(external_issue["btsProject"] == BTS_PROJECT)
+    expect(external_issue["ticketId"] == test_issue_id.ID)
+    expect(external_issue["url"] == ISSUE_URL_PATTERN.replace(ISSUE_PLACEHOLDER, test_issue_id.ID))
     assert_expectations()
