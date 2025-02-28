@@ -69,11 +69,11 @@ jobs:
           email: 'support@reportportal.io'
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tagging new version
-        id: newVersionTag
-        run: |
-          git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
-          git push --tags
+#      - name: Tagging new version
+#        id: newVersionTag
+#        run: |
+#          git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
+#          git push --tags
 
       - name: Checkout develop branch
         uses: actions/checkout@v4
