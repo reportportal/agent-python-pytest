@@ -16,7 +16,6 @@
 from unittest import mock
 
 import pytest
-from delayed_assert import assert_expectations, expect
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
@@ -55,17 +54,16 @@ def test_simple_tests(mock_client_init, test, expected_run_status, expected_item
         start_test_step = start_call_args[-1 - i][1]
         finish_test_step = finish_call_args[i][1]
 
-        expect(finish_test_step["item_id"].startswith(start_test_step["name"]))
+        assert finish_test_step["item_id"].startswith(start_test_step["name"])
         if i == 0:
             actual_status = finish_test_step["status"]
-            expect(
+            assert (
                 actual_status == expected_item_status,
                 f'Invalid item status, actual "{actual_status}", expected: "{expected_item_status}"',
             )
 
     finish_launch_call_args = mock_client.finish_launch.call_args_list
-    expect(len(finish_launch_call_args) == 1)
-    expect("end_time" in finish_launch_call_args[0][1])
-    expect(finish_launch_call_args[0][1]["end_time"] is not None)
-    expect("status" not in finish_launch_call_args[0][1])
-    assert_expectations()
+    assert len(finish_launch_call_args) == 1
+    assert "end_time" in finish_launch_call_args[0][1]
+    assert finish_launch_call_args[0][1]["end_time"] is not None
+    assert "status" not in finish_launch_call_args[0][1]
