@@ -1100,6 +1100,7 @@ def test_rp_tests_attributes_rule(mock_client_init):
     assert scenario_call[1]["attributes"] == [{"key": "test_key", "value": "test_value"}]
 
 
+@pytest.mark.skipif(pytest_bdd_version[0] < 8, reason="Only for pytest-bdd 8+")
 @pytest.mark.parametrize("rp_hierarchy_code, scenario_idx", [(True, 2), (False, 0)])
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_rp_tests_attributes_rule_hierarchy(mock_client_init, rp_hierarchy_code, scenario_idx):
