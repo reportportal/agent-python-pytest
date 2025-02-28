@@ -38,6 +38,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Generate versions
+        uses: HardNorth/github-version-generate@v1
+        with:
+          version-source: file
+          version-file: ${{ env.VERSION_FILE }}
+          version-file-extraction-pattern: ${{ env.VERSION_EXTRACT_PATTERN }}
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -49,18 +56,11 @@ jobs:
       - name: Build package
         run: python setup.py sdist bdist_wheel
 
-      - name: Publish package
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          user: ${{ secrets.PYPI_USERNAME }}
-          password: ${{ secrets.PYPI_PASSWORD }}
-
-      - name: Generate versions
-        uses: HardNorth/github-version-generate@v1
-        with:
-          version-source: file
-          version-file: ${{ env.VERSION_FILE }}
-          version-file-extraction-pattern: ${{ env.VERSION_EXTRACT_PATTERN }}
+#      - name: Publish package
+#        uses: pypa/gh-action-pypi-publish@release/v1
+#        with:
+#          user: ${{ secrets.PYPI_USERNAME }}
+#          password: ${{ secrets.PYPI_PASSWORD }}
 
       - name: Setup git credentials
         uses: oleksiyrudenko/gha-git-credentials@v2-latest
