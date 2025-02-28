@@ -587,3 +587,20 @@ def test_fixture_setup_skip(mock_client_init):
 
     finish_call_kwargs = call_args[-1][1]
     assert finish_call_kwargs["status"] == "SKIPPED"
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_fixture_exit(mock_client_init):
+    mock_client = setup_mock_for_logging(mock_client_init)
+
+    test_path = "examples/fixtures/test_fixture_exit/test_fixture_exit.py"
+    variables = dict(utils.DEFAULT_VARIABLES)
+    variables["rp_report_fixtures"] = True
+    result = utils.run_pytest_tests(tests=[test_path], variables=variables)
+    assert int(result) == 2, "Exit code should be 2 (unexpected exit)"
+
+    call_args = mock_client.start_test_item.call_args_list
+    assert len(call_args) == 2, 'Incorrect number of "start_test_item" calls'
+
+    call_args = mock_client.finish_test_item.call_args_list
+    assert len(call_args) == 2, 'Incorrect number of "finish_test_item" calls'
