@@ -69,11 +69,11 @@ jobs:
           email: 'support@reportportal.io'
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Tagging new version
-        id: newVersionTag
-        run: |
-          git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
-          git push --tags
+#      - name: Tagging new version
+#        id: newVersionTag
+#        run: |
+#          git tag -a ${{ env.RELEASE_VERSION }} -m "Release ${{ env.RELEASE_VERSION }}"
+#          git push --tags
 
       - name: Checkout develop branch
         uses: actions/checkout@v4
@@ -119,8 +119,8 @@ jobs:
       - name: Update version file
         id: versionFileUpdate
         run: |
-          export CURRENT_VERSION_VALUE=`echo '${{ env.CURRENT_VERSION }}' | sed -E "s/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/"`
-          export NEXT_VERSION_VALUE=`echo '${{ env.NEXT_VERSION }}' | sed -E "s/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/"`
+          export CURRENT_VERSION_VALUE=`echo '${{ env.CURRENT_VERSION }}' | sed -E 's/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/'`
+          export NEXT_VERSION_VALUE=`echo '${{ env.NEXT_VERSION }}' | sed -E 's/(.*)/${{ env.VERSION_REPLACE_PATTERN }}/'`
           sed "s/${CURRENT_VERSION_VALUE}/${NEXT_VERSION_VALUE}/g" ${{ env.VERSION_FILE }} > ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }}
           rm ${{ env.VERSION_FILE }}
           mv ${{ env.VERSION_FILE }}${{ env.TMP_SUFFIX }} ${{ env.VERSION_FILE }}
