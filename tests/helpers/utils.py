@@ -120,7 +120,7 @@ def item_id_gen(**kwargs):
     return "{}-{}-{}".format(kwargs["name"], str(round(time.time() * 1000)), random.randint(0, 9999))
 
 
-def project_settings(**kwargs):
+def project_settings(**_):
     return DEFAULT_PROJECT_SETTINGS
 
 
