@@ -1,6 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Issue [#357](https://github.com/reportportal/agent-python-pytest/issues/357) `pytest-bdd` support, by @HardNorth
+### Fixed
+- Issue [#389](https://github.com/reportportal/agent-python-pytest/issues/389) `rp_tests_attributes` configuration parameter handling, by @HardNorth
+- Issue [#390](https://github.com/reportportal/agent-python-pytest/issues/390) INTERNALERROR due to pytest.exit within fixture, by @HardNorth
 ### Removed
 - `Python 3.7` support, by @HardNorth
 
