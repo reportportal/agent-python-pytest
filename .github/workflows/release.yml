@@ -108,13 +108,13 @@ jobs:
           version: ${{ env.RELEASE_VERSION }}
           path: ./${{ env.CHANGE_LOG_FILE }}
 
-      - name: Create Release
-        id: createRelease
-        uses: ncipollo/release-action@v1
-        with:
-          tag: ${{ env.RELEASE_VERSION }}
-          name: Release ${{ env.RELEASE_VERSION }}
-          body: ${{ steps.readChangelogEntry.outputs.changes }}
+#      - name: Create Release
+#        id: createRelease
+#        uses: ncipollo/release-action@v1
+#        with:
+#          tag: ${{ env.RELEASE_VERSION }}
+#          name: Release ${{ env.RELEASE_VERSION }}
+#          body: ${{ steps.readChangelogEntry.outputs.changes }}
 
       - name: Update version file
         id: versionFileUpdate
