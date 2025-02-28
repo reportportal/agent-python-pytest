@@ -1037,3 +1037,60 @@ def test_data_table_parameter_steps(mock_client_init):
     finish_calls = mock_client.finish_test_item.call_args_list
     for call in finish_calls:
         assert call[1]["status"] == "PASSED"
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_scenario_outline_test_case_id(mock_client_init):
+    mock_client = setup_mock_for_logging(mock_client_init)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/scenario_outline_test_case_id_steps.py"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify first scenario with parameters includes the test case ID
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    assert (
+        scenario_call[1]["name"]
+        == "Feature: Basic test with parameters - Scenario Outline: Test with different parameters"
+    )
+    assert scenario_call[1]["item_type"] == "STEP"
+    assert (
+        scenario_call[1]["code_ref"]
+        == "features/scenario_outline_test_case_id.feature/[EXAMPLE:Test with different parameters"
+        '[parameters:123;str:"first"]]'
+    )
+    assert scenario_call[1]["parameters"] == {"str": '"first"', "parameters": "123"}
+
+    # Verify the test case ID is correctly reported using the tag instead of code_ref
+    assert scenario_call[1]["test_case_id"] == 'outline_tc_id[parameters:123;str:"first"]'
+
+    # Verify all steps pass
+    finish_calls = mock_client.finish_test_item.call_args_list
+    for call in finish_calls:
+        assert call[1]["status"] == "PASSED"
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_custom_test_case_id(mock_client_init):
+    mock_client = setup_mock_for_logging(mock_client_init)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/custom_test_case_id_steps.py"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify scenario includes the test case ID
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    assert scenario_call[1]["name"] == "Feature: Test dummy scenario - Scenario: The scenario"
+    assert scenario_call[1]["item_type"] == "STEP"
+    assert scenario_call[1]["code_ref"] == "features/custom_test_case_id.feature/[SCENARIO:The scenario]"
+
+    # Verify the test case ID is correctly reported using the tag instead of code_ref
+    assert scenario_call[1]["test_case_id"] == "my_tc_id"
+
+    # Verify step info
+    step_call = mock_client.start_test_item.call_args_list[1]
+    assert step_call[0][0] == "Given I have empty step"
+    assert step_call[0][2] == "step"
+    assert step_call[1]["parent_item_id"] == scenario_call[1]["name"] + "_1"
+    assert step_call[1]["has_stats"] is False
+
+    # Verify all steps pass
+    finish_calls = mock_client.finish_test_item.call_args_list
+    for call in finish_calls:
+        assert call[1]["status"] == "PASSED"

@@ -1189,6 +1189,16 @@ class PyTestService:
         return code_ref
 
     def _get_scenario_test_case_id(self, leaf: Dict[str, Any]) -> str:
+        attributes = leaf.get("attributes", [])
+        params: Optional[Dict[str, str]] = leaf.get("parameters", None)
+        for attribute in attributes:
+            if attribute.get("key", None) == "tc_id":
+                tc_id = attribute["value"]
+                params_str = ""
+                if params:
+                    params_str = ";".join([f"{k}:{v}" for k, v in sorted(params.items())])
+                    params_str = f"[{params_str}]"
+                return f"{tc_id}{params_str}"
         return leaf["code_ref"]
 
     def _process_scenario_metadata(self, leaf: Dict[str, Any]) -> None:
@@ -1203,7 +1213,7 @@ class PyTestService:
         ).rstrip("\n")
         leaf["description"] = description if description else None
         scenario_template = self._get_scenario_template(scenario)
-        if scenario_template:
+        if scenario_template and scenario_template.templated:
             parameters = self._get_scenario_parameters_from_template(scenario)
             leaf["parameters"] = parameters
             if parameters:
@@ -1213,8 +1223,8 @@ class PyTestService:
                 else:
                     leaf["description"] = parameters_str
         leaf["code_ref"] = self._get_scenario_code_ref(scenario, scenario_template)
-        leaf["test_case_id"] = self._get_scenario_test_case_id(leaf)
         leaf["attributes"] = self._process_bdd_attributes(scenario)
+        leaf["test_case_id"] = self._get_scenario_test_case_id(leaf)
 
     def _finish_bdd_step(self, leaf: Dict[str, Any], status: str) -> None:
         if leaf["exec"] != ExecStatus.IN_PROGRESS:
