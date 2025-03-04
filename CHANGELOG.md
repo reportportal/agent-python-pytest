@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Too long BDD Step name truncation on reporting, by @HardNorth
 
 ## [5.5.0]
 ### Added

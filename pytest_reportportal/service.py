@@ -1279,7 +1279,7 @@ class PyTestService:
             if feature.background:
                 background_leaf = scenario_leaf["children"][feature.background]
                 self._finish_bdd_step(background_leaf, "PASSED")
-        item_id = reporter.start_nested_step(f"{step.keyword} {step.name}", timestamp())
+        item_id = reporter.start_nested_step(self._truncate_item_name(f"{step.keyword} {step.name}"), timestamp())
         step_leaf["item_id"] = item_id
         step_leaf["exec"] = ExecStatus.IN_PROGRESS
 
