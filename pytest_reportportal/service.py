@@ -599,18 +599,26 @@ class PyTestService:
 
     def _get_test_case_id(self, mark, leaf: Dict[str, Any]) -> str:
         parameters: Optional[Dict[str, Any]] = leaf.get("parameters", None)
+        parameters_indices: Optional[Dict[str, Any]] = leaf.get("parameters_indices") or {}
         parameterized = True
         selected_params: Optional[List[str]] = None
+        use_index = False
         if mark is not None:
             parameterized = mark.kwargs.get("parameterized", False)
             selected_params: Optional[Union[str, List[str]]] = mark.kwargs.get("params", None)
+            use_index = mark.kwargs.get("use_index", False)
         if selected_params is not None and not isinstance(selected_params, list):
             selected_params = [selected_params]
 
         param_str = None
         if parameterized and parameters is not None and len(parameters) > 0:
             if selected_params is not None and len(selected_params) > 0:
-                param_list = [str(parameters.get(param, None)) for param in selected_params]
+                if use_index:
+                    param_list = [str((param, parameters_indices.get(param, None))) for param in selected_params]
+                else:
+                    param_list = [str(parameters.get(param, None)) for param in selected_params]
+            elif use_index:
+                param_list = [str(param) for param in parameters_indices.items()]
             else:
                 param_list = [str(param) for param in parameters.values()]
             param_str = "[{}]".format(",".join(sorted(param_list)))
@@ -729,6 +737,19 @@ class PyTestService:
             return None
         return {str(k): v.replace("\0", "\\0") if isinstance(v, str) else v for k, v in params.items()}
 
+    def _get_parameters_indices(self, item) -> Optional[Dict[str, Any]]:
+        """
+        Get params indices of item.
+
+        :param item: Pytest.Item
+        :return: dict of params indices
+        """
+        indices = item.callspec.indices if hasattr(item, "callspec") else None
+        if not indices:
+            return None
+
+        return indices
+
     def _process_test_case_id(self, leaf: Dict[str, Any]) -> str:
         """
         Process Test Case ID if set.
@@ -793,6 +814,7 @@ class PyTestService:
         leaf["name"] = self._process_item_name(leaf)
         leaf["description"] = self._get_item_description(item)
         leaf["parameters"] = self._get_parameters(item)
+        leaf["parameters_indices"] = self._get_parameters_indices(item)
         leaf["code_ref"] = self._get_code_ref(item)
         leaf["test_case_id"] = self._process_test_case_id(leaf)
         leaf["issue"] = self._process_issue(item)
