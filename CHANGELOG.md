@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - Too long BDD Step name truncation on reporting, by @HardNorth
+- `use_index` parameter for `@pytest.mark.parametrize` decorator, which replaces parameter values with their indexes in the list, by @ramir-dn
 
 ## [5.5.0]
 ### Added
