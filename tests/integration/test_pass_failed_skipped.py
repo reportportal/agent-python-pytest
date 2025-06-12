@@ -58,9 +58,8 @@ def test_simple_tests(mock_client_init, test, expected_run_status, expected_item
         if i == 0:
             actual_status = finish_test_step["status"]
             assert (
-                actual_status == expected_item_status,
-                f'Invalid item status, actual "{actual_status}", expected: "{expected_item_status}"',
-            )
+                actual_status == expected_item_status
+            ), f'Invalid item status, actual "{actual_status}", expected: "{expected_item_status}"'
 
     finish_launch_call_args = mock_client.finish_launch.call_args_list
     assert len(finish_launch_call_args) == 1

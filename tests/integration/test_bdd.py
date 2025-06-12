@@ -1130,3 +1130,33 @@ def test_rp_tests_attributes_bdd_tags(mock_client_init):
     assert {"key": "test_key", "value": "test_value"} in attributes
     assert {"value": "ok"} in attributes
     assert {"key": "key", "value": "value"} in attributes
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_long_step(mock_client_init):
+    mock_client = setup_mock_for_logging(mock_client_init)
+    result = utils.run_pytest_tests(tests=["examples/bdd/step_defs/long_step_scenario_steps.py"])
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    # Verify scenario is correctly identified
+    scenario_call = mock_client.start_test_item.call_args_list[0]
+    assert scenario_call[1]["name"] == "Feature: Test long step scenario - Scenario: The scenario"
+    assert scenario_call[1]["item_type"] == "STEP"
+    assert scenario_call[1]["code_ref"] == "features/long_step_scenario.feature/[SCENARIO:The scenario]"
+
+    # Verify step is truncated but still identifiable
+    step_call = mock_client.start_test_item.call_args_list[1]
+    step_name = step_call[0][0]
+    assert step_name.startswith("Given A very long step.")
+    assert len(step_name) <= 1024, "Step name should be truncated to at most 1024 characters"
+    assert step_name.endswith("..."), "Truncated step should have ellipsis"
+
+    # Verify step details
+    assert step_call[0][2] == "step"
+    assert step_call[1]["parent_item_id"] == scenario_call[1]["name"] + "_1"
+    assert step_call[1]["has_stats"] is False
+
+    # Verify all steps pass
+    finish_calls = mock_client.finish_test_item.call_args_list
+    for call in finish_calls:
+        assert call[1]["status"] == "PASSED"

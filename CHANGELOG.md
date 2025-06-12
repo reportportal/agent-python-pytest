@@ -2,6 +2,11 @@
 
 ## [Unreleased]
 ### Added
+- Too long BDD Step name truncation on reporting, by @HardNorth
+- `use_index` parameter for `@pytest.mark.parametrize` decorator, which replaces parameter values with their indexes in the list, by @ramir-dn
+
+## [5.5.0]
+### Added
 - Issue [#357](https://github.com/reportportal/agent-python-pytest/issues/357) `pytest-bdd` support, by @HardNorth
 ### Fixed
 - Issue [#389](https://github.com/reportportal/agent-python-pytest/issues/389) `rp_tests_attributes` configuration parameter handling, by @HardNorth
