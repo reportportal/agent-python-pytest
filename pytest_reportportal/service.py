@@ -433,12 +433,14 @@ class PyTestService:
         self._merge_code_with_separator(test_tree, "::")
 
     def _build_item_paths(self, leaf: Dict[str, Any], path: List[Dict[str, Any]]) -> None:
-        if "children" in leaf and len(leaf["children"]) > 0:
+        children = leaf.get("children", {})
+        all_background_steps = all([isinstance(child, Background) for child in children.keys()])
+        if len(children) > 0 and not all_background_steps:
             path.append(leaf)
             for name, child_leaf in leaf["children"].items():
                 self._build_item_paths(child_leaf, path)
             path.pop()
-        if leaf["type"] != LeafType.ROOT:
+        elif leaf["type"] != LeafType.ROOT:
             self._tree_path[leaf["item"]] = path + [leaf]
 
     @check_rp_enabled
