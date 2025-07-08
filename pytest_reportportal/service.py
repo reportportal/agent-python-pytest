@@ -434,7 +434,10 @@ class PyTestService:
 
     def _build_item_paths(self, leaf: Dict[str, Any], path: List[Dict[str, Any]]) -> None:
         children = leaf.get("children", {})
-        all_background_steps = all([isinstance(child, Background) for child in children.keys()])
+        if PYTEST_BDD:
+            all_background_steps = all([isinstance(child, Background) for child in children.keys()])
+        else:
+            all_background_steps = False
         if len(children) > 0 and not all_background_steps:
             path.append(leaf)
             for name, child_leaf in leaf["children"].items():
