@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Fixed
+- Issue [#397](https://github.com/reportportal/agent-python-pytest/issues/397) pytest launch stuck with xdist, by @HardNorth
 
 ## [5.5.1]
 ### Added
