@@ -73,7 +73,7 @@ class AgentConfig:
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
         self.rp_rerun = pytest_config.option.rp_rerun or pytest_config.getini("rp_rerun")
-        self.rp_endpoint = self.find_option(pytest_config, "rp_endpoint")
+        self.rp_endpoint = getenv("RP_ENDPOINT") or self.find_option(pytest_config, "rp_endpoint")
         self.rp_hierarchy_code = to_bool(self.find_option(pytest_config, "rp_hierarchy_code"))
         self.rp_dir_level = int(self.find_option(pytest_config, "rp_hierarchy_dirs_level"))
         self.rp_hierarchy_dirs = to_bool(self.find_option(pytest_config, "rp_hierarchy_dirs"))
