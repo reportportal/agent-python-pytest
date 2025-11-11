@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.5.4]
 ### Added
 - Return back deprecated `rp_log_batch_payload_size` parameter for sake of backward compatibility, by @HardNorth
 
