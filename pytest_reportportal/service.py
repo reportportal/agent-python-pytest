@@ -1398,6 +1398,13 @@ class PyTestService:
             print_output=self._config.rp_launch_uuid_print_output,
             http_timeout=self._config.rp_http_timeout,
             mode=self._config.rp_mode,
+            # OAuth 2.0 parameters
+            oauth_uri=self._config.rp_oauth_uri,
+            oauth_username=self._config.rp_oauth_username,
+            oauth_password=self._config.rp_oauth_password,
+            oauth_client_id=self._config.rp_oauth_client_id,
+            oauth_client_secret=self._config.rp_oauth_client_secret,
+            oauth_scope=self._config.rp_oauth_scope,
         )
         if hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()

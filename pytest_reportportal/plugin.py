@@ -24,7 +24,6 @@ import dill as pickle
 import pytest
 
 # noinspection PyPackageRequirements
-import requests
 from pytest import Item, Session
 from reportportal_client import RP, RPLogHandler
 from reportportal_client.errors import ResponseError
@@ -47,13 +46,6 @@ except ImportError:
     PYTEST_BDD = False
 
 LOGGER: Logger = logging.getLogger(__name__)
-
-MANDATORY_PARAMETER_MISSED_PATTERN: str = (
-    "One of the following mandatory parameters is unset: "
-    + "rp_project: {}, "
-    + "rp_endpoint: {}, "
-    + "rp_api_key: {}"
-)
 
 FAILED_LAUNCH_WAIT: str = (
     "Failed to initialize reportportal-client service. "
@@ -182,25 +174,6 @@ def register_markers(config) -> None:
     config.addinivalue_line("markers", "name(name): report the test case with a custom Name.")
 
 
-def check_connection(agent_config: AgentConfig):
-    """Check connection to RP using provided options.
-
-    If connection is successful returns True either False.
-    :param agent_config: Instance of the AgentConfig class
-    :return True on successful connection check, either False
-    """
-    url = "{0}/api/v1/project/{1}".format(agent_config.rp_endpoint, agent_config.rp_project)
-    headers = {"Authorization": "bearer {0}".format(agent_config.rp_api_key)}
-    try:
-        resp = requests.get(url, headers=headers, verify=agent_config.rp_verify_ssl)
-        resp.raise_for_status()
-        return True
-    except requests.exceptions.RequestException as exc:
-        LOGGER.exception(exc)
-        LOGGER.error("Unable to connect to Report Portal, the launch won't be reported")
-        return False
-
-
 # no 'config' type for backward compatibility for older pytest versions
 # noinspection PyProtectedMember
 def pytest_configure(config) -> None:
@@ -210,28 +183,15 @@ def pytest_configure(config) -> None:
     """
     register_markers(config)
 
+    agent_config = AgentConfig(config)
+
     config._rp_enabled = not (
         config.getoption("--collect-only", default=False)
         or config.getoption("--setup-plan", default=False)
-        or not config.option.rp_enabled
+        or not agent_config.rp_enabled
     )
     if not config._rp_enabled:
-        return
-
-    agent_config = AgentConfig(config)
-
-    cond = (agent_config.rp_project, agent_config.rp_endpoint, agent_config.rp_api_key)
-    config._rp_enabled = all(cond)
-    if not config._rp_enabled:
-        LOGGER.debug(MANDATORY_PARAMETER_MISSED_PATTERN.format(*cond))
         LOGGER.debug("Disabling reporting to RP.")
-        return
-
-    if not agent_config.rp_skip_connection_test:
-        config._rp_enabled = check_connection(agent_config)
-
-    if not config._rp_enabled:
-        LOGGER.debug("Failed to establish connection with RP. " "Disabling reporting.")
         return
 
     config._reporter_config = agent_config
@@ -612,6 +572,19 @@ def pytest_addoption(parser) -> None:
         name="rp_launch_uuid_print_output",
         help_str="Launch UUID print output. Default `stdout`. Possible values: [stderr, stdout]",
     )
+    add_shared_option(
+        name="rp_enabled",
+        help_str="Enable reportportal plugin",
+        default=True,
+    )
+
+    # OAuth 2.0 parameters
+    parser.addini("rp_oauth_uri", type="args", help="OAuth 2.0 token endpoint URL for password grant authentication")
+    parser.addini("rp_oauth_username", type="args", help="OAuth 2.0 username for password grant authentication")
+    parser.addini("rp_oauth_password", type="args", help="OAuth 2.0 password for password grant authentication")
+    parser.addini("rp_oauth_client_id", type="args", help="OAuth 2.0 client identifier")
+    parser.addini("rp_oauth_client_secret", type="args", help="OAuth 2.0 client secret")
+    parser.addini("rp_oauth_scope", type="args", help="OAuth 2.0 access token scope")
 
     parser.addini("rp_launch_attributes", type="args", help="Launch attributes, i.e Performance Regression")
     parser.addini("rp_tests_attributes", type="args", help="Attributes for all tests items, e.g. Smoke")
@@ -669,7 +642,6 @@ def pytest_addoption(parser) -> None:
     parser.addini("rp_issue_id_marks", type="bool", default=True, help="Add tag with issue id to the test")
     parser.addini("retries", default="0", help="Deprecated: use `rp_api_retries` instead")
     parser.addini("rp_api_retries", default="0", help="Amount of retries for performing REST calls to RP server")
-    parser.addini("rp_skip_connection_test", default=False, type="bool", help="Skip Report Portal connection test")
     parser.addini(
         "rp_launch_timeout",
         default=86400,

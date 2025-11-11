@@ -32,6 +32,7 @@ except ImportError:
 class AgentConfig:
     """Storage for the RP agent initialization attributes."""
 
+    rp_enabled: bool
     rp_client_type: Optional[ClientType]
     rp_rerun: Optional[bool]
     pconfig: Config
@@ -61,8 +62,18 @@ class AgentConfig:
     rp_project: str
     rp_rerun_of: Optional[str]
     rp_api_retries: int
-    rp_skip_connection_test: bool
-    rp_api_key: str
+
+    # API key auth parameter
+    rp_api_key: Optional[str]
+
+    # OAuth 2.0 parameters
+    rp_oauth_uri: Optional[str]
+    rp_oauth_username: Optional[str]
+    rp_oauth_password: Optional[str]
+    rp_oauth_client_id: Optional[str]
+    rp_oauth_client_secret: Optional[str]
+    rp_oauth_scope: Optional[str]
+
     rp_verify_ssl: Union[bool, str]
     rp_launch_timeout: int
     rp_launch_uuid_print: bool
@@ -72,6 +83,7 @@ class AgentConfig:
 
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
+        self.rp_enabled = to_bool(self.find_option(pytest_config, "rp_enabled", True))
         self.rp_rerun = pytest_config.option.rp_rerun or pytest_config.getini("rp_rerun")
         self.rp_endpoint = getenv("RP_ENDPOINT") or self.find_option(pytest_config, "rp_endpoint")
         self.rp_hierarchy_code = to_bool(self.find_option(pytest_config, "rp_hierarchy_code"))
@@ -112,7 +124,6 @@ class AgentConfig:
         self.rp_parent_item_id = self.find_option(pytest_config, "rp_parent_item_id")
         self.rp_project = self.find_option(pytest_config, "rp_project")
         self.rp_rerun_of = self.find_option(pytest_config, "rp_rerun_of")
-        self.rp_skip_connection_test = to_bool(self.find_option(pytest_config, "rp_skip_connection_test"))
 
         rp_api_retries_str = self.find_option(pytest_config, "rp_api_retries")
         rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
@@ -134,6 +145,7 @@ class AgentConfig:
             else:
                 self.rp_api_retries = 0
 
+        # API key auth parameter
         self.rp_api_key = getenv("RP_API_KEY") or self.find_option(pytest_config, "rp_api_key")
         if not self.rp_api_key:
             self.rp_api_key = getenv("RP_UUID") or self.find_option(pytest_config, "rp_uuid")
@@ -146,15 +158,14 @@ class AgentConfig:
                     DeprecationWarning,
                     2,
                 )
-            else:
-                warnings.warn(
-                    "Argument `rp_api_key` is `None` or empty string, "
-                    "that is not supposed to happen because Report "
-                    "Portal is usually requires an authorization key. "
-                    "Please check your configuration.",
-                    RuntimeWarning,
-                    2,
-                )
+
+        # OAuth 2.0 parameters
+        self.rp_oauth_uri = self.find_option(pytest_config, "rp_oauth_uri")
+        self.rp_oauth_username = self.find_option(pytest_config, "rp_oauth_username")
+        self.rp_oauth_password = self.find_option(pytest_config, "rp_oauth_password")
+        self.rp_oauth_client_id = self.find_option(pytest_config, "rp_oauth_client_id")
+        self.rp_oauth_client_secret = self.find_option(pytest_config, "rp_oauth_client_secret")
+        self.rp_oauth_scope = self.find_option(pytest_config, "rp_oauth_scope")
 
         rp_verify_ssl = self.find_option(pytest_config, "rp_verify_ssl", True)
         try:
