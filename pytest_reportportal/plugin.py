@@ -27,7 +27,6 @@ import pytest
 from pytest import Item, Session
 from reportportal_client import RP, RPLogHandler
 from reportportal_client.errors import ResponseError
-from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from pytest_reportportal.config import AgentConfig
@@ -595,8 +594,11 @@ def pytest_addoption(parser) -> None:
     parser.addini("rp_log_batch_size", default="20", help="Size of batch log requests in async mode")
     parser.addini(
         "rp_log_batch_payload_limit",
-        default=str(MAX_LOG_BATCH_PAYLOAD_SIZE),
         help="Maximum payload size in bytes of async batch log requests",
+    )
+    parser.addini(
+        "rp_log_batch_payload_size",
+        help="DEPRECATED: Maximum payload size in bytes of async batch log requests",
     )
     parser.addini("rp_ignore_attributes", type="args", help="Ignore specified pytest markers, i.e parametrize")
     parser.addini(

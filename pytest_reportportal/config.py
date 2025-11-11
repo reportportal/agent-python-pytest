@@ -113,10 +113,23 @@ class AgentConfig:
         self.rp_launch_description = self.find_option(pytest_config, "rp_launch_description")
         self.rp_log_batch_size = int(self.find_option(pytest_config, "rp_log_batch_size"))
         batch_payload_size_limit = self.find_option(pytest_config, "rp_log_batch_payload_limit")
+        batch_payload_size = self.find_option(pytest_config, "rp_log_batch_payload_size")
+        if batch_payload_size:
+            warnings.warn(
+                "Parameter `rp_log_batch_payload_size` is deprecated since 5.5.4 "
+                "and will be subject for removing in the next major version. Use `rp_log_batch_payload_limit` argument"
+                " instead.",
+                DeprecationWarning,
+                2,
+            )
+            if not batch_payload_size_limit:
+                batch_payload_size_limit = batch_payload_size
+
         if batch_payload_size_limit:
             self.rp_log_batch_payload_limit = int(batch_payload_size_limit)
         else:
             self.rp_log_batch_payload_limit = MAX_LOG_BATCH_PAYLOAD_SIZE
+
         self.rp_log_level = get_actual_log_level(pytest_config, "rp_log_level")
         self.rp_log_format = self.find_option(pytest_config, "rp_log_format")
         self.rp_thread_logging = to_bool(self.find_option(pytest_config, "rp_thread_logging") or False)

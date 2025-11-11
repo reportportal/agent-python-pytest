@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 ### Added
+- Return back deprecated `rp_log_batch_payload_size` parameter for sake of backward compatibility, by @HardNorth
+
+## [5.5.3]
+### Added
 - OAuth 2.0 Password Grant authentication, by @HardNorth
 ### Changed
 - Client version updated to [5.6.7](https://github.com/reportportal/client-Python/releases/tag/5.6.7), by @HardNorth
