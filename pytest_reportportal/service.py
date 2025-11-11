@@ -285,7 +285,7 @@ class PyTestService:
 
         :param leaf_type:   the leaf type
         :param parent_item: parent pytest.Item of the current leaf
-        :param item:        leaf's pytest.Item
+        :param item:        the leaf's pytest.Item
         :return: a leaf
         """
         return {
@@ -1126,7 +1126,8 @@ class PyTestService:
         root_leaf = self._bdd_tree
         if not root_leaf:
             self._bdd_tree = root_leaf = self._create_leaf(LeafType.ROOT, None, None, item_id=self.parent_item_id)
-        children_leafs = root_leaf["children"]
+        # noinspection PyTypeChecker
+        children_leafs: Dict[Any, Any] = root_leaf["children"]
         if feature in children_leafs:
             feature_leaf = children_leafs[feature]
         else:
@@ -1392,7 +1393,7 @@ class PyTestService:
             retries=self._config.rp_api_retries,
             verify_ssl=self._config.rp_verify_ssl,
             launch_uuid=launch_id,
-            log_batch_payload_size=self._config.rp_log_batch_payload_size,
+            log_batch_payload_limit=self._config.rp_log_batch_payload_limit,
             launch_uuid_print=self._config.rp_launch_uuid_print,
             print_output=self._config.rp_launch_uuid_print_output,
             http_timeout=self._config.rp_http_timeout,

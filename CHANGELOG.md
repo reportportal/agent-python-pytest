@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Client version updated to [5.6.6](https://github.com/reportportal/client-Python/releases/tag/5.6.6), by @HardNorth
+### Fixed
+- Some configuration parameter names, which are different in the client, by @HardNorth
 
 ## [5.5.2]
 ### Fixed
