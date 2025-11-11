@@ -47,6 +47,10 @@ except ImportError:
 
 LOGGER: Logger = logging.getLogger(__name__)
 
+MANDATORY_PARAMETER_MISSED_PATTERN: str = (
+    "One of the following mandatory parameters is unset: " + "rp_project: {}, rp_endpoint: {}"
+)
+
 FAILED_LAUNCH_WAIT: str = (
     "Failed to initialize reportportal-client service. "
     + "Waiting for Launch start timed out. "
@@ -191,6 +195,13 @@ def pytest_configure(config) -> None:
         or not agent_config.rp_enabled
     )
     if not config._rp_enabled:
+        LOGGER.debug("Disabling reporting to RP.")
+        return
+
+    cond = (agent_config.rp_project, agent_config.rp_endpoint)
+    config._rp_enabled = all(cond)
+    if not config._rp_enabled:
+        LOGGER.debug(MANDATORY_PARAMETER_MISSED_PATTERN.format(*cond))
         LOGGER.debug("Disabling reporting to RP.")
         return
 

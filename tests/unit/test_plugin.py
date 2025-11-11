@@ -134,13 +134,7 @@ def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
     assert mocked_config._rp_enabled is False
     mocked_log.debug.assert_has_calls(
         [
-            mock.call(
-                MANDATORY_PARAMETER_MISSED_PATTERN.format(
-                    mocked_config.option.rp_project,
-                    None,
-                    mocked_config.option.rp_api_key,
-                )
-            ),
+            mock.call(MANDATORY_PARAMETER_MISSED_PATTERN.format(mocked_config.option.rp_project, None)),
             mock.call("Disabling reporting to RP."),
         ]
     )
@@ -164,13 +158,7 @@ def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
     assert mocked_config._rp_enabled is False
     mocked_log.debug.assert_has_calls(
         [
-            mock.call(
-                MANDATORY_PARAMETER_MISSED_PATTERN.format(
-                    None,
-                    mocked_config.option.rp_endpoint,
-                    mocked_config.option.rp_api_key,
-                )
-            ),
+            mock.call(MANDATORY_PARAMETER_MISSED_PATTERN.format(None, mocked_config.option.rp_endpoint)),
             mock.call("Disabling reporting to RP."),
         ]
     )
@@ -196,9 +184,7 @@ def test_pytest_configure_misssing_rp_uuid(mocked_log, mocked_config):
         [
             mock.call(
                 MANDATORY_PARAMETER_MISSED_PATTERN.format(
-                    mocked_config.option.rp_project,
-                    mocked_config.option.rp_endpoint,
-                    None,
+                    mocked_config.option.rp_project, mocked_config.option.rp_endpoint
                 )
             ),
             mock.call("Disabling reporting to RP."),
