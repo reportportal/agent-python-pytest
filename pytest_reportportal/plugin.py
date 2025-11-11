@@ -187,17 +187,16 @@ def pytest_configure(config) -> None:
     """
     register_markers(config)
 
-    agent_config = AgentConfig(config)
-
     config._rp_enabled = not (
         config.getoption("--collect-only", default=False)
         or config.getoption("--setup-plan", default=False)
-        or not agent_config.rp_enabled
+        or not config.option.rp_enabled
     )
     if not config._rp_enabled:
         LOGGER.debug("Disabling reporting to RP.")
         return
 
+    agent_config = AgentConfig(config)
     cond = (agent_config.rp_project, agent_config.rp_endpoint)
     config._rp_enabled = all(cond)
     if not config._rp_enabled:

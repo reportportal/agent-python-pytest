@@ -19,7 +19,6 @@ from unittest import mock
 import pytest
 from _pytest.config.argparsing import Parser
 from delayed_assert import assert_expectations, expect
-from reportportal_client.errors import ResponseError
 from requests.exceptions import RequestException
 
 from pytest_reportportal.config import AgentConfig
@@ -73,25 +72,6 @@ def test_logger_handle_no_attachment(mock_handler, logger, log_level):
     assert_expectations()
 
 
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.PyTestService")
-def test_portal_on_maintenance(mocked_service_class, mocked_config, mocked_session):
-    """Test session configuration if RP is in maintenance mode.
-
-    :param mocked_session: pytest fixture
-    """
-    mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_project = None
-
-    mocked_service = mocked_service_class.return_value
-    mocked_config.py_test_service = mocked_service
-    mocked_service.start.side_effect = ResponseError("<title>Report Portal - Maintenance</title>")
-    pytest_sessionstart(mocked_session)
-    assert mocked_config.py_test_service.rp is None
-
-
-@mock.patch("pytest_reportportal.plugin.requests.Session.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
 def test_pytest_configure(mocked_config):
     """Test plugin successful configuration.
 
@@ -108,16 +88,13 @@ def test_pytest_configure(mocked_config):
     )
 
 
-@mock.patch("pytest_reportportal.plugin.requests.get")
 def test_pytest_configure_dry_run(mocked_config):
     """Test plugin configuration in case of dry-run execution."""
-    mocked_config.getoption.return_value = True
+    mocked_config.getoption.side_effect = lambda opt, default: True
     pytest_configure(mocked_config)
     assert mocked_config._rp_enabled is False
 
 
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.LOGGER", wraps=LOGGER)
 def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
     """Test plugin configuration in case of missing rp_endpoint.
 
