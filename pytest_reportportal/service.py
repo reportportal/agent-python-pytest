@@ -285,7 +285,7 @@ class PyTestService:
 
         :param leaf_type:   the leaf type
         :param parent_item: parent pytest.Item of the current leaf
-        :param item:        leaf's pytest.Item
+        :param item:        the leaf's pytest.Item
         :return: a leaf
         """
         return {
@@ -434,7 +434,10 @@ class PyTestService:
 
     def _build_item_paths(self, leaf: Dict[str, Any], path: List[Dict[str, Any]]) -> None:
         children = leaf.get("children", {})
-        all_background_steps = all([isinstance(child, Background) for child in children.keys()])
+        if PYTEST_BDD:
+            all_background_steps = all([isinstance(child, Background) for child in children.keys()])
+        else:
+            all_background_steps = False
         if len(children) > 0 and not all_background_steps:
             path.append(leaf)
             for name, child_leaf in leaf["children"].items():
@@ -1123,7 +1126,8 @@ class PyTestService:
         root_leaf = self._bdd_tree
         if not root_leaf:
             self._bdd_tree = root_leaf = self._create_leaf(LeafType.ROOT, None, None, item_id=self.parent_item_id)
-        children_leafs = root_leaf["children"]
+        # noinspection PyTypeChecker
+        children_leafs: Dict[Any, Any] = root_leaf["children"]
         if feature in children_leafs:
             feature_leaf = children_leafs[feature]
         else:
@@ -1389,11 +1393,18 @@ class PyTestService:
             retries=self._config.rp_api_retries,
             verify_ssl=self._config.rp_verify_ssl,
             launch_uuid=launch_id,
-            log_batch_payload_size=self._config.rp_log_batch_payload_size,
+            log_batch_payload_limit=self._config.rp_log_batch_payload_limit,
             launch_uuid_print=self._config.rp_launch_uuid_print,
             print_output=self._config.rp_launch_uuid_print_output,
             http_timeout=self._config.rp_http_timeout,
             mode=self._config.rp_mode,
+            # OAuth 2.0 parameters
+            oauth_uri=self._config.rp_oauth_uri,
+            oauth_username=self._config.rp_oauth_username,
+            oauth_password=self._config.rp_oauth_password,
+            oauth_client_id=self._config.rp_oauth_client_id,
+            oauth_client_secret=self._config.rp_oauth_client_secret,
+            oauth_scope=self._config.rp_oauth_scope,
         )
         if hasattr(self.rp, "get_project_settings"):
             self.project_settings = self.rp.get_project_settings()

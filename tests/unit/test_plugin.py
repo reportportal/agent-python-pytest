@@ -19,8 +19,6 @@ from unittest import mock
 import pytest
 from _pytest.config.argparsing import Parser
 from delayed_assert import assert_expectations, expect
-from reportportal_client.errors import ResponseError
-from requests.exceptions import RequestException
 
 from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.plugin import (
@@ -73,25 +71,6 @@ def test_logger_handle_no_attachment(mock_handler, logger, log_level):
     assert_expectations()
 
 
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.PyTestService")
-def test_portal_on_maintenance(mocked_service_class, mocked_config, mocked_session):
-    """Test session configuration if RP is in maintenance mode.
-
-    :param mocked_session: pytest fixture
-    """
-    mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_project = None
-
-    mocked_service = mocked_service_class.return_value
-    mocked_config.py_test_service = mocked_service
-    mocked_service.start.side_effect = ResponseError("<title>Report Portal - Maintenance</title>")
-    pytest_sessionstart(mocked_session)
-    assert mocked_config.py_test_service.rp is None
-
-
-@mock.patch("pytest_reportportal.plugin.requests.Session.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
 def test_pytest_configure(mocked_config):
     """Test plugin successful configuration.
 
@@ -108,15 +87,13 @@ def test_pytest_configure(mocked_config):
     )
 
 
-@mock.patch("pytest_reportportal.plugin.requests.get")
 def test_pytest_configure_dry_run(mocked_config):
     """Test plugin configuration in case of dry-run execution."""
-    mocked_config.getoption.return_value = True
+    mocked_config.getoption.side_effect = lambda opt, default: True
     pytest_configure(mocked_config)
     assert mocked_config._rp_enabled is False
 
 
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
 @mock.patch("pytest_reportportal.plugin.LOGGER", wraps=LOGGER)
 def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
     """Test plugin configuration in case of missing rp_endpoint.
@@ -134,19 +111,12 @@ def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
     assert mocked_config._rp_enabled is False
     mocked_log.debug.assert_has_calls(
         [
-            mock.call(
-                MANDATORY_PARAMETER_MISSED_PATTERN.format(
-                    mocked_config.option.rp_project,
-                    None,
-                    mocked_config.option.rp_api_key,
-                )
-            ),
+            mock.call(MANDATORY_PARAMETER_MISSED_PATTERN.format(mocked_config.option.rp_project, None)),
             mock.call("Disabling reporting to RP."),
         ]
     )
 
 
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
 @mock.patch("pytest_reportportal.plugin.LOGGER", wraps=LOGGER)
 def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
     """Test plugin configuration in case of missing rp_project.
@@ -164,65 +134,10 @@ def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
     assert mocked_config._rp_enabled is False
     mocked_log.debug.assert_has_calls(
         [
-            mock.call(
-                MANDATORY_PARAMETER_MISSED_PATTERN.format(
-                    None,
-                    mocked_config.option.rp_endpoint,
-                    mocked_config.option.rp_api_key,
-                )
-            ),
+            mock.call(MANDATORY_PARAMETER_MISSED_PATTERN.format(None, mocked_config.option.rp_endpoint)),
             mock.call("Disabling reporting to RP."),
         ]
     )
-
-
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.LOGGER", wraps=LOGGER)
-def test_pytest_configure_misssing_rp_uuid(mocked_log, mocked_config):
-    """Test plugin configuration in case of missing rp_uuid.
-
-    The value of the _reportportal_configured attribute of the pytest Config
-    object should be changed to False, stopping plugin configuration, if
-    rp_uuid is not set.
-
-    :param mocked_config: Pytest fixture
-    """
-    mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_api_key = None
-    mocked_config.getini.return_value = 0
-    pytest_configure(mocked_config)
-    assert mocked_config._rp_enabled is False
-    mocked_log.debug.assert_has_calls(
-        [
-            mock.call(
-                MANDATORY_PARAMETER_MISSED_PATTERN.format(
-                    mocked_config.option.rp_project,
-                    mocked_config.option.rp_endpoint,
-                    None,
-                )
-            ),
-            mock.call("Disabling reporting to RP."),
-        ]
-    )
-
-
-@mock.patch("pytest_reportportal.plugin.requests.get")
-def test_pytest_configure_on_conn_error(mocked_get, mocked_config):
-    """Test plugin configuration in case of HTTP error.
-
-    The value of the _reportportal_configured attribute of the pytest Config
-    object should be changed to False, stopping plugin configuration, if HTTP
-    error occurs getting HTTP response from the ReportPortal.
-    :param mocked_get:    Instance of the MagicMock
-    :param mocked_config: Pytest fixture
-    """
-    mock_response = mock.Mock()
-    mock_response.raise_for_status.side_effect = RequestException()
-    mocked_get.return_value = mock_response
-    mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_skip_connection_test = "False"
-    pytest_configure(mocked_config)
-    assert mocked_config._rp_enabled is False
 
 
 @mock.patch("pytest_reportportal.plugin.LAUNCH_WAIT_TIMEOUT", 1)
@@ -327,17 +242,22 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         "rp_rerun",
         "rp_rerun_of",
         "rp_parent_item_id",
-        "rp_uuid",
         "rp_api_key",
         "rp_endpoint",
         "rp_mode",
         "rp_thread_logging",
         "rp_launch_uuid_print",
         "rp_launch_uuid_print_output",
+        "rp_oauth_uri",
+        "rp_oauth_username",
+        "rp_oauth_password",
+        "rp_oauth_client_id",
+        "rp_oauth_client_secret",
+        "rp_oauth_scope",
         "rp_launch_attributes",
         "rp_tests_attributes",
         "rp_log_batch_size",
-        "rp_log_batch_payload_size",
+        "rp_log_batch_payload_limit",
         "rp_ignore_attributes",
         "rp_is_skipped_an_issue",
         "rp_hierarchy_code",
@@ -353,7 +273,6 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         "rp_issue_id_marks",
         "retries",
         "rp_api_retries",
-        "rp_skip_connection_test",
         "rp_launch_timeout",
         "rp_client_type",
         "rp_connect_timeout",
@@ -382,7 +301,6 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         "--rp-rerun",
         "--rp-rerun-of",
         "--rp-parent-item-id",
-        "--rp-uuid",
         "--rp-api-key",
         "--rp-endpoint",
         "--rp-mode",

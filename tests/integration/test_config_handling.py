@@ -21,17 +21,17 @@ from delayed_assert import assert_expectations, expect
 from reportportal_client import OutputType
 
 from examples.test_rp_logging import LOG_MESSAGE
-from tests import REPORT_PORTAL_SERVICE, REQUESTS_SERVICE
+from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
 TEST_LAUNCH_ID = "test_launch_id"
 
 
-@mock.patch(REQUESTS_SERVICE)
-def test_rp_launch_id(mock_requests_init):
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_launch_uuid(mock_client_init):
     """Verify that RP plugin does not start/stop launch if 'rp_launch_id' set.
 
-    :param mock_requests_init: mocked requests lib
+    :param mock_client_init: mocked client class
     """
     variables = dict()
     variables["rp_launch_id"] = TEST_LAUNCH_ID
@@ -39,11 +39,10 @@ def test_rp_launch_id(mock_requests_init):
     result = utils.run_pytest_tests(tests=["examples/test_simple.py"], variables=variables)
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
-    mock_requests = mock_requests_init.return_value
-    assert mock_requests.post.call_count == 1
-    item_start = mock_requests.post.call_args_list[0]
-    assert item_start[0][0].endswith("/item")
-    assert item_start[1]["json"]["launchUuid"] == TEST_LAUNCH_ID
+    assert mock_client_init.call_count == 1
+    constructor_call = mock_client_init.call_args_list[0]
+    assert "launch_uuid" in constructor_call[1]
+    assert constructor_call[1]["launch_uuid"] == TEST_LAUNCH_ID
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -72,11 +71,11 @@ def test_rp_parent_item_id(mock_client_init):
     assert_expectations()
 
 
-@mock.patch(REQUESTS_SERVICE)
-def test_rp_parent_item_id_and_rp_launch_id(mock_requests_init):
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_parent_item_id_and_rp_launch_id(mock_client_init):
     """Verify RP handles both conf props 'rp_parent_item_id' & 'rp_launch_id'.
 
-    :param mock_requests_init: mocked requests lib
+    :param mock_client_init: mocked client class
     """
     parent_id = "parent_id"
     variables = dict()
@@ -86,11 +85,18 @@ def test_rp_parent_item_id_and_rp_launch_id(mock_requests_init):
     result = utils.run_pytest_tests(tests=["examples/test_simple.py"], variables=variables)
     assert int(result) == 0, "Exit code should be 0 (no errors)"
 
-    mock_requests = mock_requests_init.return_value
-    assert mock_requests.post.call_count == 1
-    item_start = mock_requests.post.call_args_list[0]
-    assert item_start[0][0].endswith(f"/item/{parent_id}")
-    assert item_start[1]["json"]["launchUuid"] == TEST_LAUNCH_ID
+    assert mock_client_init.call_count == 1
+    constructor_call = mock_client_init.call_args_list[0]
+    assert "launch_uuid" in constructor_call[1]
+    assert constructor_call[1]["launch_uuid"] == TEST_LAUNCH_ID
+
+    mock_client = mock_client_init.return_value
+
+    assert mock_client.start_test_item.call_count > 0
+    item_create = mock_client.start_test_item.call_args_list[0]
+    call_kwargs = item_create[1]
+    assert "parent_item_id" in call_kwargs
+    assert call_kwargs["parent_item_id"] == parent_id
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
@@ -112,9 +118,9 @@ def test_rp_log_format(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_log_batch_payload_size(mock_client_init):
+def test_rp_log_batch_payload_limit(mock_client_init):
     log_size = 123456
-    variables = {"rp_log_batch_payload_size": log_size}
+    variables = {"rp_log_batch_payload_limit": log_size}
     variables.update(utils.DEFAULT_VARIABLES.items())
 
     result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
@@ -123,7 +129,7 @@ def test_rp_log_batch_payload_size(mock_client_init):
     expect(mock_client_init.call_count == 1)
 
     constructor_args = mock_client_init.call_args_list[0][1]
-    expect(constructor_args["log_batch_payload_size"] == log_size)
+    expect(constructor_args["log_batch_payload_limit"] == log_size)
     assert_expectations()
 
 
@@ -156,56 +162,13 @@ def test_rp_api_key(mock_client_init):
     assert_expectations()
 
 
-@mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_uuid(mock_client_init):
-    api_key = "rp_api_key"
-    variables = dict(utils.DEFAULT_VARIABLES)
-    del variables["rp_api_key"]
-    variables.update({"rp_uuid": api_key}.items())
-
-    with warnings.catch_warnings(record=True) as w:
-        result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
-        assert int(result) == 0, "Exit code should be 0 (no errors)"
-
-        expect(mock_client_init.call_count == 1)
-
-        constructor_args = mock_client_init.call_args_list[0][1]
-        expect(constructor_args["api_key"] == api_key)
-        expect(len(filter_agent_calls(w)) == 1)
-    assert_expectations()
-
-
-@mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_api_key_priority(mock_client_init):
-    api_key = "rp_api_key"
-    variables = dict(utils.DEFAULT_VARIABLES)
-    variables.update({"rp_api_key": api_key, "rp_uuid": "rp_uuid"}.items())
-
-    with warnings.catch_warnings(record=True) as w:
-        result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
-        assert int(result) == 0, "Exit code should be 0 (no errors)"
-
-        expect(mock_client_init.call_count == 1)
-
-        constructor_args = mock_client_init.call_args_list[0][1]
-        expect(constructor_args["api_key"] == api_key)
-        expect(len(filter_agent_calls(w)) == 0)
-    assert_expectations()
-
-
-@mock.patch(REPORT_PORTAL_SERVICE)
-def test_rp_api_key_empty(mock_client_init):
+def test_rp_api_key_empty():
     api_key = ""
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({"rp_api_key": api_key}.items())
 
-    with warnings.catch_warnings(record=True) as w:
-        result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
-        assert int(result) == 0, "Exit code should be 0 (no errors)"
-
-        expect(mock_client_init.call_count == 0)
-        expect(len(filter_agent_calls(w)) == 1)
-    assert_expectations()
+    result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
+    assert int(result) == 3, "Exit code should be 3 (exited with internal error)"
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
