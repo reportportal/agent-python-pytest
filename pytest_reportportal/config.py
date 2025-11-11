@@ -83,7 +83,7 @@ class AgentConfig:
 
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
-        self.rp_enabled = to_bool(self.find_option(pytest_config, "rp_enabled", True))
+        self.rp_enabled = to_bool(getattr(pytest_config.option, "rp_enabled", True))
         self.rp_rerun = pytest_config.option.rp_rerun or pytest_config.getini("rp_rerun")
         self.rp_endpoint = getenv("RP_ENDPOINT") or self.find_option(pytest_config, "rp_endpoint")
         self.rp_hierarchy_code = to_bool(self.find_option(pytest_config, "rp_hierarchy_code"))
