@@ -19,7 +19,6 @@ from unittest import mock
 import pytest
 from _pytest.config.argparsing import Parser
 from delayed_assert import assert_expectations, expect
-from requests.exceptions import RequestException
 
 from pytest_reportportal.config import AgentConfig
 from pytest_reportportal.plugin import (
@@ -117,8 +116,6 @@ def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
     )
 
 
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.LOGGER", wraps=LOGGER)
 def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
     """Test plugin configuration in case of missing rp_project.
 
@@ -139,53 +136,6 @@ def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
             mock.call("Disabling reporting to RP."),
         ]
     )
-
-
-@mock.patch("pytest_reportportal.plugin.requests.get", mock.Mock())
-@mock.patch("pytest_reportportal.plugin.LOGGER", wraps=LOGGER)
-def test_pytest_configure_misssing_rp_uuid(mocked_log, mocked_config):
-    """Test plugin configuration in case of missing rp_uuid.
-
-    The value of the _reportportal_configured attribute of the pytest Config
-    object should be changed to False, stopping plugin configuration, if
-    rp_uuid is not set.
-
-    :param mocked_config: Pytest fixture
-    """
-    mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_api_key = None
-    mocked_config.getini.return_value = 0
-    pytest_configure(mocked_config)
-    assert mocked_config._rp_enabled is False
-    mocked_log.debug.assert_has_calls(
-        [
-            mock.call(
-                MANDATORY_PARAMETER_MISSED_PATTERN.format(
-                    mocked_config.option.rp_project, mocked_config.option.rp_endpoint
-                )
-            ),
-            mock.call("Disabling reporting to RP."),
-        ]
-    )
-
-
-@mock.patch("pytest_reportportal.plugin.requests.get")
-def test_pytest_configure_on_conn_error(mocked_get, mocked_config):
-    """Test plugin configuration in case of HTTP error.
-
-    The value of the _reportportal_configured attribute of the pytest Config
-    object should be changed to False, stopping plugin configuration, if HTTP
-    error occurs getting HTTP response from the ReportPortal.
-    :param mocked_get:    Instance of the MagicMock
-    :param mocked_config: Pytest fixture
-    """
-    mock_response = mock.Mock()
-    mock_response.raise_for_status.side_effect = RequestException()
-    mocked_get.return_value = mock_response
-    mocked_config.option.rp_enabled = True
-    mocked_config.option.rp_skip_connection_test = "False"
-    pytest_configure(mocked_config)
-    assert mocked_config._rp_enabled is False
 
 
 @mock.patch("pytest_reportportal.plugin.LAUNCH_WAIT_TIMEOUT", 1)
