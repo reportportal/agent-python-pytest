@@ -27,7 +27,6 @@ import pytest
 from pytest import Item, Session
 from reportportal_client import RP, RPLogHandler
 from reportportal_client.errors import ResponseError
-from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
 from pytest_reportportal import LAUNCH_WAIT_TIMEOUT
 from pytest_reportportal.config import AgentConfig
