@@ -147,17 +147,6 @@ class AgentConfig:
 
         # API key auth parameter
         self.rp_api_key = getenv("RP_API_KEY") or self.find_option(pytest_config, "rp_api_key")
-        if not self.rp_api_key:
-            self.rp_api_key = getenv("RP_UUID") or self.find_option(pytest_config, "rp_uuid")
-            if self.rp_api_key:
-                warnings.warn(
-                    "Parameter `rp_uuid` is deprecated since 5.1.9 "
-                    "and will be subject for removing in the next "
-                    "major version. Use `rp_api_key` argument "
-                    "instead.",
-                    DeprecationWarning,
-                    2,
-                )
 
         # OAuth 2.0 parameters
         self.rp_oauth_uri = self.find_option(pytest_config, "rp_oauth_uri")

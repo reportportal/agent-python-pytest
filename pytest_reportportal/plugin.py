@@ -552,7 +552,6 @@ def pytest_addoption(parser) -> None:
         name="rp_parent_item_id",
         help_str="Create all test item as child items of the given (already " "existing) item.",
     )
-    add_shared_option(name="rp_uuid", help_str="Deprecated: use `rp_api_key` " "instead.")
     add_shared_option(name="rp_api_key", help_str="API key of Report Portal. Usually located on UI profile " "page.")
     add_shared_option(name="rp_endpoint", help_str="Server endpoint")
     add_shared_option(name="rp_mode", help_str="Visibility of current launch [DEFAULT, DEBUG]", default="DEFAULT")
@@ -571,11 +570,6 @@ def pytest_addoption(parser) -> None:
     add_shared_option(
         name="rp_launch_uuid_print_output",
         help_str="Launch UUID print output. Default `stdout`. Possible values: [stderr, stdout]",
-    )
-    add_shared_option(
-        name="rp_enabled",
-        help_str="Enable reportportal plugin",
-        default=True,
     )
 
     # OAuth 2.0 parameters
