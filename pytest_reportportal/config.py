@@ -113,10 +113,6 @@ class AgentConfig:
         self.rp_launch_description = self.find_option(pytest_config, "rp_launch_description")
         self.rp_log_batch_size = int(self.find_option(pytest_config, "rp_log_batch_size"))
         batch_payload_size_limit = self.find_option(pytest_config, "rp_log_batch_payload_limit")
-        if batch_payload_size_limit:
-            self.rp_log_batch_payload_limit = int(batch_payload_size_limit)
-        else:
-            self.rp_log_batch_payload_limit = MAX_LOG_BATCH_PAYLOAD_SIZE
         batch_payload_size = self.find_option(pytest_config, "rp_log_batch_payload_size")
         if batch_payload_size:
             warnings.warn(
@@ -127,7 +123,12 @@ class AgentConfig:
                 2,
             )
             if not batch_payload_size_limit:
-                self.rp_log_batch_payload_limit = int(batch_payload_size)
+                batch_payload_size_limit = batch_payload_size
+
+        if batch_payload_size_limit:
+            self.rp_log_batch_payload_limit = int(batch_payload_size_limit)
+        else:
+            self.rp_log_batch_payload_limit = MAX_LOG_BATCH_PAYLOAD_SIZE
 
         self.rp_log_level = get_actual_log_level(pytest_config, "rp_log_level")
         self.rp_log_format = self.find_option(pytest_config, "rp_log_format")

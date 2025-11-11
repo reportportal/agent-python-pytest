@@ -595,7 +595,6 @@ def pytest_addoption(parser) -> None:
     parser.addini("rp_log_batch_size", default="20", help="Size of batch log requests in async mode")
     parser.addini(
         "rp_log_batch_payload_limit",
-        default=str(MAX_LOG_BATCH_PAYLOAD_SIZE),
         help="Maximum payload size in bytes of async batch log requests",
     )
     parser.addini(
