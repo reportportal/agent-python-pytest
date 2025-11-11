@@ -94,6 +94,7 @@ def test_pytest_configure_dry_run(mocked_config):
     assert mocked_config._rp_enabled is False
 
 
+@mock.patch("pytest_reportportal.plugin.LOGGER", wraps=LOGGER)
 def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
     """Test plugin configuration in case of missing rp_endpoint.
 
@@ -116,6 +117,7 @@ def test_pytest_configure_misssing_rp_endpoint(mocked_log, mocked_config):
     )
 
 
+@mock.patch("pytest_reportportal.plugin.LOGGER", wraps=LOGGER)
 def test_pytest_configure_misssing_rp_project(mocked_log, mocked_config):
     """Test plugin configuration in case of missing rp_project.
 
