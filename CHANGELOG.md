@@ -4,7 +4,7 @@
 ### Added
 - OAuth 2.0 Password Grant authentication, by @HardNorth
 ### Changed
-- Client version updated to [5.6.6](https://github.com/reportportal/client-Python/releases/tag/5.6.6), by @HardNorth
+- Client version updated to [5.6.7](https://github.com/reportportal/client-Python/releases/tag/5.6.7), by @HardNorth
 ### Fixed
 - Some configuration parameter names, which are different in the client, by @HardNorth
 ### Removed
