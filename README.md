@@ -34,9 +34,19 @@ py.test -c config.cfg
 
 The `pytest.ini` file should have next mandatory fields:
 
-- `rp_api_key` - value could be found in the User Profile section
 - `rp_project` - name of project in ReportPortal
 - `rp_endpoint` - address of ReportPortal Server
+
+And one type of authorization: API Key or OAuth 2.0 Password grant. You can do this by setting:
+- `rp_api_key` or `RP_API_KEY` environment variable. You can get it in the User Profile section on the UI.
+
+Or:
+- `rp_oauth_uri` - OAuth 2.0 token endpoint URL for password grant authentication. **Required** if API key is not used.
+- `rp_oauth_username` - OAuth 2.0 username for password grant authentication. **Required** if OAuth 2.0 is used.
+- `rp_oauth_password` - OAuth 2.0 password for password grant authentication. **Required** if OAuth 2.0 is used.
+- `rp_oauth_client_id` - OAuth 2.0 client identifier. **Required** if OAuth 2.0 is used.
+- `rp_oauth_client_secret` - OAuth 2.0 client secret. **Optional** for OAuth 2.0 authentication.
+- `rp_oauth_scope` - OAuth 2.0 access token scope. **Optional** for OAuth 2.0 authentication.
 
 Example of `pytest.ini`:
 
@@ -50,8 +60,6 @@ rp_launch_attributes = 'PyTest' 'Smoke'
 rp_launch_description = 'Smoke test'
 rp_ignore_attributes = 'xfail' 'usefixture'
 ```
-
-- The `rp_api_key` can also be set with the environment variable `RP_API_KEY`. This will override the value set for `rp_api_key` in pytest.ini
 
 There are also optional parameters:
 https://reportportal.io/docs/log-data-in-reportportal/test-framework-integration/Python/pytest/
