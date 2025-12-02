@@ -15,7 +15,7 @@
 
 import warnings
 from os import getenv
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 from _pytest.config import Config
 from reportportal_client import ClientType, OutputType
@@ -50,8 +50,8 @@ class AgentConfig:
     rp_bts_url: str
     rp_launch: str
     rp_launch_id: Optional[str]
-    rp_launch_attributes: Optional[List[str]]
-    rp_tests_attributes: Optional[List[str]]
+    rp_launch_attributes: Optional[list[str]]
+    rp_tests_attributes: Optional[list[str]]
     rp_launch_description: str
     rp_log_batch_size: int
     rp_log_batch_payload_limit: int
@@ -78,7 +78,7 @@ class AgentConfig:
     rp_launch_timeout: int
     rp_launch_uuid_print: bool
     rp_launch_uuid_print_output: Optional[OutputType]
-    rp_http_timeout: Optional[Union[Tuple[float, float], float]]
+    rp_http_timeout: Optional[Union[tuple[float, float], float]]
     rp_report_fixtures: bool
 
     def __init__(self, pytest_config: Config) -> None:

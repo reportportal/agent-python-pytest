@@ -17,7 +17,7 @@ import logging
 import os.path
 import time
 from logging import Logger
-from typing import Any, Callable, Dict, Generator
+from typing import Any, Callable, Generator
 
 import _pytest.logging
 import dill as pickle
@@ -410,7 +410,7 @@ if PYTEST_BDD:
         scenario: Scenario,
         step: Step,
         step_func: Callable[..., Any],
-        step_func_args: Dict[str, Any],
+        step_func_args: dict[str, Any],
     ) -> Generator[None, Any, None]:
         """Report BDD step finish.
 
@@ -439,7 +439,7 @@ if PYTEST_BDD:
         scenario: Scenario,
         step: Step,
         step_func: Callable[..., Any],
-        step_func_args: Dict[str, Any],
+        step_func_args: dict[str, Any],
         exception,
     ) -> Generator[None, Any, None]:
         """Report BDD step error.
