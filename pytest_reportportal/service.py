@@ -631,7 +631,7 @@ class PyTestService:
 
     def _get_issue_ids(self, mark):
         issue_ids = mark.kwargs.get("issue_id", [])
-        if not isinstance(issue_ids, List):
+        if not isinstance(issue_ids, list):
             issue_ids = [issue_ids]
         return issue_ids
 

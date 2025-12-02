@@ -254,6 +254,7 @@ def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
         filter_client_logs=True,
         endpoint=agent_config.rp_endpoint,
         ignored_record_names=("reportportal_client", "pytest_reportportal"),
+        custom_levels=agent_config.rp_log_custom_levels,
     )
     log_format = agent_config.rp_log_format
     if log_format:
@@ -599,6 +600,12 @@ def pytest_addoption(parser) -> None:
     parser.addini(
         "rp_log_batch_payload_size",
         help="DEPRECATED: Maximum payload size in bytes of async batch log requests",
+    )
+    parser.addini(
+        "rp_log_custom_levels",
+        type="args",
+        help="Custom log levels specified as 'int level:string'. E.G.: '35:ASSERTION'. Overrides existing level if int"
+        " level matches.",
     )
     parser.addini("rp_ignore_attributes", type="args", help="Ignore specified pytest markers, i.e parametrize")
     parser.addini(

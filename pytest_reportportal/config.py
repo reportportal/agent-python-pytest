@@ -81,6 +81,9 @@ class AgentConfig:
     rp_http_timeout: Optional[Union[tuple[float, float], float]]
     rp_report_fixtures: bool
 
+    # Custom log levels and overrides
+    rp_log_custom_levels: Optional[dict[int, str]]
+
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
         self.rp_enabled = to_bool(getattr(pytest_config.option, "rp_enabled", True))
@@ -176,6 +179,16 @@ class AgentConfig:
         else:
             self.rp_http_timeout = connect_timeout or read_timeout
         self.rp_report_fixtures = to_bool(self.find_option(pytest_config, "rp_report_fixtures", False))
+
+        # Custom log levels and overrides
+        log_custom_levels = self.find_option(pytest_config, "rp_log_custom_levels")
+        self.rp_log_custom_levels = None
+        if log_custom_levels:
+            levels = {}
+            for custom_level in log_custom_levels:
+                level, level_name = str(custom_level).split(":", maxsplit=1)
+                levels[int(level)] = level_name
+            self.rp_log_custom_levels = levels
 
     # noinspection PyMethodMayBeStatic
     def find_option(self, pytest_config: Config, option_name: str, default: Any = None) -> Any:

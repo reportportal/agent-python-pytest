@@ -17,7 +17,9 @@ import warnings
 from unittest import mock
 
 import pytest
+import test_rp_custom_logging
 from delayed_assert import assert_expectations, expect
+from integration import setup_mock_for_logging
 from reportportal_client import OutputType
 
 from examples.test_rp_logging import LOG_MESSAGE
@@ -268,3 +270,19 @@ def test_client_timeouts(mock_client_init, connect_value, read_value, expected_r
     assert int(result) == 0, "Exit code should be 0 (no errors)"
     assert mock_client_init.call_count == 1
     assert mock_client_init.call_args_list[0][1]["http_timeout"] == expected_result
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_log_custom_levels(mock_client_init):
+    setup_mock_for_logging(mock_client_init)
+    custom_log_level = test_rp_custom_logging.LOG_LEVEL
+    custom_log_name = "ASSERTION"
+    variables = dict(utils.DEFAULT_VARIABLES)
+    variables.update({"rp_log_custom_levels": str(custom_log_level) + ":" + custom_log_name})
+
+    result = utils.run_pytest_tests(["examples/test_rp_custom_logging.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    mock_client = mock_client_init.return_value
+    assert mock_client.log.call_count == 1
+    assert mock_client.log.call_args_list[0][1]["level"] == custom_log_name
