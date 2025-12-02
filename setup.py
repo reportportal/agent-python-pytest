@@ -17,7 +17,7 @@ import os
 
 from setuptools import setup
 
-__version__ = "5.5.5"
+__version__ = "5.6.0"
 
 
 def read_file(fname):
@@ -46,12 +46,12 @@ setup(
     keywords=["testing", "reporting", "reportportal", "pytest", "agent"],
     classifiers=[
         "Framework :: Pytest",
-        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: 3.10",
         "Programming Language :: Python :: 3.11",
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
+        "Programming Language :: Python :: 3.14",
     ],
     entry_points={
         "pytest11": [

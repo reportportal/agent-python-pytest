@@ -3,3 +3,4 @@ pytest-cov
 pytest-parallel
 black
 isort
+mypy

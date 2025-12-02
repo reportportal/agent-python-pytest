@@ -646,7 +646,6 @@ def pytest_addoption(parser) -> None:
         "directory with certificates of trusted CAs.",
     )
     parser.addini("rp_issue_id_marks", type="bool", default=True, help="Add tag with issue id to the test")
-    parser.addini("retries", default="0", help="Deprecated: use `rp_api_retries` instead")
     parser.addini("rp_api_retries", default="0", help="Amount of retries for performing REST calls to RP server")
     parser.addini(
         "rp_launch_timeout",

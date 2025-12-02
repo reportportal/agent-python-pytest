@@ -1,6 +1,11 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Official `Python 3.14` support, by @HardNorth
+### Removed
+- `Python 3.8` support, by @HardNorth
+- Deprecated `retries` parameter, by @HardNorth
 
 ## [5.5.4]
 ### Added

@@ -138,25 +138,8 @@ class AgentConfig:
         self.rp_project = self.find_option(pytest_config, "rp_project")
         self.rp_rerun_of = self.find_option(pytest_config, "rp_rerun_of")
 
-        rp_api_retries_str = self.find_option(pytest_config, "rp_api_retries")
-        rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
-        if rp_api_retries and rp_api_retries > 0:
-            self.rp_api_retries = rp_api_retries
-        else:
-            rp_api_retries_str = self.find_option(pytest_config, "retries")
-            rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
-            if rp_api_retries and rp_api_retries > 0:
-                self.rp_api_retries = rp_api_retries
-                warnings.warn(
-                    "Parameter `retries` is deprecated since 5.1.9 "
-                    "and will be subject for removing in the next "
-                    "major version. Use `rp_api_retries` argument "
-                    "instead.",
-                    DeprecationWarning,
-                    2,
-                )
-            else:
-                self.rp_api_retries = 0
+        rp_api_retries_str = self.find_option(pytest_config, "rp_api_retries", "0")
+        self.rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
 
         # API key auth parameter
         self.rp_api_key = getenv("RP_API_KEY") or self.find_option(pytest_config, "rp_api_key")
