@@ -190,24 +190,6 @@ def test_rp_api_retries(mock_client_init):
 
 
 @mock.patch(REPORT_PORTAL_SERVICE)
-def test_retries(mock_client_init):
-    retries = 5
-    variables = utils.DEFAULT_VARIABLES.copy()
-    variables.update({"retries": str(retries)}.items())
-
-    with warnings.catch_warnings(record=True) as w:
-        result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
-        assert int(result) == 0, "Exit code should be 0 (no errors)"
-
-        expect(mock_client_init.call_count == 1)
-
-        constructor_args = mock_client_init.call_args_list[0][1]
-        expect(constructor_args["retries"] == retries)
-        expect(len(filter_agent_calls(w)) == 1)
-    assert_expectations()
-
-
-@mock.patch(REPORT_PORTAL_SERVICE)
 def test_rp_issue_system_url_warning(mock_client_init):
     url = "https://bugzilla.some.com/show_bug.cgi?id={issue_id}"
     variables = utils.DEFAULT_VARIABLES.copy()

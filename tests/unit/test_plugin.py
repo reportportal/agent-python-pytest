@@ -272,7 +272,6 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
         "rp_bts_url",
         "rp_verify_ssl",
         "rp_issue_id_marks",
-        "retries",
         "rp_api_retries",
         "rp_launch_timeout",
         "rp_client_type",

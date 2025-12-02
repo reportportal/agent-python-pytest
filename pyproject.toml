@@ -20,4 +20,3 @@ target-version = ["py310"]
 minversion = "6.0"
 required_plugins = "pytest-cov"
 testpaths = ["tests"]
-asyncio_default_fixture_loop_scope = "session"
