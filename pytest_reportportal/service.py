@@ -602,47 +602,32 @@ class PyTestService:
         class_path = ".".join(classes)
         return "{0}:{1}".format(path, class_path)
 
-    def _get_test_case_id(self, mark, leaf: Dict[str, Any]) -> str:
-        parameters: Optional[Dict[str, Any]] = leaf.get("parameters", None)
-        parameters_indices: Optional[Dict[str, Any]] = leaf.get("parameters_indices") or {}
-        parameterized = True
-        selected_params: Optional[List[str]] = None
-        use_index = False
-        if mark is not None:
-            parameterized = mark.kwargs.get("parameterized", False)
-            selected_params: Optional[Union[str, List[str]]] = mark.kwargs.get("params", None)
-            use_index = mark.kwargs.get("use_index", False)
-        if selected_params is not None and not isinstance(selected_params, list):
-            selected_params = [selected_params]
-
+    def _get_test_case_id(
+        self,
+        base_name: str,
+        parameterized: bool,
+        include_params: Optional[List[str]],
+        use_index: bool,
+        parameters: Optional[Dict[str, Any]],
+        parameters_indices: Optional[Dict[str, Any]],
+    ) -> str:
         param_str = None
         if parameterized and parameters is not None and len(parameters) > 0:
-            if selected_params is not None and len(selected_params) > 0:
+            if include_params is not None and len(include_params) > 0:
                 if use_index:
-                    param_list = [str((param, parameters_indices.get(param, None))) for param in selected_params]
+                    param_list = [str((param, parameters_indices.get(param, None))) for param in include_params]
                 else:
-                    param_list = [str(parameters.get(param, None)) for param in selected_params]
+                    param_list = [str(parameters.get(param, None)) for param in include_params]
             elif use_index:
                 param_list = [str(param) for param in parameters_indices.items()]
             else:
                 param_list = [str(param) for param in parameters.values()]
-            param_str = "[{}]".format(",".join(sorted(param_list)))
+            param_str = f"[{','.join(sorted(param_list))}]"
 
-        basic_name_part = leaf["code_ref"]
-        if mark is None:
-            if param_str is None:
-                return basic_name_part
-            else:
-                return basic_name_part + param_str
+        if param_str is None:
+            return base_name
         else:
-            if mark.args is not None and len(mark.args) > 0:
-                basic_name_part = str(mark.args[0])
-            else:
-                basic_name_part = ""
-            if param_str is None:
-                return basic_name_part
-            else:
-                return basic_name_part + param_str
+            return base_name + param_str
 
     def _get_issue_ids(self, mark):
         issue_ids = mark.kwargs.get("issue_id", [])
@@ -762,10 +747,40 @@ class PyTestService:
         :param leaf: item context
         :return: Test Case ID string
         """
-        tc_ids = [m for m in leaf["item"].iter_markers() if m.name == "tc_id"]
-        if len(tc_ids) > 0:
-            return self._get_test_case_id(tc_ids[0], leaf)
-        return self._get_test_case_id(None, leaf)
+        item = leaf["item"]
+        base_name = leaf["code_ref"]
+        parameterized = True
+        include_params = None
+        use_index = False
+        parameters: Optional[Dict[str, Any]] = leaf.get("parameters", None)
+        parameters_indices: Optional[Dict[str, Any]] = leaf.get("parameters_indices") or {}
+
+        parametrize_markers = [m for m in item.iter_markers() if m.name == "parametrize"]
+        if parametrize_markers:
+            mark = parametrize_markers[0]
+            mark_kwargs = getattr(mark, "kwargs", None)
+            if mark_kwargs and "ids" in mark_kwargs and mark_kwargs["ids"]:
+                base_name = item.callspec.id
+                parameterized = False
+
+        tc_ids = [m for m in item.iter_markers() if m.name == "tc_id"]
+        if tc_ids:
+            mark = tc_ids[0]
+            parameterized = mark.kwargs.get("parameterized", False)
+            include_params: Optional[Union[str, List[str]]] = mark.kwargs.get("params", None)
+            use_index = mark.kwargs.get("use_index", False)
+
+            if include_params is not None and not isinstance(include_params, list):
+                include_params = [include_params]
+
+            if mark.args is not None and len(mark.args) > 0:
+                base_name = str(mark.args[0])
+            else:
+                base_name = ""
+
+        return self._get_test_case_id(
+            base_name, parameterized, include_params, use_index, parameters, parameters_indices
+        )
 
     def _process_issue(self, item: Item) -> Optional[Issue]:
         """
