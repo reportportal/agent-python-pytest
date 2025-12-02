@@ -19,12 +19,12 @@ from unittest import mock
 import pytest
 import test_rp_custom_logging
 from delayed_assert import assert_expectations, expect
-from integration import setup_mock_for_logging
 from reportportal_client import OutputType
 
 from examples.test_rp_logging import LOG_MESSAGE
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
+from tests.integration import setup_mock_for_logging
 
 TEST_LAUNCH_ID = "test_launch_id"
 

@@ -13,18 +13,15 @@
 #  limitations under the License.
 
 import importlib.metadata
-from collections import defaultdict
-from typing import Optional
 from unittest import mock
 
 import pytest
-from integration import setup_mock, setup_mock_for_logging
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
+from tests.integration import setup_mock, setup_mock_for_logging
 
 pytest_bdd_version = [int(p) for p in importlib.metadata.version("pytest-bdd").split(".")]
-
 
 STEP_NAMES = [
     "Given there are 5 cucumbers",
