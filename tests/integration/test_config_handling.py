@@ -17,11 +17,10 @@ import warnings
 from unittest import mock
 
 import pytest
-import test_rp_custom_logging
 from delayed_assert import assert_expectations, expect
 from reportportal_client import OutputType
 
-from examples.test_rp_logging import LOG_MESSAGE
+from examples import test_rp_custom_logging, test_rp_logging
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 from tests.integration import setup_mock_for_logging
@@ -115,7 +114,7 @@ def test_rp_log_format(mock_client_init):
     expect(mock_client.log.call_count == 1)
     message = mock_client.log.call_args_list[0][0][1]
     expect(len(message) > 0)
-    expect(message == f"(test_rp_logging) {LOG_MESSAGE} (test_rp_logging.py:24)")
+    expect(message == f"(test_rp_logging) {test_rp_logging.LOG_MESSAGE} (test_rp_logging.py:24)")
     assert_expectations()
 
 
