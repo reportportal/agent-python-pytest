@@ -2,6 +2,15 @@
 
 ## [Unreleased]
 ### Added
+- Official `Python 3.14` support, by @HardNorth
+- Issue [#396](https://github.com/reportportal/agent-python-pytest/issues/396) parametrize marker IDs, by @HardNorth
+- Custom log level handling with `rp_log_custom_levels` configuration parameter, by @HardNorth
+### Removed
+- `Python 3.8` support, by @HardNorth
+- Deprecated `retries` parameter, by @HardNorth
+
+## [5.5.4]
+### Added
 - Return back deprecated `rp_log_batch_payload_size` parameter for sake of backward compatibility, by @HardNorth
 
 ## [5.5.3]

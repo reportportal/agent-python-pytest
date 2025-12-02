@@ -20,9 +20,10 @@ import pytest
 from delayed_assert import assert_expectations, expect
 from reportportal_client import OutputType
 
-from examples.test_rp_logging import LOG_MESSAGE
+from examples import test_rp_custom_logging, test_rp_logging
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
+from tests.integration import setup_mock_for_logging
 
 TEST_LAUNCH_ID = "test_launch_id"
 
@@ -113,7 +114,7 @@ def test_rp_log_format(mock_client_init):
     expect(mock_client.log.call_count == 1)
     message = mock_client.log.call_args_list[0][0][1]
     expect(len(message) > 0)
-    expect(message == f"(test_rp_logging) {LOG_MESSAGE} (test_rp_logging.py:24)")
+    expect(message == f"(test_rp_logging) {test_rp_logging.LOG_MESSAGE} (test_rp_logging.py:24)")
     assert_expectations()
 
 
@@ -186,24 +187,6 @@ def test_rp_api_retries(mock_client_init):
         constructor_args = mock_client_init.call_args_list[0][1]
         expect(constructor_args["retries"] == retries)
         expect(len(filter_agent_calls(w)) == 0)
-    assert_expectations()
-
-
-@mock.patch(REPORT_PORTAL_SERVICE)
-def test_retries(mock_client_init):
-    retries = 5
-    variables = utils.DEFAULT_VARIABLES.copy()
-    variables.update({"retries": str(retries)}.items())
-
-    with warnings.catch_warnings(record=True) as w:
-        result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
-        assert int(result) == 0, "Exit code should be 0 (no errors)"
-
-        expect(mock_client_init.call_count == 1)
-
-        constructor_args = mock_client_init.call_args_list[0][1]
-        expect(constructor_args["retries"] == retries)
-        expect(len(filter_agent_calls(w)) == 1)
     assert_expectations()
 
 
@@ -286,3 +269,19 @@ def test_client_timeouts(mock_client_init, connect_value, read_value, expected_r
     assert int(result) == 0, "Exit code should be 0 (no errors)"
     assert mock_client_init.call_count == 1
     assert mock_client_init.call_args_list[0][1]["http_timeout"] == expected_result
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_log_custom_levels(mock_client_init):
+    setup_mock_for_logging(mock_client_init)
+    custom_log_level = test_rp_custom_logging.LOG_LEVEL
+    custom_log_name = "ASSERTION"
+    variables = dict(utils.DEFAULT_VARIABLES)
+    variables.update({"rp_log_custom_levels": str(custom_log_level) + ":" + custom_log_name})
+
+    result = utils.run_pytest_tests(["examples/test_rp_custom_logging.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    mock_client = mock_client_init.return_value
+    assert mock_client.log.call_count == 1
+    assert mock_client.log.call_args_list[0][1]["level"] == custom_log_name

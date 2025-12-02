@@ -15,7 +15,7 @@
 
 import warnings
 from os import getenv
-from typing import Any, List, Optional, Tuple, Union
+from typing import Any, Optional, Union
 
 from _pytest.config import Config
 from reportportal_client import ClientType, OutputType
@@ -50,8 +50,8 @@ class AgentConfig:
     rp_bts_url: str
     rp_launch: str
     rp_launch_id: Optional[str]
-    rp_launch_attributes: Optional[List[str]]
-    rp_tests_attributes: Optional[List[str]]
+    rp_launch_attributes: Optional[list[str]]
+    rp_tests_attributes: Optional[list[str]]
     rp_launch_description: str
     rp_log_batch_size: int
     rp_log_batch_payload_limit: int
@@ -78,8 +78,11 @@ class AgentConfig:
     rp_launch_timeout: int
     rp_launch_uuid_print: bool
     rp_launch_uuid_print_output: Optional[OutputType]
-    rp_http_timeout: Optional[Union[Tuple[float, float], float]]
+    rp_http_timeout: Optional[Union[tuple[float, float], float]]
     rp_report_fixtures: bool
+
+    # Custom log levels and overrides
+    rp_log_custom_levels: Optional[dict[int, str]]
 
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
@@ -138,25 +141,8 @@ class AgentConfig:
         self.rp_project = self.find_option(pytest_config, "rp_project")
         self.rp_rerun_of = self.find_option(pytest_config, "rp_rerun_of")
 
-        rp_api_retries_str = self.find_option(pytest_config, "rp_api_retries")
-        rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
-        if rp_api_retries and rp_api_retries > 0:
-            self.rp_api_retries = rp_api_retries
-        else:
-            rp_api_retries_str = self.find_option(pytest_config, "retries")
-            rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
-            if rp_api_retries and rp_api_retries > 0:
-                self.rp_api_retries = rp_api_retries
-                warnings.warn(
-                    "Parameter `retries` is deprecated since 5.1.9 "
-                    "and will be subject for removing in the next "
-                    "major version. Use `rp_api_retries` argument "
-                    "instead.",
-                    DeprecationWarning,
-                    2,
-                )
-            else:
-                self.rp_api_retries = 0
+        rp_api_retries_str = self.find_option(pytest_config, "rp_api_retries", "0")
+        self.rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
 
         # API key auth parameter
         self.rp_api_key = getenv("RP_API_KEY") or self.find_option(pytest_config, "rp_api_key")
@@ -193,6 +179,16 @@ class AgentConfig:
         else:
             self.rp_http_timeout = connect_timeout or read_timeout
         self.rp_report_fixtures = to_bool(self.find_option(pytest_config, "rp_report_fixtures", False))
+
+        # Custom log levels and overrides
+        log_custom_levels = self.find_option(pytest_config, "rp_log_custom_levels")
+        self.rp_log_custom_levels = None
+        if log_custom_levels:
+            levels = {}
+            for custom_level in log_custom_levels:
+                level, level_name = str(custom_level).split(":", maxsplit=1)
+                levels[int(level)] = level_name
+            self.rp_log_custom_levels = levels
 
     # noinspection PyMethodMayBeStatic
     def find_option(self, pytest_config: Config, option_name: str, default: Any = None) -> Any:

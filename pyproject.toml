@@ -15,3 +15,8 @@ skip_gitignore = true
 [tool.black]
 line-length = 119
 target-version = ["py310"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+required_plugins = "pytest-cov"
+testpaths = ["tests"]

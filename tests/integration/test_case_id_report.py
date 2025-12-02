@@ -20,6 +20,7 @@ import pytest
 from examples.test_case_id import (
     test_case_id_decorator,
     test_case_id_decorator_params_false,
+    test_case_id_decorator_params_mark,
     test_case_id_decorator_params_no,
     test_case_id_decorator_params_partially,
     test_case_id_decorator_params_true,
@@ -55,6 +56,10 @@ from tests.helpers import utils
         ("examples/test_case_id/test_case_id_decorator_no_id_params_false.py", ""),
         ("examples/test_case_id/test_case_id_decorator_no_id_params_true.py", "[value1,value2]"),
         ("examples/test_case_id/test_case_id_decorator_no_id_partial_params_true.py", "[value2]"),
+        (
+            "examples/test_case_id/test_case_id_decorator_params_mark.py",
+            test_case_id_decorator_params_mark.TEST_CASE_ID,
+        ),
     ],
 )
 def test_parameters(mock_client_init, test, expected_id):

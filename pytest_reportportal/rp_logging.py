@@ -18,7 +18,7 @@ import sys
 import threading
 from contextlib import contextmanager
 from functools import wraps
-from typing import Any, Dict, List
+from typing import Any
 
 from reportportal_client import RPLogger, current, set_current
 from reportportal_client.core.worker import APIWorker
@@ -114,7 +114,7 @@ def patching_logger_class():
 
         def wrap_log(original_func):
             @wraps(original_func)
-            def _log(self, *args: List[Any], **kwargs: Dict[str, Any]):
+            def _log(self, *args: list[Any], **kwargs: dict[str, Any]):
                 my_kwargs = kwargs.copy()
                 attachment = my_kwargs.pop("attachment", None)
                 if attachment is not None:

@@ -23,7 +23,7 @@ from collections import OrderedDict
 from functools import wraps
 from os import curdir
 from time import sleep, time
-from typing import Any, Callable, Dict, Generator, List, Optional, Set, Union
+from typing import Any, Callable, Generator, Optional, Union
 
 from _pytest.doctest import DoctestItem
 from aenum import Enum, auto, unique
@@ -83,7 +83,7 @@ KNOWN_LOG_LEVELS = ("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
 MAX_ITEM_NAME_LENGTH: int = 1024
 TRUNCATION_STR: str = "..."
 ROOT_DIR: str = str(os.path.abspath(curdir))
-PYTEST_MARKS_IGNORE: Set[str] = {"parametrize", "usefixtures", "filterwarnings"}
+PYTEST_MARKS_IGNORE: set[str] = {"parametrize", "usefixtures", "filterwarnings"}
 NOT_ISSUE: Issue = Issue("NOT_ISSUE")
 ISSUE_DESCRIPTION_LINE_TEMPLATE: str = "* {}:{}"
 ISSUE_DESCRIPTION_URL_TEMPLATE: str = " [{issue_id}]({url})"
@@ -163,20 +163,20 @@ class PyTestService:
     """Pytest service class for reporting test results to the Report Portal."""
 
     _config: AgentConfig
-    _issue_types: Dict[str, str]
-    _tree_path: Dict[Any, List[Dict[str, Any]]]
-    _bdd_tree: Optional[Dict[str, Any]]
-    _bdd_item_by_name: Dict[str, Item]
-    _bdd_scenario_by_item: Dict[Item, Scenario]
-    _bdd_item_by_scenario: Dict[Scenario, Item]
-    _start_tracker: Set[str]
+    _issue_types: dict[str, str]
+    _tree_path: dict[Any, list[dict[str, Any]]]
+    _bdd_tree: Optional[dict[str, Any]]
+    _bdd_item_by_name: dict[str, Item]
+    _bdd_scenario_by_item: dict[Item, Scenario]
+    _bdd_item_by_scenario: dict[Scenario, Item]
+    _start_tracker: set[str]
     _launch_id: Optional[str]
     agent_name: str
     agent_version: str
-    ignored_attributes: List[str]
+    ignored_attributes: list[str]
     parent_item_id: Optional[str]
     rp: Optional[RP]
-    project_settings: Union[Dict[str, Any], Task]
+    project_settings: Union[dict[str, Any], Task]
 
     def __init__(self, agent_config: AgentConfig) -> None:
         """Initialize instance attributes."""
@@ -197,7 +197,7 @@ class PyTestService:
         self.project_settings = {}
 
     @property
-    def issue_types(self) -> Dict[str, str]:
+    def issue_types(self) -> dict[str, str]:
         """Issue types for the Report Portal project."""
         if self._issue_types:
             return self._issue_types
@@ -213,7 +213,7 @@ class PyTestService:
                 self._issue_types[item["shortName"]] = item["locator"]
         return self._issue_types
 
-    def _get_launch_attributes(self, ini_attrs: Optional[List[Dict[str, str]]]) -> List[Dict[str, str]]:
+    def _get_launch_attributes(self, ini_attrs: Optional[list[dict[str, str]]]) -> list[dict[str, str]]:
         """Generate launch attributes in the format supported by the client.
 
         :param list ini_attrs: List for attributes from the pytest.ini file
@@ -223,7 +223,7 @@ class PyTestService:
         system_attributes["agent"] = "{}|{}".format(self.agent_name, self.agent_version)
         return attributes + dict_to_payload(system_attributes)
 
-    def _build_start_launch_rq(self) -> Dict[str, Any]:
+    def _build_start_launch_rq(self) -> dict[str, Any]:
         rp_launch_attributes = self._config.rp_launch_attributes
         attributes = gen_attributes(rp_launch_attributes) if rp_launch_attributes else None
 
@@ -250,7 +250,7 @@ class PyTestService:
         LOGGER.debug("ReportPortal - Launch started: id=%s", self._launch_id)
         return self._launch_id
 
-    def _get_item_dirs(self, item: Item) -> List[local]:
+    def _get_item_dirs(self, item: Item) -> list[local]:
         """
         Get directory of item.
 
@@ -262,7 +262,7 @@ class PyTestService:
         rel_dir = dir_path.new(dirname=dir_path.relto(root_path), basename="", drive="")
         return [d for d in rel_dir.parts(reverse=False) if d.basename]
 
-    def _get_tree_path(self, item: Item) -> List[Item]:
+    def _get_tree_path(self, item: Item) -> list[Item]:
         """Get item of parents.
 
         :param item: pytest.Item
@@ -279,8 +279,8 @@ class PyTestService:
         return path
 
     def _create_leaf(
-        self, leaf_type, parent_item: Optional[Dict[str, Any]], item: Optional[Any], item_id: Optional[str] = None
-    ) -> Dict[str, Any]:
+        self, leaf_type, parent_item: Optional[dict[str, Any]], item: Optional[Any], item_id: Optional[str] = None
+    ) -> dict[str, Any]:
         """Construct a leaf for the itest tree.
 
         :param leaf_type:   the leaf type
@@ -298,7 +298,7 @@ class PyTestService:
             "item_id": item_id,
         }
 
-    def _build_test_tree(self, session: Session) -> Dict[str, Any]:
+    def _build_test_tree(self, session: Session) -> dict[str, Any]:
         """Construct a tree of tests and their suites.
 
         :param session: pytest.Session object of the current execution
@@ -325,7 +325,7 @@ class PyTestService:
                 current_leaf = children_leafs[leaf]
         return test_tree
 
-    def _remove_root_dirs(self, test_tree: Dict[str, Any], max_dir_level: int, dir_level: int = 0) -> None:
+    def _remove_root_dirs(self, test_tree: dict[str, Any], max_dir_level: int, dir_level: int = 0) -> None:
         if test_tree["type"] == LeafType.ROOT:
             items = list(test_tree["children"].items())
             for item, child_leaf in items:
@@ -341,7 +341,7 @@ class PyTestService:
                 child_leaf["parent"] = parent_leaf
                 self._remove_root_dirs(child_leaf, max_dir_level, new_level)
 
-    def _remove_file_names(self, test_tree: Dict[str, Any]) -> None:
+    def _remove_file_names(self, test_tree: dict[str, Any]) -> None:
         if test_tree["type"] != LeafType.FILE:
             items = list(test_tree["children"].items())
             for item, child_leaf in items:
@@ -367,7 +367,7 @@ class PyTestService:
         if scenario_template and isinstance(scenario_template, ScenarioTemplate):
             return scenario_template
 
-    def _generate_names(self, test_tree: Dict[str, Any]) -> None:
+    def _generate_names(self, test_tree: dict[str, Any]) -> None:
         if test_tree["type"] == LeafType.ROOT:
             test_tree["name"] = "root"
 
@@ -404,7 +404,7 @@ class PyTestService:
         for item, child_leaf in test_tree["children"].items():
             self._generate_names(child_leaf)
 
-    def _merge_leaf_types(self, test_tree: Dict[str, Any], leaf_types: Set, separator: str) -> None:
+    def _merge_leaf_types(self, test_tree: dict[str, Any], leaf_types: set, separator: str) -> None:
         child_items = list(test_tree["children"].items())
         if test_tree["type"] not in leaf_types:
             for item, child_leaf in child_items:
@@ -423,16 +423,16 @@ class PyTestService:
                     child_leaf["name"] = current_name + separator + child_leaf["name"]
                 self._merge_leaf_types(child_leaf, leaf_types, separator)
 
-    def _merge_dirs(self, test_tree: Dict[str, Any]) -> None:
+    def _merge_dirs(self, test_tree: dict[str, Any]) -> None:
         self._merge_leaf_types(test_tree, {LeafType.DIR, LeafType.FILE}, self._config.rp_dir_path_separator)
 
-    def _merge_code_with_separator(self, test_tree: Dict[str, Any], separator: str) -> None:
+    def _merge_code_with_separator(self, test_tree: dict[str, Any], separator: str) -> None:
         self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE, LeafType.DIR, LeafType.SUITE}, separator)
 
-    def _merge_code(self, test_tree: Dict[str, Any]) -> None:
+    def _merge_code(self, test_tree: dict[str, Any]) -> None:
         self._merge_code_with_separator(test_tree, "::")
 
-    def _build_item_paths(self, leaf: Dict[str, Any], path: List[Dict[str, Any]]) -> None:
+    def _build_item_paths(self, leaf: dict[str, Any], path: list[dict[str, Any]]) -> None:
         children = leaf.get("children", {})
         if PYTEST_BDD:
             all_background_steps = all([isinstance(child, Background) for child in children.keys()])
@@ -496,7 +496,7 @@ class PyTestService:
             if description:
                 return description.lstrip()  # There is a bug in pytest-bdd that adds an extra space
 
-    def _lock(self, leaf: Dict[str, Any], func: Callable[[Dict[str, Any]], Any]) -> Any:
+    def _lock(self, leaf: dict[str, Any], func: Callable[[dict[str, Any]], Any]) -> Any:
         """
         Lock test tree leaf and execute a function, bypass the leaf to it.
 
@@ -509,7 +509,7 @@ class PyTestService:
                 return func(leaf)
         return func(leaf)
 
-    def _process_bdd_attributes(self, item: Union[Feature, Scenario, Rule]) -> List[Dict[str, str]]:
+    def _process_bdd_attributes(self, item: Union[Feature, Scenario, Rule]) -> list[dict[str, str]]:
         tags = []
         tags.extend(item.tags)
         if isinstance(item, Scenario):
@@ -526,7 +526,7 @@ class PyTestService:
                     tags.extend(getattr(example, "tags", []))
         return gen_attributes(tags)
 
-    def _get_suite_code_ref(self, leaf: Dict[str, Any]) -> str:
+    def _get_suite_code_ref(self, leaf: dict[str, Any]) -> str:
         item = leaf["item"]
         if leaf["type"] == LeafType.DIR:
             code_ref = str(item)
@@ -541,7 +541,7 @@ class PyTestService:
             code_ref = str(item.fspath)
         return code_ref
 
-    def _build_start_suite_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_start_suite_rq(self, leaf: dict[str, Any]) -> dict[str, Any]:
         code_ref = self._get_suite_code_ref(leaf)
         parent_item_id = self._lock(leaf["parent"], lambda p: p.get("item_id")) if "parent" in leaf else None
         item = leaf["item"]
@@ -557,11 +557,11 @@ class PyTestService:
             payload["attributes"] = self._process_bdd_attributes(item)
         return payload
 
-    def _start_suite(self, suite_rq: Dict[str, Any]) -> Optional[str]:
+    def _start_suite(self, suite_rq: dict[str, Any]) -> Optional[str]:
         LOGGER.debug("ReportPortal - Start Suite: request_body=%s", suite_rq)
         return self.rp.start_test_item(**suite_rq)
 
-    def _create_suite(self, leaf: Dict[str, Any]) -> None:
+    def _create_suite(self, leaf: dict[str, Any]) -> None:
         if leaf["exec"] != ExecStatus.CREATED:
             return
         item_id = self._start_suite(self._build_start_suite_rq(leaf))
@@ -602,51 +602,36 @@ class PyTestService:
         class_path = ".".join(classes)
         return "{0}:{1}".format(path, class_path)
 
-    def _get_test_case_id(self, mark, leaf: Dict[str, Any]) -> str:
-        parameters: Optional[Dict[str, Any]] = leaf.get("parameters", None)
-        parameters_indices: Optional[Dict[str, Any]] = leaf.get("parameters_indices") or {}
-        parameterized = True
-        selected_params: Optional[List[str]] = None
-        use_index = False
-        if mark is not None:
-            parameterized = mark.kwargs.get("parameterized", False)
-            selected_params: Optional[Union[str, List[str]]] = mark.kwargs.get("params", None)
-            use_index = mark.kwargs.get("use_index", False)
-        if selected_params is not None and not isinstance(selected_params, list):
-            selected_params = [selected_params]
-
+    def _get_test_case_id(
+        self,
+        base_name: str,
+        parameterized: bool,
+        include_params: Optional[list[str]],
+        use_index: bool,
+        parameters: Optional[dict[str, Any]],
+        parameters_indices: Optional[dict[str, Any]],
+    ) -> str:
         param_str = None
         if parameterized and parameters is not None and len(parameters) > 0:
-            if selected_params is not None and len(selected_params) > 0:
+            if include_params is not None and len(include_params) > 0:
                 if use_index:
-                    param_list = [str((param, parameters_indices.get(param, None))) for param in selected_params]
+                    param_list = [str((param, parameters_indices.get(param, None))) for param in include_params]
                 else:
-                    param_list = [str(parameters.get(param, None)) for param in selected_params]
+                    param_list = [str(parameters.get(param, None)) for param in include_params]
             elif use_index:
                 param_list = [str(param) for param in parameters_indices.items()]
             else:
                 param_list = [str(param) for param in parameters.values()]
-            param_str = "[{}]".format(",".join(sorted(param_list)))
+            param_str = f"[{','.join(sorted(param_list))}]"
 
-        basic_name_part = leaf["code_ref"]
-        if mark is None:
-            if param_str is None:
-                return basic_name_part
-            else:
-                return basic_name_part + param_str
+        if param_str is None:
+            return base_name
         else:
-            if mark.args is not None and len(mark.args) > 0:
-                basic_name_part = str(mark.args[0])
-            else:
-                basic_name_part = ""
-            if param_str is None:
-                return basic_name_part
-            else:
-                return basic_name_part + param_str
+            return base_name + param_str
 
     def _get_issue_ids(self, mark):
         issue_ids = mark.kwargs.get("issue_id", [])
-        if not isinstance(issue_ids, List):
+        if not isinstance(issue_ids, list):
             issue_ids = [issue_ids]
         return issue_ids
 
@@ -714,7 +699,7 @@ class PyTestService:
         else:
             return {"value": attribute_tuple[1]}
 
-    def _process_item_name(self, leaf: Dict[str, Any]) -> str:
+    def _process_item_name(self, leaf: dict[str, Any]) -> str:
         """
         Process Item Name if set.
 
@@ -730,7 +715,7 @@ class PyTestService:
                 name = mark_name
         return name
 
-    def _get_parameters(self, item) -> Optional[Dict[str, Any]]:
+    def _get_parameters(self, item) -> Optional[dict[str, Any]]:
         """
         Get params of item.
 
@@ -742,7 +727,7 @@ class PyTestService:
             return None
         return {str(k): v.replace("\0", "\\0") if isinstance(v, str) else v for k, v in params.items()}
 
-    def _get_parameters_indices(self, item) -> Optional[Dict[str, Any]]:
+    def _get_parameters_indices(self, item) -> Optional[dict[str, Any]]:
         """
         Get params indices of item.
 
@@ -755,17 +740,47 @@ class PyTestService:
 
         return indices
 
-    def _process_test_case_id(self, leaf: Dict[str, Any]) -> str:
+    def _process_test_case_id(self, leaf: dict[str, Any]) -> str:
         """
         Process Test Case ID if set.
 
         :param leaf: item context
         :return: Test Case ID string
         """
-        tc_ids = [m for m in leaf["item"].iter_markers() if m.name == "tc_id"]
-        if len(tc_ids) > 0:
-            return self._get_test_case_id(tc_ids[0], leaf)
-        return self._get_test_case_id(None, leaf)
+        item = leaf["item"]
+        base_name = leaf["code_ref"]
+        parameterized = True
+        include_params = None
+        use_index = False
+        parameters: Optional[dict[str, Any]] = leaf.get("parameters", None)
+        parameters_indices: Optional[dict[str, Any]] = leaf.get("parameters_indices") or {}
+
+        parametrize_markers = [m for m in item.iter_markers() if m.name == "parametrize"]
+        if parametrize_markers:
+            mark = parametrize_markers[0]
+            mark_kwargs = getattr(mark, "kwargs", None)
+            if mark_kwargs and "ids" in mark_kwargs and mark_kwargs["ids"]:
+                base_name = item.callspec.id
+                parameterized = False
+
+        tc_ids = [m for m in item.iter_markers() if m.name == "tc_id"]
+        if tc_ids:
+            mark = tc_ids[0]
+            parameterized = mark.kwargs.get("parameterized", False)
+            include_params: Optional[Union[str, list[str]]] = mark.kwargs.get("params", None)
+            use_index = mark.kwargs.get("use_index", False)
+
+            if include_params is not None and not isinstance(include_params, list):
+                include_params = [include_params]
+
+            if mark.args is not None and len(mark.args) > 0:
+                base_name = str(mark.args[0])
+            else:
+                base_name = ""
+
+        return self._get_test_case_id(
+            base_name, parameterized, include_params, use_index, parameters, parameters_indices
+        )
 
     def _process_issue(self, item: Item) -> Optional[Issue]:
         """
@@ -778,7 +793,7 @@ class PyTestService:
         if len(issues) > 0:
             return self._get_issue(issues[0])
 
-    def _process_attributes(self, item: Item) -> List[Dict[str, Any]]:
+    def _process_attributes(self, item: Item) -> list[dict[str, Any]]:
         """
         Process attributes of item.
 
@@ -809,7 +824,7 @@ class PyTestService:
 
         return [self._to_attribute(attribute) for attribute in attributes]
 
-    def _process_metadata_item_start(self, leaf: Dict[str, Any]) -> None:
+    def _process_metadata_item_start(self, leaf: dict[str, Any]) -> None:
         """
         Process all types of item metadata for its start event.
 
@@ -825,7 +840,7 @@ class PyTestService:
         leaf["issue"] = self._process_issue(item)
         leaf["attributes"] = self._process_attributes(item)
 
-    def _process_metadata_item_finish(self, leaf: Dict[str, Any]) -> None:
+    def _process_metadata_item_finish(self, leaf: dict[str, Any]) -> None:
         """
         Process all types of item metadata for its finish event.
 
@@ -835,7 +850,7 @@ class PyTestService:
         leaf["attributes"] = self._process_attributes(item)
         leaf["issue"] = self._process_issue(item)
 
-    def _build_start_step_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_start_step_rq(self, leaf: dict[str, Any]) -> dict[str, Any]:
         payload = {
             "attributes": leaf.get("attributes", None),
             "name": self._truncate_item_name(leaf["name"]),
@@ -849,7 +864,7 @@ class PyTestService:
         }
         return payload
 
-    def _start_step(self, step_rq: Dict[str, Any]) -> Optional[str]:
+    def _start_step(self, step_rq: dict[str, Any]) -> Optional[str]:
         LOGGER.debug("ReportPortal - Start TestItem: request_body=%s", step_rq)
         return self.rp.start_test_item(**step_rq)
 
@@ -910,7 +925,7 @@ class PyTestService:
             if leaf["status"] in (None, "PASSED"):
                 leaf["status"] = "SKIPPED"
 
-    def _build_finish_step_rq(self, leaf: Dict[str, Any]) -> Dict[str, Any]:
+    def _build_finish_step_rq(self, leaf: dict[str, Any]) -> dict[str, Any]:
         issue = leaf.get("issue", None)
         status = leaf.get("status", "PASSED")
         if status == "SKIPPED" and not self._config.rp_is_skipped_an_issue:
@@ -926,15 +941,15 @@ class PyTestService:
         }
         return payload
 
-    def _finish_step(self, finish_rq: Dict[str, Any]) -> None:
+    def _finish_step(self, finish_rq: dict[str, Any]) -> None:
         LOGGER.debug("ReportPortal - Finish TestItem: request_body=%s", finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
-    def _finish_suite(self, finish_rq: Dict[str, Any]) -> None:
+    def _finish_suite(self, finish_rq: dict[str, Any]) -> None:
         LOGGER.debug("ReportPortal - End TestSuite: request_body=%s", finish_rq)
         self.rp.finish_test_item(**finish_rq)
 
-    def _build_finish_suite_rq(self, leaf) -> Dict[str, Any]:
+    def _build_finish_suite_rq(self, leaf) -> dict[str, Any]:
         payload = {"end_time": timestamp(), "item_id": leaf["item_id"]}
         return payload
 
@@ -945,7 +960,7 @@ class PyTestService:
         self._finish_suite(self._build_finish_suite_rq(leaf))
         leaf["exec"] = ExecStatus.FINISHED
 
-    def _finish_parents(self, leaf: Dict[str, Any]) -> None:
+    def _finish_parents(self, leaf: dict[str, Any]) -> None:
         if (
             "parent" not in leaf
             or leaf["parent"] is None
@@ -985,7 +1000,7 @@ class PyTestService:
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
 
-    def _get_items(self, exec_status) -> List[Item]:
+    def _get_items(self, exec_status) -> list[Item]:
         return [k for k, v in self._tree_path.items() if v[-1]["exec"] == exec_status]
 
     def finish_suites(self) -> None:
@@ -1011,7 +1026,7 @@ class PyTestService:
                 if leaf["exec"] == ExecStatus.IN_PROGRESS:
                     self._lock(leaf, lambda p: self._proceed_suite_finish(p))
 
-    def _build_finish_launch_rq(self) -> Dict[str, Any]:
+    def _build_finish_launch_rq(self) -> dict[str, Any]:
         finish_rq = {"end_time": timestamp()}
         return finish_rq
 
@@ -1027,7 +1042,7 @@ class PyTestService:
 
     def _build_log(
         self, item_id: str, message: str, log_level: str, attachment: Optional[Any] = None
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         sl_rq = {
             "item_id": item_id,
             "time": timestamp(),
@@ -1127,7 +1142,7 @@ class PyTestService:
         if not root_leaf:
             self._bdd_tree = root_leaf = self._create_leaf(LeafType.ROOT, None, None, item_id=self.parent_item_id)
         # noinspection PyTypeChecker
-        children_leafs: Dict[Any, Any] = root_leaf["children"]
+        children_leafs: dict[Any, Any] = root_leaf["children"]
         if feature in children_leafs:
             feature_leaf = children_leafs[feature]
         else:
@@ -1178,7 +1193,7 @@ class PyTestService:
         leaf["exec"] = ExecStatus.FINISHED
         self._finish_parents(leaf)
 
-    def _get_scenario_parameters_from_template(self, scenario: Scenario) -> Optional[Dict[str, str]]:
+    def _get_scenario_parameters_from_template(self, scenario: Scenario) -> Optional[dict[str, str]]:
         """Get scenario parameters from its template by comparing steps.
 
         :param scenario: The scenario instance
@@ -1213,9 +1228,9 @@ class PyTestService:
 
         return code_ref
 
-    def _get_scenario_test_case_id(self, leaf: Dict[str, Any]) -> str:
+    def _get_scenario_test_case_id(self, leaf: dict[str, Any]) -> str:
         attributes = leaf.get("attributes", [])
-        params: Optional[Dict[str, str]] = leaf.get("parameters", None)
+        params: Optional[dict[str, str]] = leaf.get("parameters", None)
         for attribute in attributes:
             if attribute.get("key", None) == "tc_id":
                 tc_id = attribute["value"]
@@ -1226,7 +1241,7 @@ class PyTestService:
                 return f"{tc_id}{params_str}"
         return leaf["code_ref"]
 
-    def _process_scenario_metadata(self, leaf: Dict[str, Any]) -> None:
+    def _process_scenario_metadata(self, leaf: dict[str, Any]) -> None:
         """
         Process all types of scenario metadata for its start event.
 
@@ -1251,7 +1266,7 @@ class PyTestService:
         leaf["attributes"] = self._process_bdd_attributes(scenario)
         leaf["test_case_id"] = self._get_scenario_test_case_id(leaf)
 
-    def _finish_bdd_step(self, leaf: Dict[str, Any], status: str) -> None:
+    def _finish_bdd_step(self, leaf: dict[str, Any], status: str) -> None:
         if leaf["exec"] != ExecStatus.IN_PROGRESS:
             return
 

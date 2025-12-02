@@ -13,64 +13,15 @@
 #  limitations under the License.
 
 import importlib.metadata
-from collections import defaultdict
-from typing import Optional
 from unittest import mock
 
 import pytest
-from reportportal_client import set_current
-from reportportal_client.steps import StepReporter
 
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
+from tests.integration import setup_mock, setup_mock_for_logging
 
 pytest_bdd_version = [int(p) for p in importlib.metadata.version("pytest-bdd").split(".")]
-
-ITEM_ID_DICT = defaultdict(lambda: 0)
-ITEM_ID_LIST = []
-
-
-def generate_item_id(*args, **kwargs) -> str:
-    global ITEM_ID_DICT
-    global ITEM_ID_LIST
-    if args:
-        name = args[0]
-    else:
-        name = kwargs["name"]
-    count = ITEM_ID_DICT[name]
-    count += 1
-    ITEM_ID_DICT[name] = count
-    item_id = f"{name}_{count}"
-    ITEM_ID_LIST.append(item_id)
-    return item_id
-
-
-def get_last_item_id() -> Optional[str]:
-    global ITEM_ID_LIST
-    if len(ITEM_ID_LIST) > 0:
-        return ITEM_ID_LIST[-1]
-
-
-def remove_last_item_id(*_, **__) -> Optional[str]:
-    global ITEM_ID_LIST
-    if len(ITEM_ID_LIST) > 0:
-        return ITEM_ID_LIST.pop()
-
-
-def setup_mock(mock_client_init):
-    mock_client = mock_client_init.return_value
-    mock_client.step_reporter = StepReporter(mock_client)
-    set_current(mock_client)
-    return mock_client
-
-
-def setup_mock_for_logging(mock_client_init):
-    mock_client = setup_mock(mock_client_init)
-    mock_client.start_test_item.side_effect = generate_item_id
-    mock_client.finish_test_item.side_effect = remove_last_item_id
-    mock_client.current_item.side_effect = get_last_item_id
-    return mock_client
-
 
 STEP_NAMES = [
     "Given there are 5 cucumbers",
