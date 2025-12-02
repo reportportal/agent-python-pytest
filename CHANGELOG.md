@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.0]
 ### Added
 - Official `Python 3.14` support, by @HardNorth
 - Issue [#396](https://github.com/reportportal/agent-python-pytest/issues/396) parametrize marker IDs, by @HardNorth
