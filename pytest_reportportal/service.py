@@ -367,6 +367,31 @@ class PyTestService:
         if scenario_template and isinstance(scenario_template, ScenarioTemplate):
             return scenario_template
 
+    def _get_method_name(self, item: Item) -> str:
+        """Get the original test method name.
+
+        Returns item.originalname if available,
+        otherwise strips any trailing @suffix from item.name while
+        preserving @ inside parameter brackets.
+
+        :param item: pytest.Item
+        :return: original method name
+        """
+        if hasattr(item, "originalname") and item.originalname is not None:
+            return item.originalname
+
+        name = item.name
+        if "@" not in name:
+            return name
+
+        last_bracket = name.rfind("]")
+        at_pos = name.rfind("@")
+
+        if at_pos > last_bracket:
+            return name[:at_pos]
+
+        return name
+
     def _generate_names(self, test_tree: dict[str, Any]) -> None:
         if test_tree["type"] == LeafType.ROOT:
             test_tree["name"] = "root"
@@ -584,11 +609,7 @@ class PyTestService:
         # same path on different systems and do not affect Test Case ID on
         # different systems
         path = os.path.relpath(str(item.fspath), ROOT_DIR).replace("\\", "/")
-        method_name = (
-            item.originalname
-            if hasattr(item, "originalname") and getattr(item, "originalname") is not None
-            else item.name
-        )
+        method_name = self._get_method_name(item)
         parent = item.parent
         classes = [method_name]
         while not isinstance(parent, Module):
