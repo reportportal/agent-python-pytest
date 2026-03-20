@@ -3,6 +3,8 @@
 ## [Unreleased]
 ### Added
 - Config variables override by environment variables logic, by @HardNorth
+### Fixed
+- Code reference generation in `xdist`, by @Sgitario
 
 ## [5.6.0]
 ### Added
