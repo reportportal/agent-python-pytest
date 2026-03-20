@@ -13,6 +13,7 @@
 
 """This module contains class that stores RP agent configuration data."""
 
+import logging
 import warnings
 from os import getenv
 from typing import Any, Optional, Union
@@ -21,12 +22,6 @@ from _pytest.config import Config
 from reportportal_client import ClientType, OutputType
 from reportportal_client.helpers import to_bool
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
-
-try:
-    # This try/except can go away once we support pytest >= 5.4.0
-    from _pytest.logging import get_actual_log_level
-except ImportError:
-    from _pytest.logging import get_log_level_for_setting as get_actual_log_level
 
 
 class AgentConfig:
@@ -86,9 +81,9 @@ class AgentConfig:
 
     def __init__(self, pytest_config: Config) -> None:
         """Initialize required attributes."""
-        self.rp_enabled = to_bool(getattr(pytest_config.option, "rp_enabled", True))
-        self.rp_rerun = pytest_config.option.rp_rerun or pytest_config.getini("rp_rerun")
-        self.rp_endpoint = getenv("RP_ENDPOINT") or self.find_option(pytest_config, "rp_endpoint")
+        self.rp_enabled = to_bool(self.find_option(pytest_config, "rp_enabled", True))
+        self.rp_rerun = self.find_option(pytest_config, "rp_rerun")
+        self.rp_endpoint = self.find_option(pytest_config, "rp_endpoint")
         self.rp_hierarchy_code = to_bool(self.find_option(pytest_config, "rp_hierarchy_code"))
         self.rp_dir_level = int(self.find_option(pytest_config, "rp_hierarchy_dirs_level"))
         self.rp_hierarchy_dirs = to_bool(self.find_option(pytest_config, "rp_hierarchy_dirs"))
@@ -133,7 +128,13 @@ class AgentConfig:
         else:
             self.rp_log_batch_payload_limit = MAX_LOG_BATCH_PAYLOAD_SIZE
 
-        self.rp_log_level = get_actual_log_level(pytest_config, "rp_log_level")
+        log_level = self.find_option(pytest_config, "rp_log_level")
+        if not log_level:
+            self.rp_log_level = None
+        elif isinstance(log_level, int):
+            self.rp_log_level = log_level
+        else:
+            self.rp_log_level = int(getattr(logging, str(log_level).upper(), log_level))
         self.rp_log_format = self.find_option(pytest_config, "rp_log_format")
         self.rp_thread_logging = to_bool(self.find_option(pytest_config, "rp_thread_logging") or False)
         self.rp_mode = self.find_option(pytest_config, "rp_mode")
@@ -145,7 +146,7 @@ class AgentConfig:
         self.rp_api_retries = rp_api_retries_str and int(rp_api_retries_str)
 
         # API key auth parameter
-        self.rp_api_key = getenv("RP_API_KEY") or self.find_option(pytest_config, "rp_api_key")
+        self.rp_api_key = self.find_option(pytest_config, "rp_api_key")
 
         # OAuth 2.0 parameters
         self.rp_oauth_uri = self.find_option(pytest_config, "rp_oauth_uri")
@@ -197,15 +198,23 @@ class AgentConfig:
 
         The value is retrieved in the following places in priority order:
 
-        1. From `self.pconfig.option.[option_name]`.
-        2. From `self.pconfig.getini(option_name)`.
+        1. From environment variable ``option_name.upper()`` (e.g. ``rp_endpoint`` -> ``RP_ENDPOINT``).
+        2. From ``pytest_config.option.<option_name>``.
+        3. From ``pytest_config.getini(option_name)``.
+        4. ``default`` value.
 
         :param pytest_config: config object of PyTest
         :param option_name:   name of the option
         :param default:       value to be returned if not found
         :return: option value
         """
-        value = getattr(pytest_config.option, option_name, None) or pytest_config.getini(option_name)
+        env_value = getenv(option_name.upper())
+        if env_value:
+            return env_value
+        value = getattr(pytest_config.option, option_name, None)
+        if value is not None:
+            return value
+        value = pytest_config.getini(option_name)
         if isinstance(value, bool):
             return value
         return value or default

@@ -2,9 +2,17 @@
 
 ## [Unreleased]
 ### Added
+- Config variables override by environment variables logic, by @HardNorth
+### Fixed
+- Code reference generation in `xdist`, by @Sgitario
+
+## [5.6.0]
+### Added
 - Official `Python 3.14` support, by @HardNorth
 - Issue [#396](https://github.com/reportportal/agent-python-pytest/issues/396) parametrize marker IDs, by @HardNorth
 - Custom log level handling with `rp_log_custom_levels` configuration parameter, by @HardNorth
+### Changed
+- Client version updated on [5.7.0](https://github.com/reportportal/client-Python/releases/tag/5.7.0), by @HardNorth
 ### Removed
 - `Python 3.8` support, by @HardNorth
 - Deprecated `retries` parameter, by @HardNorth
