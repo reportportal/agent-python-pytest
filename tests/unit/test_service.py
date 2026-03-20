@@ -26,3 +26,47 @@ def test_get_item_parameters(mocked_item, rp_service):
     expect(rp_service._get_parameters(mocked_item) is None)
 
     assert_expectations()
+
+
+def test_get_method_name_regular(mocked_item, rp_service):
+    """Test that regular test names are returned as-is."""
+    mocked_item.name = "test_simple_function"
+    mocked_item.originalname = None
+
+    result = rp_service._get_method_name(mocked_item)
+
+    expect(result == "test_simple_function")
+    assert_expectations()
+
+
+def test_get_method_name_uses_originalname(mocked_item, rp_service):
+    """Test that originalname is preferred when available."""
+    mocked_item.name = "test_verify_data[Daily]@sync_group"
+    mocked_item.originalname = "test_verify_data"
+
+    result = rp_service._get_method_name(mocked_item)
+
+    expect(result == "test_verify_data")
+    assert_expectations()
+
+
+def test_get_method_name_strips_suffix(mocked_item, rp_service):
+    """Test that trailing @suffix is stripped when originalname is None."""
+    mocked_item.name = "test_export_data@data_export"
+    mocked_item.originalname = None
+
+    result = rp_service._get_method_name(mocked_item)
+
+    expect(result == "test_export_data")
+    assert_expectations()
+
+
+def test_get_method_name_preserves_at_inside_params(mocked_item, rp_service):
+    """Test that @ inside parameter brackets is preserved."""
+    mocked_item.name = "test_email[user@example.com]"
+    mocked_item.originalname = None
+
+    result = rp_service._get_method_name(mocked_item)
+
+    expect(result == "test_email[user@example.com]")
+    assert_expectations()
