@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.1]
 ### Added
 - Config variables override by environment variables logic, by @HardNorth
 ### Fixed
