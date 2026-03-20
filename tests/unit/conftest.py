@@ -70,6 +70,8 @@ def mocked_config():
     mocked_config.option.rp_hierarchy_dirs = "False"
     mocked_config.option.rp_hierarchy_test_file = "True"
     mocked_config.option.rp_skip_connection_test = "False"
+    mocked_config.option.rp_enabled = True
+    mocked_config.option.rp_log_level = "debug"
     return mocked_config
 
 
