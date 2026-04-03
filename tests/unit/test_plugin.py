@@ -308,6 +308,8 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         "--rp-thread-logging",
         "--rp-launch-uuid-print",
         "--rp-launch-uuid-print-output",
+        '--rp-launch-attributes',
+        '--rp-tests-attributes'
     )
     mock_parser = mock.MagicMock(spec=Parser)
     mock_reporting_group = mock_parser.getgroup.return_value
