@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.2]
 ### Added
 - `rp_launch_uuid` configuration parameter, by @HardNorth
 - `rp_launch_attributes` cmd argument, by @fahadnaeemkhan
