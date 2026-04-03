@@ -602,9 +602,7 @@ def pytest_addoption(parser) -> None:
 
     rp_test_attributes_help_str = "Attributes for all tests items, e.g. Smoke."
     parser.addini("rp_tests_attributes", type="args", help=rp_test_attributes_help_str)
-    group.addoption(
-        "--rp-tests-attributes", dest="rp_tests_attributes", help=rp_test_attributes_help_str, nargs="+"
-    )
+    group.addoption("--rp-tests-attributes", dest="rp_tests_attributes", help=rp_test_attributes_help_str, nargs="+")
 
     parser.addini("rp_log_batch_size", default="20", help="Size of batch log requests in async mode")
     parser.addini(
