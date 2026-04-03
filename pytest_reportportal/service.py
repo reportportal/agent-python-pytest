@@ -74,7 +74,7 @@ try:
 except ImportError:
     Rule = type("dummy", (), {})  # Old pytest-bdd versions do not have Rule
 
-from reportportal_client import RP, create_client
+from reportportal_client import RP, ClientType, create_client
 from reportportal_client.helpers import dict_to_payload, gen_attributes, get_launch_sys_attrs, get_package_version
 
 LOGGER = logging.getLogger(__name__)
@@ -1417,10 +1417,10 @@ class PyTestService:
             self._config.rp_api_key,
         )
         launch_id = self._launch_id
-        if self._config.rp_launch_id:
-            launch_id = self._config.rp_launch_id
+        if self._config.rp_launch_uuid:
+            launch_id = self._config.rp_launch_uuid
         self.rp = create_client(
-            client_type=self._config.rp_client_type,
+            client_type=self._config.rp_client_type or ClientType.SYNC,
             endpoint=self._config.rp_endpoint,
             project=self._config.rp_project,
             api_key=self._config.rp_api_key,

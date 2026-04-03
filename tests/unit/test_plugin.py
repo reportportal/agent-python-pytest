@@ -146,7 +146,7 @@ def test_wait_launch(time_mock):
     """Test wait_launch() function for the correct behavior."""
     time_mock.time.side_effect = [0, 1, 2]
     rp_client = mock.Mock()
-    rp_client.launch_id = None
+    rp_client.launch_uuid = None
     assert not wait_launch(rp_client)
 
 
@@ -224,7 +224,7 @@ def test_pytest_sessionfinish(mocked_session):
     :param mocked_session: pytest fixture
     """
     mocked_session.config.py_test_service = mock.Mock()
-    mocked_session.config._reporter_config.rp_launch_id = None
+    mocked_session.config._reporter_config.rp_launch_uuid = None
     pytest_sessionfinish(mocked_session)
     assert mocked_session.config.py_test_service.finish_launch.called
 
@@ -235,6 +235,7 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
     expected_argument_names = (
         "rp_launch",
         "rp_launch_id",
+        "rp_launch_uuid",
         "rp_launch_description",
         "rp_project",
         "rp_log_level",
@@ -295,6 +296,7 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         "--reportportal",
         "--rp-launch",
         "--rp-launch-id",
+        "--rp-launch-uuid",
         "--rp-launch-description",
         "--rp-project",
         "--rp-log-level",
@@ -308,6 +310,8 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         "--rp-thread-logging",
         "--rp-launch-uuid-print",
         "--rp-launch-uuid-print-output",
+        "--rp-launch-attributes",
+        "--rp-tests-attributes",
     )
     mock_parser = mock.MagicMock(spec=Parser)
     mock_reporting_group = mock_parser.getgroup.return_value

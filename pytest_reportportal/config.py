@@ -44,7 +44,7 @@ class AgentConfig:
     rp_bts_project: str
     rp_bts_url: str
     rp_launch: str
-    rp_launch_id: Optional[str]
+    rp_launch_uuid: Optional[str]
     rp_launch_attributes: Optional[list[str]]
     rp_tests_attributes: Optional[list[str]]
     rp_launch_description: str
@@ -105,7 +105,16 @@ class AgentConfig:
         self.rp_bts_project = self.find_option(pytest_config, "rp_bts_project")
         self.rp_bts_url = self.find_option(pytest_config, "rp_bts_url")
         self.rp_launch = self.find_option(pytest_config, "rp_launch")
-        self.rp_launch_id = self.find_option(pytest_config, "rp_launch_id")
+        self.rp_launch_uuid = self.find_option(pytest_config, "rp_launch_id")
+        if self.rp_launch_uuid:
+            warnings.warn(
+                "Parameter `rp_launch_id` is deprecated since 5.6.2 and will be subject for removing"
+                "in the next major version. Use `rp_launch_uuid` argument instead.",
+                DeprecationWarning,
+                2,
+            )
+        self.rp_launch_uuid = self.find_option(pytest_config, "rp_launch_uuid", self.rp_launch_uuid)
+
         self.rp_launch_attributes = self.find_option(pytest_config, "rp_launch_attributes")
         self.rp_tests_attributes = self.find_option(pytest_config, "rp_tests_attributes")
         self.rp_launch_description = self.find_option(pytest_config, "rp_launch_description")

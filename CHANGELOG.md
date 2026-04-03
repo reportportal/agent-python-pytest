@@ -2,6 +2,13 @@
 
 ## [Unreleased]
 ### Added
+- `rp_launch_uuid` configuration parameter, by @HardNorth
+- `rp_launch_attributes` cmd argument, by @fahadnaeemkhan
+### Changed
+- Client version updated on [5.7.1](https://github.com/reportportal/client-Python/releases/tag/5.7.1), by @HardNorth
+
+## [5.6.1]
+### Added
 - Config variables override by environment variables logic, by @HardNorth
 ### Fixed
 - Code reference generation in `xdist`, by @Sgitario

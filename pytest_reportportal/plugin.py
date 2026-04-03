@@ -86,7 +86,7 @@ def wait_launch(rp_client: RP) -> bool:
     :param rp_client: Instance of the ReportPortalService class
     """
     timeout = time.time() + LAUNCH_WAIT_TIMEOUT
-    while not rp_client.launch_id:
+    while not rp_client.launch_uuid:
         if time.time() > timeout:
             return False
         time.sleep(1)
@@ -531,7 +531,11 @@ def pytest_addoption(parser) -> None:
     )
     add_shared_option(
         name="rp_launch_id",
-        help_str="Use already existing launch-id. The plugin won't control " "the Launch status",
+        help_str="DEPRECATED: Use already existing launch-id. The plugin won't control the Launch status",
+    )
+    add_shared_option(
+        name="rp_launch_uuid",
+        help_str="Use already existing launch UUID. The plugin won't control the Launch status",
     )
     add_shared_option(
         name="rp_launch_description",
@@ -590,8 +594,16 @@ def pytest_addoption(parser) -> None:
     parser.addini("rp_oauth_client_secret", type="args", help="OAuth 2.0 client secret")
     parser.addini("rp_oauth_scope", type="args", help="OAuth 2.0 access token scope")
 
-    parser.addini("rp_launch_attributes", type="args", help="Launch attributes, i.e Performance Regression")
-    parser.addini("rp_tests_attributes", type="args", help="Attributes for all tests items, e.g. Smoke")
+    rp_launch_attributes_help_str = "Launch attributes, i.e Performance Regression."
+    parser.addini("rp_launch_attributes", type="args", help=rp_launch_attributes_help_str)
+    group.addoption(
+        "--rp-launch-attributes", dest="rp_launch_attributes", help=rp_launch_attributes_help_str, nargs="+"
+    )
+
+    rp_test_attributes_help_str = "Attributes for all tests items, e.g. Smoke."
+    parser.addini("rp_tests_attributes", type="args", help=rp_test_attributes_help_str)
+    group.addoption("--rp-tests-attributes", dest="rp_tests_attributes", help=rp_test_attributes_help_str, nargs="+")
+
     parser.addini("rp_log_batch_size", default="20", help="Size of batch log requests in async mode")
     parser.addini(
         "rp_log_batch_payload_limit",

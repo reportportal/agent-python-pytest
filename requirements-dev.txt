@@ -1,6 +1,8 @@
+dill>=0.3.6
+pytest>=4.6.10
 delayed-assert
 pytest-cov
 pytest-parallel
 black
 isort
-mypy
+mypy==1.19.1
