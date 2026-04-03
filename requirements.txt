@@ -1,4 +1,2 @@
-dill>=0.3.6
-pytest>=4.6.10
 reportportal-client==5.7.1
 aenum==3.1.17
