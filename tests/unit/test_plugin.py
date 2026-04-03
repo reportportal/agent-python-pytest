@@ -235,6 +235,7 @@ def test_pytest_addoption_adds_correct_ini_file_arguments():
     expected_argument_names = (
         "rp_launch",
         "rp_launch_id",
+        "rp_launch_uuid",
         "rp_launch_description",
         "rp_project",
         "rp_log_level",
@@ -295,6 +296,7 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         "--reportportal",
         "--rp-launch",
         "--rp-launch-id",
+        "--rp_launch_uuid",
         "--rp-launch-description",
         "--rp-project",
         "--rp-log-level",
@@ -308,8 +310,8 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         "--rp-thread-logging",
         "--rp-launch-uuid-print",
         "--rp-launch-uuid-print-output",
-        '--rp-launch-attributes',
-        '--rp-tests-attributes'
+        "--rp-launch-attributes",
+        "--rp-tests-attributes",
     )
     mock_parser = mock.MagicMock(spec=Parser)
     mock_reporting_group = mock_parser.getgroup.return_value
