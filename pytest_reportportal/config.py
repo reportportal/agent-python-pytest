@@ -113,7 +113,7 @@ class AgentConfig:
                 DeprecationWarning,
                 2,
             )
-            self.rp_launch_uuid = self.find_option(pytest_config, "rp_launch_uuid", self.rp_launch_uuid)
+        self.rp_launch_uuid = self.find_option(pytest_config, "rp_launch_uuid", self.rp_launch_uuid)
 
         self.rp_launch_attributes = self.find_option(pytest_config, "rp_launch_attributes")
         self.rp_tests_attributes = self.find_option(pytest_config, "rp_tests_attributes")

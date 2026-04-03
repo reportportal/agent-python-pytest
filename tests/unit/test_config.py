@@ -43,7 +43,7 @@ def test_verify_ssl_true(mocked_config, verify_ssl, expected_result):
         ("RP_PROJECT", "env_project", "rp_project", "env_project"),
         ("RP_LAUNCH", "env_launch", "rp_launch", "env_launch"),
         ("RP_API_KEY", "env_api_key", "rp_api_key", "env_api_key"),
-        ("RP_LAUNCH_ID", "env_launch_id", "rp_launch_id", "env_launch_id"),
+        ("RP_LAUNCH_UUID", "env_launch_id", "rp_launch_uuid", "env_launch_id"),
         ("RP_MODE", "DEBUG", "rp_mode", "DEBUG"),
         ("RP_PARENT_ITEM_ID", "env_parent_id", "rp_parent_item_id", "env_parent_id"),
         ("RP_RERUN_OF", "env_rerun_of", "rp_rerun_of", "env_rerun_of"),

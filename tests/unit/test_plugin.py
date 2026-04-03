@@ -146,7 +146,7 @@ def test_wait_launch(time_mock):
     """Test wait_launch() function for the correct behavior."""
     time_mock.time.side_effect = [0, 1, 2]
     rp_client = mock.Mock()
-    rp_client.launch_id = None
+    rp_client.launch_uuid = None
     assert not wait_launch(rp_client)
 
 
