@@ -531,7 +531,11 @@ def pytest_addoption(parser) -> None:
     )
     add_shared_option(
         name="rp_launch_id",
-        help_str="Use already existing launch-id. The plugin won't control " "the Launch status",
+        help_str="DEPRECATED: Use already existing launch-id. The plugin won't control the Launch status",
+    )
+    add_shared_option(
+        name="rp_launch_uuid",
+        help_str="Use already existing launch UUID. The plugin won't control the Launch status",
     )
     add_shared_option(
         name="rp_launch_description",

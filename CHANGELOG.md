@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- `rp_launch_uuid` configuration parameter, by @HardNorth
+### Changed
+- Client version updated on [5.7.1](https://github.com/reportportal/client-Python/releases/tag/5.7.1), by @HardNorth
 
 ## [5.6.1]
 ### Added
