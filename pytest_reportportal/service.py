@@ -74,7 +74,7 @@ try:
 except ImportError:
     Rule = type("dummy", (), {})  # Old pytest-bdd versions do not have Rule
 
-from reportportal_client import RP, ClientType, create_client, OutputType
+from reportportal_client import RP, ClientType, OutputType, create_client
 from reportportal_client.helpers import dict_to_payload, gen_attributes, get_launch_sys_attrs, get_package_version
 
 LOGGER = logging.getLogger(__name__)
