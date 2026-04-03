@@ -296,7 +296,7 @@ def test_pytest_addoption_adds_correct_command_line_arguments():
         "--reportportal",
         "--rp-launch",
         "--rp-launch-id",
-        "--rp_launch_uuid",
+        "--rp-launch-uuid",
         "--rp-launch-description",
         "--rp-project",
         "--rp-log-level",

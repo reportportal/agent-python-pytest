@@ -74,7 +74,7 @@ try:
 except ImportError:
     Rule = type("dummy", (), {})  # Old pytest-bdd versions do not have Rule
 
-from reportportal_client import RP, ClientType, OutputType, create_client
+from reportportal_client import RP, ClientType, create_client
 from reportportal_client.helpers import dict_to_payload, gen_attributes, get_launch_sys_attrs, get_package_version
 
 LOGGER = logging.getLogger(__name__)
@@ -1431,7 +1431,7 @@ class PyTestService:
             launch_uuid=launch_id,
             log_batch_payload_limit=self._config.rp_log_batch_payload_limit,
             launch_uuid_print=self._config.rp_launch_uuid_print,
-            print_output=self._config.rp_launch_uuid_print_output or OutputType.STDOUT,
+            print_output=self._config.rp_launch_uuid_print_output,
             http_timeout=self._config.rp_http_timeout,
             mode=self._config.rp_mode,
             # OAuth 2.0 parameters
