@@ -86,7 +86,7 @@ def wait_launch(rp_client: RP) -> bool:
     :param rp_client: Instance of the ReportPortalService class
     """
     timeout = time.time() + LAUNCH_WAIT_TIMEOUT
-    while not rp_client.launch_id:
+    while not rp_client.launch_uuid:
         if time.time() > timeout:
             return False
         time.sleep(1)
