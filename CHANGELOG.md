@@ -3,6 +3,7 @@
 ## [Unreleased]
 ### Added
 - `rp_launch_uuid` configuration parameter, by @HardNorth
+- `rp_launch_attributes` cmd argument, by @fahadnaeemkhan
 ### Changed
 - Client version updated on [5.7.1](https://github.com/reportportal/client-Python/releases/tag/5.7.1), by @HardNorth
 
