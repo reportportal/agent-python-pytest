@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Removed
+- `dill` dependency, by @HardNorth
 
 ## [5.6.2]
 ### Added
