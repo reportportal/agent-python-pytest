@@ -214,7 +214,7 @@ def test_launch_uuid_print(mock_client_init):
     assert int(result) == 0, "Exit code should be 0 (no errors)"
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]["launch_uuid_print"] == print_uuid)
-    expect(mock_client_init.call_args_list[0][1]["print_output"] is None)
+    expect(mock_client_init.call_args_list[0][1]["print_output"] is OutputType.STDOUT)
     assert_expectations()
 
 
@@ -248,7 +248,7 @@ def test_no_launch_uuid_print(mock_client_init):
     assert int(result) == 0, "Exit code should be 0 (no errors)"
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]["launch_uuid_print"] is False)
-    expect(mock_client_init.call_args_list[0][1]["print_output"] is None)
+    expect(mock_client_init.call_args_list[0][1]["print_output"] is OutputType.STDOUT)
     assert_expectations()
 
 

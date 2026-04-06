@@ -28,7 +28,7 @@ class AgentConfig:
     """Storage for the RP agent initialization attributes."""
 
     rp_enabled: bool
-    rp_client_type: Optional[ClientType]
+    rp_client_type: ClientType
     rp_rerun: Optional[bool]
     pconfig: Config
     rp_endpoint: str
@@ -72,7 +72,7 @@ class AgentConfig:
     rp_verify_ssl: Union[bool, str]
     rp_launch_timeout: int
     rp_launch_uuid_print: bool
-    rp_launch_uuid_print_output: Optional[OutputType]
+    rp_launch_uuid_print_output: OutputType
     rp_http_timeout: Optional[Union[tuple[float, float], float]]
     rp_report_fixtures: bool
 
@@ -174,7 +174,7 @@ class AgentConfig:
 
         self.rp_launch_uuid_print = to_bool(self.find_option(pytest_config, "rp_launch_uuid_print") or "False")
         print_output = self.find_option(pytest_config, "rp_launch_uuid_print_output")
-        self.rp_launch_uuid_print_output = OutputType[print_output.upper()] if print_output else None
+        self.rp_launch_uuid_print_output = OutputType[print_output.upper()] if print_output else OutputType.STDOUT
         client_type = self.find_option(pytest_config, "rp_client_type")
         self.rp_client_type = ClientType[client_type.upper()] if client_type else ClientType.SYNC
 

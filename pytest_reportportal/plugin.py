@@ -15,12 +15,12 @@
 
 import logging
 import os.path
+import pickle
 import time
 from logging import Logger
 from typing import Any, Callable, Generator
 
 import _pytest.logging
-import dill as pickle
 import pytest
 
 # noinspection PyPackageRequirements

@@ -1,6 +1,13 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Client version updated to [5.7.2](https://github.com/reportportal/client-Python/releases/tag/5.7.2), by @HardNorth
+### Removed
+- `aenum` dependency, by @HardNorth
+- `dill` dependency, by @HardNorth
+
+## [5.6.2]
 ### Added
 - `rp_launch_uuid` configuration parameter, by @HardNorth
 - `rp_launch_attributes` cmd argument, by @fahadnaeemkhan

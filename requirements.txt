@@ -1,2 +1,1 @@
-reportportal-client==5.7.1
-aenum==3.1.17
+reportportal-client==5.7.2
