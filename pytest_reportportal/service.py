@@ -20,13 +20,13 @@ import sys
 import threading
 import traceback
 from collections import OrderedDict
+from enum import Enum
 from functools import wraps
 from os import curdir
 from time import sleep, time
 from typing import Any, Callable, Generator, Optional, Union
 
 from _pytest.doctest import DoctestItem
-from aenum import Enum, auto, unique
 from py.path import local
 from pytest import Class, Function, Item, Module, Package, PytestWarning, Session
 from reportportal_client.aio import Task
@@ -125,25 +125,23 @@ def trim_docstring(docstring: str) -> str:
     return "\n".join(trimmed)
 
 
-@unique
 class LeafType(Enum):
     """This class stores test item path types."""
 
-    DIR = auto()
-    FILE = auto()
-    CODE = auto()
-    ROOT = auto()
-    SUITE = auto()
-    NESTED = auto()
+    DIR = 1
+    FILE = 2
+    CODE = 3
+    ROOT = 4
+    SUITE = 5
+    NESTED = 6
 
 
-@unique
 class ExecStatus(Enum):
     """This class stores test item path types."""
 
-    CREATED = auto()
-    IN_PROGRESS = auto()
-    FINISHED = auto()
+    CREATED = 1
+    IN_PROGRESS = 2
+    FINISHED = 3
 
 
 def check_rp_enabled(func):

@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 ### Removed
+- `aenum` dependency, by @HardNorth
 - `dill` dependency, by @HardNorth
 
 ## [5.6.2]
