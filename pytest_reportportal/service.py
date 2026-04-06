@@ -74,7 +74,7 @@ try:
 except ImportError:
     Rule = type("dummy", (), {})  # Old pytest-bdd versions do not have Rule
 
-from reportportal_client import RP, ClientType, create_client
+from reportportal_client import RP, OutputType, create_client
 from reportportal_client.helpers import dict_to_payload, gen_attributes, get_launch_sys_attrs, get_package_version
 
 LOGGER = logging.getLogger(__name__)
@@ -188,7 +188,7 @@ class PyTestService:
         self._start_tracker = set()
         self._launch_id = None
         self.agent_name = "pytest-reportportal"
-        self.agent_version = get_package_version(self.agent_name)
+        self.agent_version = get_package_version(self.agent_name) or "None"
         self.ignored_attributes = []
         self.parent_item_id = None
         self.rp = None
@@ -219,7 +219,7 @@ class PyTestService:
         attributes = ini_attrs or []
         system_attributes = get_launch_sys_attrs()
         system_attributes["agent"] = "{}|{}".format(self.agent_name, self.agent_version)
-        return attributes + dict_to_payload(system_attributes)
+        return attributes + (dict_to_payload(system_attributes) or [])
 
     def _build_start_launch_rq(self) -> dict[str, Any]:
         rp_launch_attributes = self._config.rp_launch_attributes
@@ -364,6 +364,7 @@ class PyTestService:
                 break
         if scenario_template and isinstance(scenario_template, ScenarioTemplate):
             return scenario_template
+        return None
 
     def _get_method_name(self, item: Item) -> str:
         """Get the original test method name.
@@ -648,20 +649,20 @@ class PyTestService:
         else:
             return base_name + param_str
 
-    def _get_issue_ids(self, mark):
-        issue_ids = mark.kwargs.get("issue_id", [])
+    def _get_issue_ids(self, mark) -> list[Any]:
+        issue_ids = mark.kwargs.get("issue_id", []) or []
         if not isinstance(issue_ids, list):
             issue_ids = [issue_ids]
         return issue_ids
 
-    def _get_issue_urls(self, mark, default_url):
+    def _get_issue_urls(self, mark, default_url: str) -> list[Optional[str]]:
         issue_ids = self._get_issue_ids(mark)
         if not issue_ids:
-            return None
+            return []
         mark_url = mark.kwargs.get("url", None) or default_url
-        return [mark_url.format(issue_id=issue_id) if mark_url else None for issue_id in issue_ids]
+        return [str(mark_url).format(issue_id=str(issue_id)) if mark_url else None for issue_id in issue_ids]
 
-    def _get_issue_description_line(self, mark, default_url):
+    def _get_issue_description_line(self, mark, default_url: str) -> str:
         issue_ids = self._get_issue_ids(mark)
         if not issue_ids:
             return mark.kwargs["reason"]
@@ -691,7 +692,7 @@ class PyTestService:
             issue_short_name = mark.kwargs["issue_type"]
 
         # default value
-        issue_short_name = "TI" if issue_short_name is None else issue_short_name
+        issue_short_name = "TI" if issue_short_name is None else str(issue_short_name)
 
         registered_issues = self.issue_types
         issue = None
@@ -822,7 +823,8 @@ class PyTestService:
         test_attributes = self._config.rp_tests_attributes
         if test_attributes:
             attributes = {
-                (attr.get("key", None), attr["value"]) for attr in gen_attributes(self._config.rp_tests_attributes)
+                (attr.get("key", None), attr["value"])
+                for attr in gen_attributes(self._config.rp_tests_attributes or [])
             }
         else:
             attributes = set()
@@ -1418,7 +1420,7 @@ class PyTestService:
         if self._config.rp_launch_uuid:
             launch_id = self._config.rp_launch_uuid
         self.rp = create_client(
-            client_type=self._config.rp_client_type or ClientType.SYNC,
+            client_type=self._config.rp_client_type,
             endpoint=self._config.rp_endpoint,
             project=self._config.rp_project,
             api_key=self._config.rp_api_key,
@@ -1429,7 +1431,7 @@ class PyTestService:
             launch_uuid=launch_id,
             log_batch_payload_limit=self._config.rp_log_batch_payload_limit,
             launch_uuid_print=self._config.rp_launch_uuid_print,
-            print_output=self._config.rp_launch_uuid_print_output,
+            print_output=self._config.rp_launch_uuid_print_output or OutputType.STDOUT,
             http_timeout=self._config.rp_http_timeout,
             mode=self._config.rp_mode,
             # OAuth 2.0 parameters
