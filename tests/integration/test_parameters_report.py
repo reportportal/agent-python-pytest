@@ -17,7 +17,6 @@ from unittest import mock
 
 import pytest
 
-from examples.params.test_binary_symbol_in_parameters import BINARY_TEXT
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
