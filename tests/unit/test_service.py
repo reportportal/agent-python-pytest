@@ -15,24 +15,24 @@
 
 from delayed_assert import assert_expectations, expect
 
-from pytest_reportportal.service import _is_pytest_bdd_scenario_location
+from pytest_reportportal.service import _is_pytest_bdd_scenario
 
 
-def test_is_pytest_bdd_scenario_location_posix_path():
+def test_is_pytest_bdd_scenario_posix_path():
     """pytest-bdd scenario items use forward slashes in location on POSIX."""
     path = "/usr/lib/python3.12/site-packages/pytest_bdd/scenario.py"
-    assert _is_pytest_bdd_scenario_location(path) is True
+    assert _is_pytest_bdd_scenario(path) is True
 
 
-def test_is_pytest_bdd_scenario_location_windows_path():
+def test_is_pytest_bdd_scenario_windows_path():
     """pytest-bdd scenario items use backslashes in location on Windows (#418)."""
     path = r"C:\Python312\Lib\site-packages\pytest_bdd\scenario.py"
-    assert _is_pytest_bdd_scenario_location(path) is True
+    assert _is_pytest_bdd_scenario(path) is True
 
 
-def test_is_pytest_bdd_scenario_location_regular_test_module():
+def test_is_pytest_bdd_scenario_regular_test_module():
     """Regular tests must not be treated as pytest-bdd scenario glue."""
-    assert _is_pytest_bdd_scenario_location("/project/tests/test_foo.py") is False
+    assert _is_pytest_bdd_scenario("/project/tests/test_foo.py") is False
 
 
 def test_get_item_parameters(mocked_item, rp_service):
