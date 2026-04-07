@@ -1094,7 +1094,7 @@ class PyTestService:
         if PYTEST_BDD:
             if not item_id:
                 # Check if we are actually a BDD scenario
-                scenario = self._bdd_scenario_by_item[test_item]
+                scenario = self._bdd_scenario_by_item.get(test_item, None)
                 if scenario:
                     # Yes, we are a BDD scenario, report log to the scenario
                     item_id = self._tree_path[scenario][-1]["item_id"]
