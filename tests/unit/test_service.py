@@ -26,7 +26,7 @@ def test_is_pytest_bdd_scenario_posix_path():
 
 def test_is_pytest_bdd_scenario_windows_path():
     """pytest-bdd scenario items use backslashes in location on Windows (#418)."""
-    path = r"C:\Python312\Lib\site-packages\pytest_bdd\scenario.py"
+    path = "C:\\Python312\\Lib\\site-packages\\pytest_bdd\\scenario.py"
     assert _is_pytest_bdd_scenario(path) is True
 
 
