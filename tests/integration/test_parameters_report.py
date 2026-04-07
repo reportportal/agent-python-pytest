@@ -17,7 +17,6 @@ from unittest import mock
 
 import pytest
 
-from examples.params.test_binary_symbol_in_parameters import BINARY_TEXT
 from tests import REPORT_PORTAL_SERVICE
 from tests.helpers import utils
 
@@ -32,7 +31,6 @@ from tests.helpers import utils
             "examples/params/test_different_parameter_types.py",
             {"integer": 1, "floating_point": 1.5, "boolean": True, "none": None},
         ),
-        ("examples/params/test_binary_symbol_in_parameters.py", {"text": BINARY_TEXT.replace("\0", "\\0")}),
     ],
 )
 def test_parameters(mock_client_init, test, expected_params):

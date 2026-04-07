@@ -743,9 +743,7 @@ class PyTestService:
         :return: dict of params
         """
         params = item.callspec.params if hasattr(item, "callspec") else None
-        if not params:
-            return None
-        return {str(k): v.replace("\0", "\\0") if isinstance(v, str) else v for k, v in params.items()}
+        return params
 
     def _get_parameters_indices(self, item) -> Optional[dict[str, Any]]:
         """
@@ -1096,7 +1094,7 @@ class PyTestService:
         if PYTEST_BDD:
             if not item_id:
                 # Check if we are actually a BDD scenario
-                scenario = self._bdd_scenario_by_item[test_item]
+                scenario = self._bdd_scenario_by_item.get(test_item, None)
                 if scenario:
                     # Yes, we are a BDD scenario, report log to the scenario
                     item_id = self._tree_path[scenario][-1]["item_id"]
