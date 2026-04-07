@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.4]
 ### Fixed
 - Agent crash in certain `pytest-bdd` cases, by @HardNorth
 
