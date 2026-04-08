@@ -5,6 +5,7 @@
 ## [5.6.4]
 ### Fixed
 - Agent crash in certain `pytest-bdd` cases, by @HardNorth
+- Issue [#418](https://github.com/reportportal/agent-python-pytest/issues/418) parametrize marker IDs, by @drcrazy
 
 ## [5.6.3]
 ### Changed
