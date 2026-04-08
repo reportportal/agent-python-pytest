@@ -93,6 +93,16 @@ ALPHA_REGEX = re.compile(r"^\d+_*")
 BACKGROUND_STEP_NAME = "Background"
 
 
+def _is_pytest_bdd_scenario(location_path: str) -> bool:
+    """
+    Return True if the pytest collection path points at pytest-bdd's scenario module.
+
+    ``Item.location[0]`` uses OS-native separators (backslashes on Windows), so a
+    plain suffix check with ``/`` is not portable. See #418.
+    """
+    return location_path.endswith(os.path.join("pytest_bdd", "scenario.py"))
+
+
 def trim_docstring(docstring: str) -> str:
     """
     Convert docstring.
@@ -907,7 +917,7 @@ class PyTestService:
         if not self.__started():
             self.start()
 
-        if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
+        if PYTEST_BDD and _is_pytest_bdd_scenario(test_item.location[0]):
             self._bdd_item_by_name[test_item.name] = test_item
             return
 
@@ -928,7 +938,7 @@ class PyTestService:
         if report.longrepr:
             self.post_log(test_item, report.longreprtext, log_level="ERROR")
 
-        if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
+        if PYTEST_BDD and _is_pytest_bdd_scenario(test_item.location[0]):
             return
 
         leaf = self._tree_path[test_item][-1]
@@ -1011,7 +1021,7 @@ class PyTestService:
         leaf = self._tree_path[test_item][-1]
         self._process_metadata_item_finish(leaf)
 
-        if PYTEST_BDD and test_item.location[0].endswith("/pytest_bdd/scenario.py"):
+        if PYTEST_BDD and _is_pytest_bdd_scenario(test_item.location[0]):
             del self._bdd_item_by_name[test_item.name]
             return
 

@@ -13,7 +13,22 @@
 
 """This module includes unit tests for the service.py module."""
 
+import os
+
 from delayed_assert import assert_expectations, expect
+
+from pytest_reportportal.service import _is_pytest_bdd_scenario
+
+
+def test_is_pytest_bdd_scenario_path():
+    """pytest-bdd scenario items use forward slashes in location on POSIX and backslashes on Windows."""
+    path = os.path.join("project", "pytest_bdd", "scenario.py")
+    assert _is_pytest_bdd_scenario(path) is True
+
+
+def test_is_pytest_bdd_scenario_regular_test_module():
+    """Regular tests must not be treated as pytest-bdd scenario glue."""
+    assert _is_pytest_bdd_scenario("/project/tests/test_foo.py") is False
 
 
 def test_get_item_parameters(mocked_item, rp_service):
