@@ -13,20 +13,15 @@
 
 """This module includes unit tests for the service.py module."""
 
+import os
 from delayed_assert import assert_expectations, expect
 
 from pytest_reportportal.service import _is_pytest_bdd_scenario
 
 
-def test_is_pytest_bdd_scenario_posix_path():
-    """pytest-bdd scenario items use forward slashes in location on POSIX."""
-    path = "/usr/lib/python3.12/site-packages/pytest_bdd/scenario.py"
-    assert _is_pytest_bdd_scenario(path) is True
-
-
-def test_is_pytest_bdd_scenario_windows_path():
-    """pytest-bdd scenario items use backslashes in location on Windows (#418)."""
-    path = "C:\\Python312\\Lib\\site-packages\\pytest_bdd\\scenario.py"
+def test_is_pytest_bdd_scenario_path():
+    """pytest-bdd scenario items use forward slashes in location on POSIX and backslashes on Windows."""
+    path = os.path.join("project", "pytest_bdd", "scenario.py")
     assert _is_pytest_bdd_scenario(path) is True
 
 

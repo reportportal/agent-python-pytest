@@ -100,7 +100,7 @@ def _is_pytest_bdd_scenario(location_path: str) -> bool:
     ``Item.location[0]`` uses OS-native separators (backslashes on Windows), so a
     plain suffix check with ``/`` is not portable. See #418.
     """
-    return location_path.replace(os.path.sep, "/").endswith("/pytest_bdd/scenario.py")
+    return location_path.endswith(os.path.join("pytest_bdd", "scenario.py"))
 
 
 def trim_docstring(docstring: str) -> str:
