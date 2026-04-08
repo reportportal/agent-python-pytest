@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.5]
 ### Fixed
 - Issue [#418](https://github.com/reportportal/agent-python-pytest/issues/418) parametrize marker IDs, by @drcrazy
 
