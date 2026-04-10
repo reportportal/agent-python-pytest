@@ -28,7 +28,7 @@ from typing import Any, Callable, Generator, Optional, Union
 
 from _pytest.doctest import DoctestItem
 from py.path import local
-from pytest import Class, Function, Item, Module, Package, PytestWarning, Session
+from pytest import Class, Function, Item, Module, Package, Session
 from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import ExternalIssue, Issue
 from reportportal_client.helpers import markdown_helpers, timestamp
@@ -80,8 +80,6 @@ from reportportal_client.helpers import dict_to_payload, gen_attributes, get_lau
 LOGGER = logging.getLogger(__name__)
 
 KNOWN_LOG_LEVELS = ("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
-MAX_ITEM_NAME_LENGTH: int = 1024
-TRUNCATION_STR: str = "..."
 ROOT_DIR: str = str(os.path.abspath(curdir))
 PYTEST_MARKS_IGNORE: set[str] = {"parametrize", "usefixtures", "filterwarnings"}
 NOT_ISSUE: Issue = Issue("NOT_ISSUE")
@@ -497,21 +495,6 @@ class PyTestService:
             self._merge_code(test_tree)
         self._build_item_paths(test_tree, [])
 
-    def _truncate_item_name(self, name: str) -> str:
-        """Get name of item.
-
-        :param name: Test Item name
-        :return: truncated to maximum length name if needed
-        """
-        if len(name) > MAX_ITEM_NAME_LENGTH:
-            name = name[: MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + TRUNCATION_STR
-            LOGGER.warning(
-                PytestWarning(
-                    f'Test leaf ID was truncated to "{name}" because of name size constrains on Report Portal'
-                )
-            )
-        return name
-
     def _get_item_description(self, test_item: Any) -> Optional[str]:
         """Get description of item.
 
@@ -580,7 +563,7 @@ class PyTestService:
         parent_item_id = self._lock(leaf["parent"], lambda p: p.get("item_id")) if "parent" in leaf else None
         item = leaf["item"]
         payload = {
-            "name": self._truncate_item_name(leaf["name"]),
+            "name": leaf["name"],
             "description": self._get_item_description(item),
             "start_time": timestamp(),
             "item_type": "SUITE",
@@ -882,7 +865,7 @@ class PyTestService:
     def _build_start_step_rq(self, leaf: dict[str, Any]) -> dict[str, Any]:
         payload = {
             "attributes": leaf.get("attributes", None),
-            "name": self._truncate_item_name(leaf["name"]),
+            "name": leaf["name"],
             "description": leaf["description"],
             "start_time": timestamp(),
             "item_type": "STEP",
@@ -1351,7 +1334,7 @@ class PyTestService:
             if feature.background:
                 background_leaf = scenario_leaf["children"][feature.background]
                 self._finish_bdd_step(background_leaf, "PASSED")
-        item_id = reporter.start_nested_step(self._truncate_item_name(f"{step.keyword} {step.name}"), timestamp())
+        item_id = reporter.start_nested_step(f"{step.keyword} {step.name}", timestamp())
         step_leaf["item_id"] = item_id
         step_leaf["exec"] = ExecStatus.IN_PROGRESS
 

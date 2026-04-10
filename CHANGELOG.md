@@ -1,6 +1,10 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Client version updated to [5.7.4](https://github.com/reportportal/client-Python/releases/tag/5.7.4), by @HardNorth
+### Removed
+- Redundant item name truncation (now handled on the Client level), by @HardNorth
 
 ## [5.6.5]
 ### Fixed
