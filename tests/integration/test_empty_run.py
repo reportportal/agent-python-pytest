@@ -13,6 +13,7 @@
 
 """This module includes integration tests for the empty run."""
 
+from datetime import datetime, timezone
 from unittest import mock
 
 from tests import REPORT_PORTAL_SERVICE
@@ -25,6 +26,7 @@ def test_empty_run(mock_client_init):
 
     :param mock_client_init: Pytest fixture
     """
+    test_start_time = datetime.now(timezone.utc)
     result = utils.run_pytest_tests(tests=["examples/empty/"])
 
     assert int(result) == 5, "Exit code should be 5 (no tests)"
@@ -36,4 +38,4 @@ def test_empty_run(mock_client_init):
     finish_args = mock_client.finish_launch.call_args_list
     assert "status" not in finish_args[0][1], "Launch status should not be defined"
     launch_end_time = finish_args[0][1]["end_time"]
-    assert launch_end_time is not None and int(launch_end_time) > 0, "Launch end time is empty"
+    assert launch_end_time is not None and launch_end_time > test_start_time, "Launch end time is empty"
