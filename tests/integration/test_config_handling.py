@@ -177,9 +177,10 @@ def test_rp_api_retries(mock_client_init):
     retries = 5
     variables = dict(utils.DEFAULT_VARIABLES)
     variables.update({"rp_api_retries": str(retries)}.items())
+    mock_client = mock_client_init.return_value
 
     with warnings.catch_warnings(record=True) as w:
-        result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
+        result = utils.run_tests_with_client(mock_client, ["examples/test_rp_logging.py"], variables=variables)
         assert int(result) == 0, "Exit code should be 0 (no errors)"
 
         expect(mock_client_init.call_count == 1)
@@ -210,7 +211,8 @@ def test_launch_uuid_print(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({"rp_launch_uuid_print": str(print_uuid)}.items())
-    result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
+    mock_client = mock_client_init.return_value
+    result = utils.run_tests_with_client(mock_client, ["examples/test_rp_logging.py"], variables=variables)
     assert int(result) == 0, "Exit code should be 0 (no errors)"
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]["launch_uuid_print"] == print_uuid)
@@ -223,7 +225,8 @@ def test_launch_uuid_print_stderr(mock_client_init):
     print_uuid = True
     variables = utils.DEFAULT_VARIABLES.copy()
     variables.update({"rp_launch_uuid_print": str(print_uuid), "rp_launch_uuid_print_output": "stderr"}.items())
-    result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
+    mock_client = mock_client_init.return_value
+    result = utils.run_tests_with_client(mock_client, ["examples/test_rp_logging.py"], variables=variables)
     assert int(result) == 0, "Exit code should be 0 (no errors)"
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]["launch_uuid_print"] == print_uuid)
@@ -244,7 +247,8 @@ def test_launch_uuid_print_invalid_output(mock_client_init):
 @mock.patch(REPORT_PORTAL_SERVICE)
 def test_no_launch_uuid_print(mock_client_init):
     variables = utils.DEFAULT_VARIABLES.copy()
-    result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
+    mock_client = mock_client_init.return_value
+    result = utils.run_tests_with_client(mock_client, ["examples/test_rp_logging.py"], variables=variables)
     assert int(result) == 0, "Exit code should be 0 (no errors)"
     expect(mock_client_init.call_count == 1)
     expect(mock_client_init.call_args_list[0][1]["launch_uuid_print"] is False)
@@ -264,7 +268,8 @@ def test_client_timeouts(mock_client_init, connect_value, read_value, expected_r
     if read_value:
         variables["rp_read_timeout"] = read_value
 
-    result = utils.run_pytest_tests(["examples/test_rp_logging.py"], variables=variables)
+    mock_client = mock_client_init.return_value
+    result = utils.run_tests_with_client(mock_client, ["examples/test_rp_logging.py"], variables=variables)
 
     assert int(result) == 0, "Exit code should be 0 (no errors)"
     assert mock_client_init.call_count == 1
