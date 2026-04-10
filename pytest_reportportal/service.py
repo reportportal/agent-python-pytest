@@ -20,6 +20,7 @@ import sys
 import threading
 import traceback
 from collections import OrderedDict
+from datetime import datetime, timezone
 from enum import Enum
 from functools import wraps
 from os import curdir
@@ -28,10 +29,10 @@ from typing import Any, Callable, Generator, Optional, Union
 
 from _pytest.doctest import DoctestItem
 from py.path import local
-from pytest import Class, Function, Item, Module, Package, PytestWarning, Session
+from pytest import Class, Function, Item, Module, Package, Session
 from reportportal_client.aio import Task
 from reportportal_client.core.rp_issues import ExternalIssue, Issue
-from reportportal_client.helpers import markdown_helpers, timestamp
+from reportportal_client.helpers import markdown_helpers
 
 from .config import AgentConfig
 
@@ -80,8 +81,6 @@ from reportportal_client.helpers import dict_to_payload, gen_attributes, get_lau
 LOGGER = logging.getLogger(__name__)
 
 KNOWN_LOG_LEVELS = ("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
-MAX_ITEM_NAME_LENGTH: int = 1024
-TRUNCATION_STR: str = "..."
 ROOT_DIR: str = str(os.path.abspath(curdir))
 PYTEST_MARKS_IGNORE: set[str] = {"parametrize", "usefixtures", "filterwarnings"}
 NOT_ISSUE: Issue = Issue("NOT_ISSUE")
@@ -238,7 +237,7 @@ class PyTestService:
         start_rq = {
             "attributes": self._get_launch_attributes(attributes),
             "name": self._config.rp_launch,
-            "start_time": timestamp(),
+            "start_time": datetime.now(tz=timezone.utc),
             "description": self._config.rp_launch_description,
             "rerun": self._config.rp_rerun,
             "rerun_of": self._config.rp_rerun_of,
@@ -497,21 +496,6 @@ class PyTestService:
             self._merge_code(test_tree)
         self._build_item_paths(test_tree, [])
 
-    def _truncate_item_name(self, name: str) -> str:
-        """Get name of item.
-
-        :param name: Test Item name
-        :return: truncated to maximum length name if needed
-        """
-        if len(name) > MAX_ITEM_NAME_LENGTH:
-            name = name[: MAX_ITEM_NAME_LENGTH - len(TRUNCATION_STR)] + TRUNCATION_STR
-            LOGGER.warning(
-                PytestWarning(
-                    f'Test leaf ID was truncated to "{name}" because of name size constrains on Report Portal'
-                )
-            )
-        return name
-
     def _get_item_description(self, test_item: Any) -> Optional[str]:
         """Get description of item.
 
@@ -580,9 +564,9 @@ class PyTestService:
         parent_item_id = self._lock(leaf["parent"], lambda p: p.get("item_id")) if "parent" in leaf else None
         item = leaf["item"]
         payload = {
-            "name": self._truncate_item_name(leaf["name"]),
+            "name": leaf["name"],
             "description": self._get_item_description(item),
-            "start_time": timestamp(),
+            "start_time": datetime.now(tz=timezone.utc),
             "item_type": "SUITE",
             "code_ref": code_ref,
             "parent_item_id": parent_item_id,
@@ -882,9 +866,9 @@ class PyTestService:
     def _build_start_step_rq(self, leaf: dict[str, Any]) -> dict[str, Any]:
         payload = {
             "attributes": leaf.get("attributes", None),
-            "name": self._truncate_item_name(leaf["name"]),
+            "name": leaf["name"],
             "description": leaf["description"],
-            "start_time": timestamp(),
+            "start_time": datetime.now(tz=timezone.utc),
             "item_type": "STEP",
             "code_ref": leaf.get("code_ref", None),
             "parameters": leaf.get("parameters", None),
@@ -963,7 +947,7 @@ class PyTestService:
             issue = None
         payload = {
             "attributes": leaf.get("attributes", None),
-            "end_time": timestamp(),
+            "end_time": datetime.now(tz=timezone.utc),
             "status": status,
             "issue": issue,
             "item_id": leaf["item_id"],
@@ -979,7 +963,7 @@ class PyTestService:
         self.rp.finish_test_item(**finish_rq)
 
     def _build_finish_suite_rq(self, leaf) -> dict[str, Any]:
-        payload = {"end_time": timestamp(), "item_id": leaf["item_id"]}
+        payload = {"end_time": datetime.now(tz=timezone.utc), "item_id": leaf["item_id"]}
         return payload
 
     def _proceed_suite_finish(self, leaf) -> None:
@@ -1056,7 +1040,7 @@ class PyTestService:
                     self._lock(leaf, lambda p: self._proceed_suite_finish(p))
 
     def _build_finish_launch_rq(self) -> dict[str, Any]:
-        finish_rq = {"end_time": timestamp()}
+        finish_rq = {"end_time": datetime.now(tz=timezone.utc)}
         return finish_rq
 
     def _finish_launch(self, finish_rq) -> None:
@@ -1074,7 +1058,7 @@ class PyTestService:
     ) -> dict[str, Any]:
         sl_rq = {
             "item_id": item_id,
-            "time": timestamp(),
+            "time": datetime.now(tz=timezone.utc),
             "message": message,
             "level": log_level,
         }
@@ -1123,7 +1107,7 @@ class PyTestService:
             return
 
         reporter = self.rp.step_reporter
-        item_id = reporter.start_nested_step(name, timestamp())
+        item_id = reporter.start_nested_step(name, datetime.now(tz=timezone.utc))
 
         try:
             outcome = yield
@@ -1140,11 +1124,11 @@ class PyTestService:
                     )
                     exception_log = self._build_log(item_id, traceback_str, log_level="ERROR")
                     self.rp.log(**exception_log)
-            reporter.finish_nested_step(item_id, timestamp(), status)
+            reporter.finish_nested_step(item_id, datetime.now(tz=timezone.utc), status)
         except Exception as e:
             LOGGER.error("Failed to report fixture: %s", name)
             LOGGER.exception(e)
-            reporter.finish_nested_step(item_id, timestamp(), "FAILED")
+            reporter.finish_nested_step(item_id, datetime.now(tz=timezone.utc), "FAILED")
 
     def _get_python_name(self, scenario: Scenario) -> str:
         python_name = f"test_{make_python_name(self._get_scenario_template(scenario).name)}"
@@ -1301,7 +1285,7 @@ class PyTestService:
 
         reporter = self.rp.step_reporter
         item_id = leaf["item_id"]
-        reporter.finish_nested_step(item_id, timestamp(), status)
+        reporter.finish_nested_step(item_id, datetime.now(tz=timezone.utc), status)
         leaf["exec"] = ExecStatus.FINISHED
 
     def _is_background_step(self, step: Step, feature: Feature) -> bool:
@@ -1343,7 +1327,7 @@ class PyTestService:
             background_leaf = scenario_leaf["children"][feature.background]
             background_leaf["children"][step] = step_leaf
             if background_leaf["exec"] != ExecStatus.IN_PROGRESS:
-                item_id = reporter.start_nested_step(BACKGROUND_STEP_NAME, timestamp())
+                item_id = reporter.start_nested_step(BACKGROUND_STEP_NAME, datetime.now(tz=timezone.utc))
                 background_leaf["item_id"] = item_id
                 background_leaf["exec"] = ExecStatus.IN_PROGRESS
         else:
@@ -1351,7 +1335,7 @@ class PyTestService:
             if feature.background:
                 background_leaf = scenario_leaf["children"][feature.background]
                 self._finish_bdd_step(background_leaf, "PASSED")
-        item_id = reporter.start_nested_step(self._truncate_item_name(f"{step.keyword} {step.name}"), timestamp())
+        item_id = reporter.start_nested_step(f"{step.keyword} {step.name}", datetime.now(tz=timezone.utc))
         step_leaf["item_id"] = item_id
         step_leaf["exec"] = ExecStatus.IN_PROGRESS
 

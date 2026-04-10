@@ -1,6 +1,14 @@
 # Changelog
 
 ## [Unreleased]
+### Added
+- Microseconds precision for timestamps, by @HardNorth
+### Changed
+- Client version updated to [5.7.4](https://github.com/reportportal/client-Python/releases/tag/5.7.4), by @HardNorth
+### Removed
+- Redundant item name truncation (now handled on the Client level), by @HardNorth
+
+## [5.6.5]
 ### Fixed
 - Issue [#418](https://github.com/reportportal/agent-python-pytest/issues/418) parametrize marker IDs, by @drcrazy
 
