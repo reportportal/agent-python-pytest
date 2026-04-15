@@ -79,3 +79,37 @@ def test_env_var_overrides_log_level(monkeypatch, mocked_config):
 def test_env_var_not_set_falls_back_to_config(mocked_config):
     config = AgentConfig(mocked_config)
     assert config.rp_endpoint == "http://docker.local:8080/"
+
+
+@pytest.mark.parametrize(
+    ["option_name", "option_value", "expected_result"],
+    [
+        ("rp_launch_attributes", " smoke ; launch:demo ; smoke ; launch:demo ", ["smoke", "launch:demo"]),
+        ("rp_tests_attributes", " test:key ; smoke ; test:key ", ["test:key", "smoke"]),
+    ],
+)
+def test_string_attributes_are_split_and_deduplicated(mocked_config, option_name, option_value, expected_result):
+    mocked_config.option.rp_launch_attributes = None
+    mocked_config.option.rp_tests_attributes = None
+    mocked_config.getini.side_effect = lambda x: option_value if x == option_name else None
+
+    config = AgentConfig(mocked_config)
+
+    assert getattr(config, option_name) == expected_result
+
+
+@pytest.mark.parametrize(
+    ["option_name", "option_value"],
+    [
+        ("rp_launch_attributes", ["smoke", "smoke"]),
+        ("rp_tests_attributes", ["test:key", "test:key"]),
+    ],
+)
+def test_attributes_not_split_if_not_string(mocked_config, option_name, option_value):
+    mocked_config.option.rp_launch_attributes = None
+    mocked_config.option.rp_tests_attributes = None
+    mocked_config.getini.side_effect = lambda x: option_value if x == option_name else None
+
+    config = AgentConfig(mocked_config)
+
+    assert getattr(config, option_name) == option_value

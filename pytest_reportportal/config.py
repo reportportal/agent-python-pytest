@@ -23,6 +23,24 @@ from reportportal_client import ClientType, OutputType
 from reportportal_client.helpers import to_bool
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
+ATTRIBUTES_SEPARATOR = ";"
+
+
+def normalize_attributes(attributes: Optional[Any]) -> Optional[Any]:
+    """Split a string of attributes into a deduplicated list of attributes."""
+    if not attributes:
+        return attributes
+    if not isinstance(attributes, str):
+        return attributes
+    normalized_attributes = []
+    unique_attributes = set()
+    for attribute in attributes.split(ATTRIBUTES_SEPARATOR):
+        attribute = attribute.strip()
+        if attribute and attribute not in unique_attributes:
+            unique_attributes.add(attribute)
+            normalized_attributes.append(attribute)
+    return normalized_attributes
+
 
 class AgentConfig:
     """Storage for the RP agent initialization attributes."""
@@ -115,8 +133,8 @@ class AgentConfig:
             )
         self.rp_launch_uuid = self.find_option(pytest_config, "rp_launch_uuid", self.rp_launch_uuid)
 
-        self.rp_launch_attributes = self.find_option(pytest_config, "rp_launch_attributes")
-        self.rp_tests_attributes = self.find_option(pytest_config, "rp_tests_attributes")
+        self.rp_launch_attributes = normalize_attributes(self.find_option(pytest_config, "rp_launch_attributes"))
+        self.rp_tests_attributes = normalize_attributes(self.find_option(pytest_config, "rp_tests_attributes"))
         self.rp_launch_description = self.find_option(pytest_config, "rp_launch_description")
         self.rp_log_batch_size = int(self.find_option(pytest_config, "rp_log_batch_size"))
         batch_payload_size_limit = self.find_option(pytest_config, "rp_log_batch_payload_limit")
