@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+
+## [5.6.7]
 ### Added
 - Attribute splitting if they are passed as `str` in configs, by @HardNorth
 
