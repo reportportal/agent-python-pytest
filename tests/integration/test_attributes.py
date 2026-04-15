@@ -168,3 +168,40 @@ def test_rp_tests_attributes_add(mock_client_init):
     assert len(attributes) == 2
     assert {"key": "scope", "value": "smoke"} in attributes
     assert {"key": "test_key", "value": "test_value"} in attributes
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_tests_attributes_string_split_and_deduplicated(mock_client_init, monkeypatch):
+    """Verify string `rp_tests_attributes` are split and deduplicated."""
+    monkeypatch.setenv("RP_TESTS_ATTRIBUTES", " test_key:test_value ; smoke ; test_key:test_value ")
+    variables = {}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(tests=["examples/test_simple.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    mock_client = mock_client_init.return_value
+    assert mock_client.start_test_item.call_count > 0, '"start_test_item" called incorrect number of times'
+
+    call_args = mock_client.start_test_item.call_args_list
+    step_call_args = call_args[-1][1]
+    actual_attributes = step_call_args["attributes"]
+
+    assert utils.attributes_to_tuples(actual_attributes) == {("test_key", "test_value"), (None, "smoke")}
+
+
+@mock.patch(REPORT_PORTAL_SERVICE)
+def test_rp_launch_attributes_string_split_and_deduplicated(mock_client_init, monkeypatch):
+    """Verify string `rp_launch_attributes` are split and deduplicated."""
+    monkeypatch.setenv("RP_LAUNCH_ATTRIBUTES", " launch_key:launch_value ; smoke ; launch_key:launch_value ")
+    variables = {}
+    variables.update(utils.DEFAULT_VARIABLES.items())
+    result = utils.run_pytest_tests(tests=["examples/test_simple.py"], variables=variables)
+    assert int(result) == 0, "Exit code should be 0 (no errors)"
+
+    mock_client = mock_client_init.return_value
+    assert mock_client.start_launch.call_count > 0, '"start_launch" called incorrect number of times'
+
+    launch_call_args = mock_client.start_launch.call_args_list
+    launch_attributes = launch_call_args[0][1]["attributes"]
+
+    assert {("launch_key", "launch_value"), (None, "smoke")} <= utils.attributes_to_tuples(launch_attributes)
