@@ -23,11 +23,11 @@ from reportportal_client import ClientType, OutputType
 from reportportal_client.helpers import to_bool
 from reportportal_client.logs import MAX_LOG_BATCH_PAYLOAD_SIZE
 
-
 ATTRIBUTES_SEPARATOR = ";"
 
 
 def normalize_attributes(attributes: Optional[Any]) -> Optional[Any]:
+    """Split a string of attributes into a deduplicated list of attributes."""
     if not attributes:
         return attributes
     if not isinstance(attributes, str):
