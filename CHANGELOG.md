@@ -1,10 +1,6 @@
 # Changelog
 
 ## [Unreleased]
-### Changed
-- Client version updated to [5.7.6](https://github.com/reportportal/client-Python/releases/tag/5.7.6)
-
-## [5.6.7]
 ### Added
 - Attribute splitting if they are passed as `str` in configs, by @HardNorth
 
