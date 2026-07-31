@@ -1,6 +1,8 @@
 # Changelog
 
 ## [Unreleased]
+### Changed
+- Client version updated to [5.7.9](https://github.com/reportportal/client-Python/releases/tag/5.7.9), by @ableeck
 
 ## [5.6.9]
 ### Changed
