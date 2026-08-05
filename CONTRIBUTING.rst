@@ -66,7 +66,7 @@ Here is a simple overview below:
 
     $ git clone git@github.com:YOUR_GITHUB_USERNAME/agent-python-pytest.git
     $ cd agent-python-pytest
-    # now, create your own branch off the "master":
+    # now, create your own branch off the "develop":
 
         $ git checkout -b your-bugfix-branch-name
 
@@ -96,24 +96,24 @@ Here is a simple overview below:
 
 #. Run all the tests
 
-   You need to have Python 3.6 available in your system.  Now
+   You need to have Python 3.9 available in your system.  Now
    running tests is as simple as issuing this command::
 
-    $ tox -e pep,py36
+    $ tox -e pep,py39
 
-   This command will run tests via the "tox" tool against Python 3.6
+   This command will run tests via the "tox" tool against Python 3.9
    and also perform code style checks.
 
 #. You can now edit your local working copy and run the tests again as necessary. Please follow PEP-8 recommendations.
 
-   You can pass different options to ``tox``. For example, to run tests on Python 3.6 and pass options to pytest
+   You can pass different options to ``tox``. For example, to run tests on Python 3.9 and pass options to pytest
    (e.g. enter pdb on failure) to pytest you can do::
 
-    $ tox -e py36 -- --pdb
+    $ tox -e py39 -- --pdb
 
-   Or to only run tests in a particular test module on Python 3.6::
+   Or to only run tests in a particular test module on Python 3.9::
 
-    $ tox -e py36 -- tests/test_service.py
+    $ tox -e py39 -- tests/test_service.py
 
 
    When committing, ``pre-commit`` will re-format the files if necessary.
@@ -143,4 +143,4 @@ Here is a simple overview below:
     compare: your-branch-name
 
     base-fork: reportportal/agent-python-pytest
-    base: master
+    base: develop
