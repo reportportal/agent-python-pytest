@@ -17,7 +17,7 @@ import os
 
 from setuptools import setup
 
-__version__ = "5.6.10"
+__version__ = "5.6.11"
 
 
 def read_file(fname):
