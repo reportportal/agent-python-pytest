@@ -149,6 +149,10 @@ def pytest_sessionfinish(session: Session) -> None:
         return
 
     config.py_test_service.finish_suites()
+
+    if hasattr(config.py_test_service, 'cleanup_retry_state'):
+        config.py_test_service.cleanup_retry_state()
+
     if is_control(config):
         config.py_test_service.finish_launch()
 
@@ -232,7 +236,7 @@ def pytest_runtestloop(session: Session) -> Generator[None, Any, None]:
 
 
 # noinspection PyProtectedMember
-@pytest.hookimpl(hookwrapper=True)
+@pytest.hookimpl(hookwrapper=True, trylast=True)
 def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
     """Control start and finish of pytest items.
 
@@ -271,6 +275,10 @@ def pytest_runtest_protocol(item: Item) -> Generator[None, Any, None]:
 def pytest_runtest_makereport(item: Item) -> Generator[None, Any, None]:
     """Change runtest_makereport function.
 
+    Enhanced to detect and handle pytest-rerunfailures retry transitions.
+    Monitors execution_count changes to identify when a test is retried,
+    allowing each attempt to be reported as a separate item.
+
     :param item: pytest.Item
     :return: None
     """
@@ -279,6 +287,7 @@ def pytest_runtest_makereport(item: Item) -> Generator[None, Any, None]:
         return
     report = result.get_result()
     service = item.config.py_test_service
+    service.handle_retry_transition(item, report)
     service.process_results(item, report)
 
 

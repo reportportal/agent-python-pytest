@@ -198,6 +198,8 @@ class PyTestService:
         self._launch_id = None
         self.agent_name = "pytest-reportportal"
         self.agent_version = get_package_version(self.agent_name) or "None"
+        self._retry_tracker: dict[str, dict[str, Any]] = {}
+        self._active_leaves: dict[str, dict[str, Any]] = {}
         self.ignored_attributes = []
         self.parent_item_id = None
         self.rp = None
@@ -457,12 +459,31 @@ class PyTestService:
                 self._merge_leaf_types(child_leaf, leaf_types, separator)
 
     def _merge_dirs(self, test_tree: dict[str, Any]) -> None:
+        """Merge directory and file leaves using configured separator.
+
+        :param test_tree: Test tree structure to merge
+        """
         self._merge_leaf_types(test_tree, {LeafType.DIR, LeafType.FILE}, self._config.rp_dir_path_separator)
 
-    def _merge_code_with_separator(self, test_tree: dict[str, Any], separator: str) -> None:
-        self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE, LeafType.DIR, LeafType.SUITE}, separator)
+    def _merge_code_with_separator(self, test_tree: dict[str, Any], separator: str, is_bdd: bool = False) -> None:
+        """Merge code and suite leaves, respecting hierarchy flags.
+
+        :param test_tree: Test tree structure to merge
+        :param separator: Separator to use when merging names
+        :param is_bdd: If True, always merge FILE for BDD scenarios. Otherwise respect rp_hierarchy_test_file
+        """
+        types_to_merge = {LeafType.CODE, LeafType.SUITE}
+        if is_bdd or not self._config.rp_hierarchy_test_file:
+            types_to_merge.add(LeafType.FILE)
+        if not self._config.rp_hierarchy_dirs:
+            types_to_merge.add(LeafType.DIR)
+        self._merge_leaf_types(test_tree, types_to_merge, separator)
 
     def _merge_code(self, test_tree: dict[str, Any]) -> None:
+        """Merge code and suite leaves using double colon separator.
+
+        :param test_tree: Test tree structure to merge
+        """
         self._merge_code_with_separator(test_tree, "::")
 
     def _build_item_paths(self, leaf: dict[str, Any], path: list[dict[str, Any]]) -> None:
@@ -874,6 +895,8 @@ class PyTestService:
             "parameters": leaf.get("parameters", None),
             "parent_item_id": self._lock(leaf["parent"], lambda p: p["item_id"]),
             "test_case_id": leaf.get("test_case_id", None),
+            "retry": leaf.get("retry", False),
+            "retry_of": leaf.get("retry_of", None),
         }
         return payload
 
@@ -906,7 +929,46 @@ class PyTestService:
             return
 
         self._create_suite_path(test_item)
-        current_leaf = self._tree_path[test_item][-1]
+
+        item_key = self._get_item_key(test_item)
+        current_execution = self._detect_retry_attempt(test_item)
+
+        if item_key in self._active_leaves:
+            current_leaf = self._active_leaves[item_key]
+            # If the leaf is already finished, this is a retry attempt
+            if current_leaf.get("exec") == ExecStatus.FINISHED:
+                # Finish the previous attempt (ensure it's marked as complete)
+                # Note: it should already be finished, but ensure consistency
+                prev_leaf = current_leaf
+                if prev_leaf.get("item_id") and prev_leaf.get("exec") == ExecStatus.FINISHED:
+                    # Previous attempt is properly finished, proceed with retry
+                    pass
+
+                # Get tracker information for retry_of reference
+                tracker = self._retry_tracker.get(item_key, {"attempts": []})
+                retry_of = tracker["attempts"][-1]["item_id"] if tracker["attempts"] else None
+
+                # Create new retry leaf with proper structure
+                tree_path_leaf = self._tree_path[test_item][-1]
+                retry_leaf = {
+                    **tree_path_leaf,
+                    "item_id": None,
+                    "exec": ExecStatus.CREATED,
+                    "retry": True,
+                    "retry_of": retry_of,
+                }
+                self._active_leaves[item_key] = retry_leaf
+                current_leaf = retry_leaf
+            elif current_leaf["item_id"] is not None:
+                # Leaf is in progress, don't start again (duplicate protection)
+                return
+            # else: leaf exists but not started yet, fall through to start it
+
+        else:
+            # First time starting this item
+            current_leaf = self._tree_path[test_item][-1]
+
+        # Start the item (first execution or retry attempt)
         self._process_metadata_item_start(current_leaf)
         item_id = self._start_step(self._build_start_step_rq(current_leaf))
         current_leaf["item_id"] = item_id
@@ -925,7 +987,12 @@ class PyTestService:
         if PYTEST_BDD and _is_pytest_bdd_scenario(test_item.location[0]):
             return
 
-        leaf = self._tree_path[test_item][-1]
+        item_key = self._get_item_key(test_item)
+        if item_key in self._active_leaves:
+            leaf = self._active_leaves[item_key]
+        else:
+            leaf = self._tree_path[test_item][-1]
+
         # Defining test result
         if report.when == "setup":
             leaf["status"] = "PASSED"
@@ -945,12 +1012,18 @@ class PyTestService:
             issue = NOT_ISSUE
         if status == "PASSED":
             issue = None
+        # Ensure attributes is always set (defaults to empty list if not present)
+        attributes = leaf.get("attributes")
+        if attributes is None:
+            attributes = []
         payload = {
-            "attributes": leaf.get("attributes", None),
+            "attributes": attributes,
             "end_time": datetime.now(tz=timezone.utc),
             "status": status,
             "issue": issue,
             "item_id": leaf["item_id"],
+            "retry": leaf.get("retry", False),
+            "retry_of": leaf.get("retry_of", None),
         }
         return payload
 
@@ -992,6 +1065,70 @@ class PyTestService:
         self._lock(leaf["parent"], lambda p: self._proceed_suite_finish(p))
         self._finish_parents(leaf["parent"])
 
+    def _get_item_key(self, test_item: Item) -> str:
+        """Get unique key for tracking an item across retries."""
+        return str(id(test_item))
+
+    def _detect_retry_attempt(self, test_item: Item) -> int:
+        """Detect current retry attempt number from execution_count."""
+        return getattr(test_item, 'execution_count', 1)
+
+    def handle_retry_transition(self, test_item: Item, report) -> None:
+        """Detect and handle retry transitions when test is retried.
+
+        Monitors execution_count to track retry attempts and update the tracker.
+        Note: Item creation/starting is now handled in start_pytest_item to ensure
+        proper lifecycle and avoid race conditions with setup phase.
+        """
+        if report.when not in ("setup", "call"):
+            return
+
+        current_execution = self._detect_retry_attempt(test_item)
+        item_key = self._get_item_key(test_item)
+
+        if item_key not in self._retry_tracker:
+            self._retry_tracker[item_key] = {
+                "last_reported_execution_count": 0,
+                "attempts": []
+            }
+
+        tracker = self._retry_tracker[item_key]
+
+        # Only update tracker for new execution counts
+        if current_execution > tracker["last_reported_execution_count"]:
+            if tracker["last_reported_execution_count"] == 0 and current_execution == 1:
+                # First execution: register in tracker
+                tree_path_leaf = self._tree_path[test_item][-1]
+                # Ensure the leaf is in active_leaves (start_pytest_item should have started it)
+                if item_key not in self._active_leaves:
+                    self._active_leaves[item_key] = tree_path_leaf
+
+                tracker["attempts"].append({
+                    "execution_count": 1,
+                    "item_id": tree_path_leaf.get("item_id")
+                })
+                tracker["last_reported_execution_count"] = 1
+            elif current_execution > 1:
+                # Retry execution: item should already be created by start_pytest_item
+                # Just register it in the tracker
+                if item_key in self._active_leaves:
+                    retry_leaf = self._active_leaves[item_key]
+                    # Only record if the item has been started (has item_id)
+                    if retry_leaf.get("item_id"):
+                        # Avoid duplicate entries if called multiple times for same execution
+                        last_attempt_execution = tracker["attempts"][-1]["execution_count"] if tracker["attempts"] else 0
+                        if last_attempt_execution < current_execution:
+                            tracker["attempts"].append({
+                                "execution_count": current_execution,
+                                "item_id": retry_leaf["item_id"]
+                            })
+                        tracker["last_reported_execution_count"] = current_execution
+
+    def cleanup_retry_state(self) -> None:
+        """Clean up retry tracking state after session ends."""
+        self._retry_tracker.clear()
+        self._active_leaves.clear()
+
     @check_rp_enabled
     def finish_pytest_item(self, test_item: Optional[Item] = None) -> None:
         """Finish pytest_item.
@@ -1002,7 +1139,12 @@ class PyTestService:
         if test_item is None:
             return
 
-        leaf = self._tree_path[test_item][-1]
+        item_key = self._get_item_key(test_item)
+        if item_key in self._active_leaves:
+            leaf = self._active_leaves[item_key]
+        else:
+            leaf = self._tree_path[test_item][-1]
+
         self._process_metadata_item_finish(leaf)
 
         if PYTEST_BDD and _is_pytest_bdd_scenario(test_item.location[0]):
@@ -1011,7 +1153,13 @@ class PyTestService:
 
         self._finish_step(self._build_finish_step_rq(leaf))
         leaf["exec"] = ExecStatus.FINISHED
-        self._finish_parents(leaf)
+
+        current_execution = self._detect_retry_attempt(test_item)
+        tracker = self._retry_tracker.get(item_key, {})
+        last_reported = tracker.get("last_reported_execution_count", 0)
+
+        if current_execution == last_reported or current_execution == 1:
+            self._finish_parents(leaf)
 
     def _get_items(self, exec_status) -> list[Item]:
         return [k for k, v in self._tree_path.items() if v[-1]["exec"] == exec_status]
@@ -1084,7 +1232,11 @@ class PyTestService:
             LOGGER.warning(
                 "Incorrect loglevel = %s. Force set to INFO. " "Available levels: %s.", log_level, KNOWN_LOG_LEVELS
             )
-        item_id = self._tree_path[test_item][-1]["item_id"]
+        item_key = self._get_item_key(test_item)
+        if item_key in self._active_leaves:
+            item_id = self._active_leaves[item_key]["item_id"]
+        else:
+            item_id = self._tree_path[test_item][-1]["item_id"]
         if PYTEST_BDD:
             if not item_id:
                 # Check if we are actually a BDD scenario
@@ -1185,7 +1337,7 @@ class PyTestService:
         self._generate_names(root_leaf)
         if not self._config.rp_hierarchy_code:
             try:
-                self._merge_code_with_separator(root_leaf, " - ")
+                self._merge_code_with_separator(root_leaf, " - ", is_bdd=True)
             except Exception as e:
                 LOGGER.exception(e)
         self._build_item_paths(root_leaf, [])

@@ -35,6 +35,7 @@ HIERARCHY_TESTS = (
     + [["examples/hierarchy/inner/test_inner_simple.py"]] * 7
     + [["examples/hierarchy/test_in_class_in_class.py"]]
     + [["examples/test_simple.py"]] * 2
+    + [["examples/hierarchy/inner/test_inner_simple.py"]]
 )
 
 # noinspection PyTypeChecker
@@ -65,6 +66,10 @@ HIERARCHY_TEST_VARIABLES = [
     dict(**utils.DEFAULT_VARIABLES),
     dict({"rp_hierarchy_test_file": False}, **utils.DEFAULT_VARIABLES),
     dict({"rp_hierarchy_test_file": False, "rp_hierarchy_dirs_level": 1}, **utils.DEFAULT_VARIABLES),
+    dict(
+        {"rp_hierarchy_dirs": True, "rp_hierarchy_test_file": True, "rp_hierarchy_code": False},
+        **utils.DEFAULT_VARIABLES,
+    ),
 ]
 
 HIERARCHY_TEST_EXPECTED_ITEMS = [
@@ -271,6 +276,13 @@ HIERARCHY_TEST_EXPECTED_ITEMS = [
     ],
     [{"name": "examples::test_simple", "item_type": "STEP", "parent_item_id": lambda x: x is None}],
     [{"name": "test_simple", "item_type": "STEP", "parent_item_id": lambda x: x is None}],
+    [
+        {"name": "examples", "item_type": "SUITE", "parent_item_id": lambda x: x is None},
+        {"name": "hierarchy", "item_type": "SUITE", "parent_item_id": lambda x: x.startswith("examples")},
+        {"name": "inner", "item_type": "SUITE", "parent_item_id": lambda x: x.startswith("hierarchy")},
+        {"name": "test_inner_simple.py", "item_type": "SUITE", "parent_item_id": lambda x: x.startswith("inner")},
+        {"name": "test_simple", "item_type": "STEP", "parent_item_id": lambda x: x.startswith("test_inner_simple.py")},
+    ],
 ]
 
 HIERARCHY_TEST_PARAMETERS = [

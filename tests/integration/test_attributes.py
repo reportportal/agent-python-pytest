@@ -121,7 +121,15 @@ def test_custom_runtime_attribute_report(mock_client_init):
     assert start_step_call_args["attributes"] == [{"key": "scope", "value": "smoke"}]
 
     finish_call_args = mock_client.finish_test_item.call_args_list
-    finish_step_call_args = finish_call_args[-1][1]
+    # Find the test item finish call (has attributes), not suite finish (no attributes)
+    finish_step_call_args = None
+    for call in finish_call_args:
+        if "attributes" in call[1]:
+            finish_step_call_args = call[1]
+            break
+
+    assert finish_step_call_args is not None, "Could not find finish_test_item call with attributes"
+
     actual_attributes = finish_step_call_args["attributes"]
     attribute_tuple_list = [(kv.get("key"), kv["value"]) for kv in actual_attributes]
 
