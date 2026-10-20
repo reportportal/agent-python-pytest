@@ -1,1 +1,1 @@
-reportportal-client==5.7.10
+reportportal-client==5.7.11
