@@ -17,7 +17,7 @@ import os
 
 from setuptools import setup
 
-__version__ = "5.6.11"
+__version__ = "5.6.12"
 
 
 def read_file(fname):
@@ -52,6 +52,7 @@ setup(
         "Programming Language :: Python :: 3.12",
         "Programming Language :: Python :: 3.13",
         "Programming Language :: Python :: 3.14",
+        "Programming Language :: Python :: 3.15",
     ],
     entry_points={
         "pytest11": [
