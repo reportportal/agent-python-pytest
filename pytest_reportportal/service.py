@@ -457,12 +457,31 @@ class PyTestService:
                 self._merge_leaf_types(child_leaf, leaf_types, separator)
 
     def _merge_dirs(self, test_tree: dict[str, Any]) -> None:
+        """Merge directory and file leaves using configured separator.
+
+        :param test_tree: Test tree structure to merge
+        """
         self._merge_leaf_types(test_tree, {LeafType.DIR, LeafType.FILE}, self._config.rp_dir_path_separator)
 
-    def _merge_code_with_separator(self, test_tree: dict[str, Any], separator: str) -> None:
-        self._merge_leaf_types(test_tree, {LeafType.CODE, LeafType.FILE, LeafType.DIR, LeafType.SUITE}, separator)
+    def _merge_code_with_separator(self, test_tree: dict[str, Any], separator: str, is_bdd: bool = False) -> None:
+        """Merge code and suite leaves, respecting hierarchy flags.
+
+        :param test_tree: Test tree structure to merge
+        :param separator: Separator to use when merging names
+        :param is_bdd: If True, always merge FILE for BDD scenarios. Otherwise respect rp_hierarchy_test_file
+        """
+        types_to_merge = {LeafType.CODE, LeafType.SUITE}
+        if is_bdd or not self._config.rp_hierarchy_test_file:
+            types_to_merge.add(LeafType.FILE)
+        if not self._config.rp_hierarchy_dirs:
+            types_to_merge.add(LeafType.DIR)
+        self._merge_leaf_types(test_tree, types_to_merge, separator)
 
     def _merge_code(self, test_tree: dict[str, Any]) -> None:
+        """Merge code and suite leaves using double colon separator.
+
+        :param test_tree: Test tree structure to merge
+        """
         self._merge_code_with_separator(test_tree, "::")
 
     def _build_item_paths(self, leaf: dict[str, Any], path: list[dict[str, Any]]) -> None:
@@ -1082,8 +1101,11 @@ class PyTestService:
         """
         if log_level not in KNOWN_LOG_LEVELS:
             LOGGER.warning(
-                "Incorrect loglevel = %s. Force set to INFO. " "Available levels: %s.", log_level, KNOWN_LOG_LEVELS
+                "Incorrect loglevel = %s. Force set to INFO. Available levels: %s.",
+                log_level,
+                KNOWN_LOG_LEVELS,
             )
+            log_level = "INFO"
         item_id = self._tree_path[test_item][-1]["item_id"]
         if PYTEST_BDD:
             if not item_id:
@@ -1181,13 +1203,13 @@ class PyTestService:
                 background_leaf = self._create_leaf(LeafType.NESTED, rule_leaf, background)
                 children_leafs[background] = background_leaf
 
-        self._remove_file_names(root_leaf)
         self._generate_names(root_leaf)
         if not self._config.rp_hierarchy_code:
             try:
-                self._merge_code_with_separator(root_leaf, " - ")
+                self._merge_code_with_separator(root_leaf, " - ", is_bdd=True)
             except Exception as e:
                 LOGGER.exception(e)
+        self._remove_file_names(root_leaf)
         self._build_item_paths(root_leaf, [])
 
     def finish_bdd_scenario(self, feature: Feature, scenario: Scenario) -> None:
@@ -1403,10 +1425,10 @@ class PyTestService:
         self.parent_item_id = self._config.rp_parent_item_id
         self.ignored_attributes = list(set(self._config.rp_ignore_attributes or []).union({"parametrize"}))
         LOGGER.debug(
-            "ReportPortal - Init service: endpoint=%s, " "project=%s, api_key=%s",
+            "ReportPortal - Init service: endpoint=%s, project=%s, api_key_set=%s",
             self._config.rp_endpoint,
             self._config.rp_project,
-            self._config.rp_api_key,
+            bool(self._config.rp_api_key),
         )
         launch_id = self._launch_id
         if self._config.rp_launch_uuid:
