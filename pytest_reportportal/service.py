@@ -80,7 +80,6 @@ from reportportal_client.helpers import dict_to_payload, gen_attributes, get_lau
 
 LOGGER = logging.getLogger(__name__)
 
-KNOWN_LOG_LEVELS = ("TRACE", "DEBUG", "INFO", "WARN", "ERROR")
 ROOT_DIR: str = str(os.path.abspath(curdir))
 PYTEST_MARKS_IGNORE: set[str] = {"parametrize", "usefixtures", "filterwarnings"}
 NOT_ISSUE: Issue = Issue("NOT_ISSUE")
@@ -1080,10 +1079,6 @@ class PyTestService:
         :param attachment: attachment file
         :return: None
         """
-        if log_level not in KNOWN_LOG_LEVELS:
-            LOGGER.warning(
-                "Incorrect loglevel = %s. Force set to INFO. " "Available levels: %s.", log_level, KNOWN_LOG_LEVELS
-            )
         item_id = self._tree_path[test_item][-1]["item_id"]
         if PYTEST_BDD:
             if not item_id:

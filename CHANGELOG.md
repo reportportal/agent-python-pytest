@@ -5,6 +5,8 @@
 - Official `Python 3.15` support, by @HardNorth
 ### Changed
 - Client version updated to [5.7.11](https://github.com/reportportal/client-Python/releases/tag/5.7.11), by @HardNorth
+### Removed
+- Unknown Log level warning/resetting logic, since the level can be custom, by @HardNorth
 
 ## [5.6.11]
 ### Changed
